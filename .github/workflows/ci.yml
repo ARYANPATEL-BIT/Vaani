@@ -1,0 +1,47 @@
+# CI — lint and test the backend on every pull request into dev or main.
+#
+# The job installs uv, restores the EXACT locked dependencies (uv.lock) so the
+# run is reproducible, then runs ruff (lint + format check) and pytest.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # All steps run inside backend/, where pyproject.toml and uv.lock live.
+        working-directory: backend
+    steps:
+      # Check out the repository at the PR's commit.
+      - uses: actions/checkout@v4
+
+      # Install the uv package manager, pinned so CI matches local development.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.28"
+
+      # Ensure the Python version from .python-version is available.
+      - name: Install Python
+        run: uv python install
+
+      # Create the environment from the lockfile exactly. --frozen fails the
+      # build if uv.lock is out of date, catching un-committed dependency drift.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Lint: catch style and bug-prone patterns.
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      # Formatting must match ruff's formatter.
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      # Run the test suite.
+      - name: Pytest
+        run: uv run pytest

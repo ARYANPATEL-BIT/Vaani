@@ -1,0 +1,31 @@
+# .gitignore — files that must never enter version control.
+# Rationale lives in docs/learning/01-repo-setup.md.
+
+# --- Secrets: real environment files, but keep the committed template ---
+.env
+.env.*
+!.env.example
+
+# --- Python bytecode and build artifacts ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Virtual environments (uv creates .venv) ---
+.venv/
+venv/
+env/
+
+# --- Tool caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- OS clutter ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.claude/settings.local.json
