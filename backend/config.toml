@@ -1,0 +1,19 @@
+# config.toml — non-secret runtime settings for the Vaani backend.
+#
+# Everything here is safe to commit and to read in a code review. Secrets
+# (API keys, tokens) NEVER live in this file; they arrive only from
+# environment variables. See .env.example for the secret names.
+#
+# This file is read into the typed Settings object in vaani/config.py.
+
+# Human-readable application name (used as the FastAPI/OpenAPI title).
+app_name = "vaani"
+
+[audio]
+# Samples of audio captured per second. 16000 Hz (16 kHz) is the rate the
+# speech models in this project expect.
+sample_rate = 16000
+
+# Length of one audio "frame" in milliseconds. Audio is processed in small
+# fixed-size chunks; 20 ms is a common frame size for voice pipelines.
+frame_ms = 20
