@@ -1,0 +1,59 @@
+/* ConversationPage layout — functional, minimal, readable. */
+
+.conversation-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.conversation-page h1 {
+  font-size: 2.5rem;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  color: var(--text);
+  margin-bottom: 32px;
+}
+
+.status-panel {
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.status-row + .status-row {
+  border-top: 1px solid var(--border);
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.status-value {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+}
+
+.status-idle {
+  color: var(--text);
+}
+
+.hint {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-style: italic;
+}
