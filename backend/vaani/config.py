@@ -32,8 +32,17 @@ class AudioSettings(BaseModel):
 
     # Samples captured per second (Hz). 16 kHz is what the speech models expect.
     sample_rate: int = 16000
+    # Number of audio channels. 1 = mono.
+    channels: int = 1
     # Length of one audio frame in milliseconds.
     frame_ms: int = 20
+
+
+class GatewaySettings(BaseModel):
+    """WebSocket gateway parameters, grouped under [gateway] in config.toml."""
+
+    # How often the gateway logs the per-interval valid-frame count, in seconds.
+    frame_log_interval_s: float = 1.0
 
 
 class Settings(BaseSettings):
@@ -58,6 +67,7 @@ class Settings(BaseSettings):
     # Non-secret settings (filled from config.toml, overridable by env).
     app_name: str = "vaani"
     audio: AudioSettings = AudioSettings()
+    gateway: GatewaySettings = GatewaySettings()
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
     # the value out of logs and reprs unless explicitly unwrapped.
