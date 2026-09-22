@@ -18,6 +18,13 @@ export const API_BASE_URL =
 export const WS_URL =
   import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/audio';
 
+/**
+ * WebSocket URL for the session endpoint (backend/vaani/gateway.py).
+ * This is the correct endpoint used from Day 2 onward per docs/contracts.md.
+ */
+export const WS_SESSION_URL =
+  import.meta.env.VITE_WS_SESSION_URL || 'ws://localhost:8000/ws/session';
+
 // --- Audio parameters (must match backend/config.toml) ---
 
 /** Target sample rate in Hz. Speech models expect 16 kHz. */
