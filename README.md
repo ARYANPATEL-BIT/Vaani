@@ -6,10 +6,10 @@ context into a lip-synced video in the operator's cloned voice.
 This repository has two halves:
 
 - `backend/` — the Python (FastAPI) gateway. Owned by Aryan.
-- `frontend/` — the React app. Owned by Samyak. (Placeholder for now.)
+- `frontend/` — the React app. Owned by Samyak.
 
 The full specification lives in `docs/`. Learning documents that explain each
-piece of the backend, from scratch, live in `docs/learning/`.
+piece of the project, from scratch, live in `docs/learning/`.
 
 ## Requirements
 
@@ -18,6 +18,7 @@ piece of the backend, from scratch, live in `docs/learning/`.
   backend. Install it once:
   - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
   - Windows (PowerShell): `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
+- **Node.js 18+** and **npm** — runtime and package manager for the frontend.
 
 ## Running the backend
 
@@ -42,6 +43,29 @@ The server listens on <http://127.0.0.1:8000> by default. Check it is alive:
 ```bash
 curl http://127.0.0.1:8000/health
 # {"status":"ok","version":"0.1.0"}
+```
+
+## Running the frontend
+
+All frontend commands run from the `frontend/` directory.
+
+```bash
+cd frontend
+
+# Install dependencies.
+npm install
+
+# Start the Vite development server with HMR.
+npm run dev
+```
+
+The app opens at <http://localhost:5173> by default.
+
+To run lint and production build:
+
+```bash
+npm run lint     # run ESLint
+npm run build    # produce production bundle in dist/
 ```
 
 ## Running the tests and lint
