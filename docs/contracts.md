@@ -35,15 +35,15 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-### 2.1 Client → Server: Audio Frames (Proposed)
+### 2.1 Client → Server: Audio Frames (Confirmed / Client Implemented)
 
-The frontend captures microphone audio and sends it as binary
+The frontend captures microphone audio using AudioWorklet and sends it as binary
 WebSocket messages.
 
 | Parameter       | Value                                  |
 |-----------------|----------------------------------------|
 | Message type    | Binary                                 |
-| Encoding        | Raw PCM, 16-bit signed little-endian (Int16) |
+| Encoding        | Raw PCM, 16-bit signed little-endian (Int16LE) |
 | Sample rate     | 16,000 Hz                              |
 | Channels        | 1 (mono)                               |
 | Frame duration  | 20 ms                                  |
@@ -52,19 +52,15 @@ WebSocket messages.
 | Byte order      | Little-endian                          |
 | Expected rate   | ~50 frames/second                      |
 
-Each binary message is exactly 640 bytes. The backend can read them as
-a flat `Int16Array` or equivalent.
-
-> **Needs Aryan's confirmation:** Is raw PCM Int16LE the preferred
-> encoding, or does the backend expect Float32? Int16LE is more
-> compact (640 bytes vs 1280 bytes per frame) and is the standard
-> input format for Silero VAD and faster-whisper.
+Each binary message is exactly 640 bytes. The frontend converts Float32 Web Audio
+samples directly to Int16LE inside the dedicated AudioWorklet thread and dispatches
+them without copying overhead.
 
 ### 2.2 Server → Client: Audio Playback (Planned)
 
-The backend will stream synthesised audio back. Format TBD.
+The backend will stream synthesised audio back. Format TBD (Wednesday).
 
-### 2.3 Control Messages (Proposed)
+### 2.3 Control Messages (Agreed)
 
 Control messages use JSON text frames (not binary).
 
@@ -82,10 +78,6 @@ Control messages use JSON text frames (not binary).
 | `session.ready`| `{ "type": "session.ready" }`    | Backend is ready to receive audio |
 | `error`        | `{ "type": "error", "message": "..." }` | Unrecoverable error        |
 
-> **Needs Aryan's confirmation:** Are these the right session
-> lifecycle messages? Additional types (flush, interrupt, transcript)
-> will be added in later weeks.
-
 ---
 
 ## 3. Future Contracts (Planned)
@@ -101,6 +93,8 @@ These will be specified as their implementation days arrive:
 
 ## Changelog
 
-| Date       | Author  | Change                              |
-|------------|---------|-------------------------------------|
-| 2026-09-22 | Samyak  | Initial draft: audio frame format, session lifecycle |
+| Date       | Author  | Change                                                         |
+|------------|---------|----------------------------------------------------------------|
+| 2026-09-22 | Samyak  | Initial draft: audio frame format, session lifecycle           |
+| 2026-09-23 | Samyak  | Day 2 implementation: Int16LE 640B frames via AudioWorklet     |
+
