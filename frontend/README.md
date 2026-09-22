@@ -70,3 +70,7 @@ Routes are defined in `src/router.jsx` using react-router-dom v7.
 
 Future routes (enrolment, profiles, settings) are commented in the
 router and will be added as lazy-loaded imports.
+Placeholder. The React frontend is owned by Samyak and lives here.
+
+Nothing in this directory is built yet. See the repository root `README.md`
+for how to run the backend, and `docs/` for the project specification.
