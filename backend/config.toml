@@ -14,6 +14,15 @@ app_name = "vaani"
 # speech models in this project expect.
 sample_rate = 16000
 
+# Number of audio channels. 1 = mono. The voice pipeline is mono end to end.
+channels = 1
+
 # Length of one audio "frame" in milliseconds. Audio is processed in small
 # fixed-size chunks; 20 ms is a common frame size for voice pipelines.
 frame_ms = 20
+
+[gateway]
+# How often (in seconds) the WebSocket gateway logs how many valid audio
+# frames arrived in the last interval. 1.0 gives the "about 50 frames per
+# second" heartbeat. Tests override this to a tiny value to avoid real waits.
+frame_log_interval_s = 1.0
