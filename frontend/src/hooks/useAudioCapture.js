@@ -8,11 +8,12 @@
  * 4. Connecting the microphone stream into the AudioWorklet pipeline.
  * 5. Managing the WebSocket lifecycle (session.start, session.ready, streaming binary frames, session.end).
  * 6. Live telemetry: frames sent count, instantaneous FPS calculation, status indicators.
- * 7. Clean teardown and resource deallocation on stop or unmount.
+ * 7. Routing binary server messages (future playback audio) to an optional callback.
+ * 8. Clean teardown and resource deallocation on stop or unmount.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { AUDIO_SAMPLE_RATE, WS_URL } from '../config.js';
+import { AUDIO_SAMPLE_RATE, AUDIO_FRAME_MS, WS_SESSION_URL } from '../config.js';
 
 export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false);
@@ -94,8 +95,13 @@ export function useAudioCapture() {
 
   /**
    * Start microphone capture and WebSocket streaming.
+   *
+   * @param {function(ArrayBuffer): void} [onBinaryMessage] - optional callback
+   *   invoked for every binary WebSocket message received from the server.
+   *   Day 3 passes the playback queue's enqueue() here so audio sent back by
+   *   the server is played automatically.
    */
-  const startCapture = useCallback(async () => {
+  const startCapture = useCallback(async (onBinaryMessage) => {
     // Guard against multiple concurrent capture pipelines
     if (isCapturing) {
       return;
@@ -175,28 +181,50 @@ export function useAudioCapture() {
       muteNode.connect(audioCtx.destination);
 
       // Step E: Connect WebSocket
+      // Endpoint is /ws/session per backend/vaani/gateway.py and docs/contracts.md.
       setWsStatus('connecting');
-      const socket = new WebSocket(WS_URL);
+      const socket = new WebSocket(WS_SESSION_URL);
       socket.binaryType = 'arraybuffer';
       socketRef.current = socket;
 
       socket.onopen = () => {
         setWsStatus('connected');
-        // Initiate handshake per docs/contracts.md
-        socket.send(JSON.stringify({ type: 'session.start' }));
+        // session.start requires the audio params so the backend can validate
+        // our frame format before accepting any binary data (protocol.py §SessionStart).
+        socket.send(
+          JSON.stringify({
+            type: 'session.start',
+            persona: 'default',
+            audio: {
+              sample_rate: AUDIO_SAMPLE_RATE,
+              channels: 1,
+              frame_ms: AUDIO_FRAME_MS,
+            },
+          }),
+        );
       };
 
       socket.onmessage = (event) => {
+        // Binary messages are audio chunks sent back by the server (playback).
+        // Route them to the caller's callback (e.g. the playback queue's enqueue).
+        if (event.data instanceof ArrayBuffer) {
+          if (typeof onBinaryMessage === 'function') {
+            onBinaryMessage(event.data);
+          }
+          return;
+        }
+        // Text messages are JSON control messages.
         try {
-          if (typeof event.data === 'string') {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'session.ready') {
-              isSessionReadyRef.current = true;
-              setWsStatus('ready');
-            }
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'session.started') {
+            // Backend sends 'session.started' (with session_id) per protocol.py.
+            isSessionReadyRef.current = true;
+            setWsStatus('ready');
+          } else if (msg.type === 'error') {
+            console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
           }
         } catch (parseErr) {
-          console.warn('[useAudioCapture] Non-JSON message from server:', parseErr);
+          console.warn('[useAudioCapture] Unparseable server message:', parseErr);
         }
       };
 

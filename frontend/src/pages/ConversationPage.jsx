@@ -1,18 +1,22 @@
 /**
  * ConversationPage — main voice conversation interface.
  *
- * Implements Week 1, Day 2 microphone capture:
- * - Prompts user for microphone access on explicit click.
- * - Captures 16 kHz mono audio using AudioWorklet (audio-processor.js).
- * - Packages audio into 20 ms Int16 PCM frames (320 samples / 640 bytes).
- * - Streams binary frames over WebSocket to Aryan's gateway.
- * - Telemetry panel displaying frame count, live frame rate (~50 fps), and connection status.
+ * Week 1, Day 2: microphone capture → WebSocket streaming (16 kHz Int16LE PCM).
+ * Week 1, Day 3: incoming server audio → playback queue → gapless speaker output.
+ *
+ * The page owns both hooks. It passes the playback queue's enqueue() into
+ * startCapture() so the hook wires binary server messages directly to playback
+ * without the component needing to inspect each WebSocket event itself.
  */
 
 import { useAudioCapture } from '../hooks/useAudioCapture.js';
+import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
 import './ConversationPage.css';
 
 export default function ConversationPage() {
+  // Playback queue: enqueue() accepts an ArrayBuffer and plays it gaplessly.
+  const { enqueue } = usePlaybackQueue();
+
   const {
     isCapturing,
     micStatus,
@@ -76,7 +80,8 @@ export default function ConversationPage() {
           <button
             type="button"
             className="action-btn start-btn"
-            onClick={startCapture}
+            // Pass enqueue so binary server messages are routed to the playback queue.
+            onClick={() => startCapture(enqueue)}
             id="start-mic-btn"
           >
             Start Microphone
@@ -128,10 +133,19 @@ export default function ConversationPage() {
             {fps} fps <span className="target-fps">(target ~50)</span>
           </span>
         </div>
+
+        <div className="status-row">
+          <span className="status-label">Playback</span>
+          <span className={`status-value ${wsStatus === 'ready' ? 'status-active' : 'status-idle'}`}>
+            <span className="status-dot" />
+            {wsStatus === 'ready' ? 'Playback ready' : 'Waiting for session'}
+          </span>
+        </div>
       </section>
 
       <p className="hint">
         Audio is processed on a dedicated AudioWorklet thread and streamed as 20 ms binary frames.
+        Incoming server audio is scheduled gaplessly via the Web Audio clock.
       </p>
     </main>
   );
