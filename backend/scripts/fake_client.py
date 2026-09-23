@@ -6,12 +6,18 @@ frames at real-time pace (one every 20 ms), then ends the session. The audio is
 a pure sine tone generated with only the standard library (`math`, `struct`), so
 no audio files or extra packages are needed.
 
+Because the server now ECHOES every frame back (day 3), the client also runs a
+receiver coroutine alongside the sender: websockets lets us send and receive on
+the same connection at once. The receiver counts the echoed frames and prints
+the audio.start / audio.end control messages that bracket them.
+
 Run the server first:
     uv run uvicorn vaani.app:app
 Then, in another terminal:
     uv run python scripts/fake_client.py
 
-You should see the server log about 50 frames per second for ten seconds.
+You should see the server log about 50 frames per second with a median echo
+time, and the client should report ~500 echoed frames received.
 """
 
 import asyncio
@@ -50,6 +56,26 @@ def make_frame(start_sample: int) -> bytes:
     return bytes(samples)
 
 
+async def receive_echo(ws) -> None:
+    """Read echoed audio and control messages until the server closes the socket.
+
+    `async for message in ws` yields each incoming message; websockets hands us
+    `bytes` for a binary (audio) message and `str` for a text (JSON control)
+    message. We count the audio frames and print the control ones. The loop ends
+    when the server closes after audio.end, which raises ConnectionClosedOK.
+    """
+    frames = 0
+    try:
+        async for message in ws:
+            if isinstance(message, bytes):
+                frames += 1
+            else:
+                print("server:", json.loads(message))  # audio.start / audio.end
+    except websockets.ConnectionClosedOK:
+        pass
+    print(f"received {frames} echoed frames")
+
+
 async def main() -> None:
     async with websockets.connect(URL) as ws:
         await ws.send(
@@ -68,6 +94,9 @@ async def main() -> None:
         ack = json.loads(await ws.recv())
         print("server:", ack)
 
+        # Start reading echoes now, concurrently with the send loop below.
+        receiver = asyncio.create_task(receive_echo(ws))
+
         total_frames = DURATION_SECONDS * 1000 // FRAME_MS  # 500
         loop = asyncio.get_running_loop()
         next_deadline = loop.time()
@@ -81,6 +110,9 @@ async def main() -> None:
 
         await ws.send(json.dumps({"type": "session.end"}))
         print(f"sent {total_frames} frames, ended session")
+
+        # Wait for the receiver to drain audio.end and the close before exiting.
+        await receiver
 
 
 if __name__ == "__main__":
