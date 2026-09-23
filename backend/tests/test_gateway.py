@@ -19,15 +19,26 @@ GOOD_AUDIO = {"sample_rate": 16000, "channels": 1, "frame_ms": 20}
 START = {"type": "session.start", "persona": "default", "audio": GOOD_AUDIO}
 
 
-def make_client(interval_s: float = 1.0) -> TestClient:
-    """Build a TestClient over an app whose gateway log interval we control."""
-    settings = Settings(gateway=GatewaySettings(frame_log_interval_s=interval_s))
+def make_client(interval_s: float = 1.0, echo_enabled: bool = True) -> TestClient:
+    """Build a TestClient over an app whose gateway settings we control."""
+    settings = Settings(
+        gateway=GatewaySettings(
+            frame_log_interval_s=interval_s, echo_enabled=echo_enabled
+        )
+    )
     return TestClient(create_app(settings))
 
 
 def good_frame() -> bytes:
     """One correctly sized silent frame (640 zero bytes for the defaults)."""
     return b"\x00" * expected_frame_bytes(Settings().audio)
+
+
+def distinct_frame() -> bytes:
+    """A correctly sized frame with recognisable, non-zero content, so an echo
+    test proves the exact bytes came back rather than any zero-filled frame."""
+    size = expected_frame_bytes(Settings().audio)
+    return bytes(i % 256 for i in range(size))
 
 
 def test_session_start_returns_started_with_id() -> None:
@@ -58,7 +69,9 @@ def test_text_before_start_returns_session_not_started() -> None:
 
 
 def test_wrong_size_frame_returns_bad_frame_size_and_stays_open() -> None:
-    with make_client().websocket_connect("/ws/session") as ws:
+    # Echo off so the good frame below draws no audio.start/echo to drain — this
+    # test is about frame-size validation and the socket staying usable.
+    with make_client(echo_enabled=False).websocket_connect("/ws/session") as ws:
         ws.send_json(START)
         ws.receive_json()  # session.started
 
@@ -131,6 +144,100 @@ def test_session_end_closes_with_1000() -> None:
 
     assert raised is not None
     assert raised.code == 1000
+
+
+def test_echo_returns_same_bytes_after_audio_start() -> None:
+    """A valid frame comes back unchanged, preceded by audio.start."""
+    frame = distinct_frame()
+    with make_client().websocket_connect("/ws/session") as ws:
+        ws.send_json(START)
+        ws.receive_json()  # session.started
+
+        ws.send_bytes(frame)
+        start = ws.receive_json()  # audio.start precedes the first frame
+        echoed = ws.receive_bytes()
+
+    assert start["type"] == "audio.start"
+    assert isinstance(start["turn_id"], str) and start["turn_id"]
+    assert echoed == frame  # exact same bytes returned
+
+
+def test_audio_start_sent_once_for_the_session() -> None:
+    """Only the first echoed frame is preceded by audio.start; later frames are
+    bare binary. All frames share the one turn_id."""
+    frame = distinct_frame()
+    with make_client().websocket_connect("/ws/session") as ws:
+        ws.send_json(START)
+        ws.receive_json()
+
+        ws.send_bytes(frame)
+        start = ws.receive_json()
+        ws.receive_bytes()  # first echo
+
+        ws.send_bytes(frame)
+        second = ws.receive_bytes()  # second echo, no audio.start before it
+
+    assert start["type"] == "audio.start"
+    assert second == frame
+
+
+def test_audio_end_sent_on_session_end_with_same_turn_id() -> None:
+    from starlette.websockets import WebSocketDisconnect
+
+    frame = distinct_frame()
+    with make_client().websocket_connect("/ws/session") as ws:
+        ws.send_json(START)
+        ws.receive_json()
+
+        ws.send_bytes(frame)
+        start = ws.receive_json()  # audio.start
+        ws.receive_bytes()  # echoed frame
+
+        ws.send_json({"type": "session.end"})
+        end = ws.receive_json()  # audio.end before the socket closes
+        try:
+            ws.receive_json()
+            raised = None
+        except WebSocketDisconnect as exc:
+            raised = exc
+
+    assert end["type"] == "audio.end"
+    assert end["turn_id"] == start["turn_id"]  # same turn for the whole session
+    assert raised is not None and raised.code == 1000
+
+
+def test_no_audio_end_when_no_frames_were_echoed() -> None:
+    """A session that ends without ever sending a frame owes no audio.end."""
+    from starlette.websockets import WebSocketDisconnect
+
+    with make_client().websocket_connect("/ws/session") as ws:
+        ws.send_json(START)
+        ws.receive_json()
+
+        ws.send_json({"type": "session.end"})
+        # No audio.start was ever sent, so the very next event is the close.
+        try:
+            ws.receive_json()
+            raised = None
+        except WebSocketDisconnect as exc:
+            raised = exc
+
+    assert raised is not None and raised.code == 1000
+
+
+def test_echo_disabled_returns_no_audio() -> None:
+    """With echo off, a valid frame draws no reply; the socket stays usable."""
+    with make_client(echo_enabled=False).websocket_connect("/ws/session") as ws:
+        ws.send_json(START)
+        ws.receive_json()
+
+        ws.send_bytes(distinct_frame())
+        # Prove nothing was echoed: the next server message is the idempotent
+        # session.started re-ack, not an audio.start.
+        ws.send_json(START)
+        reply = ws.receive_json()
+
+    assert reply["type"] == "session.started"
 
 
 def test_valid_frames_are_counted(caplog) -> None:

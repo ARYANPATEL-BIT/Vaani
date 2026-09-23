@@ -5,13 +5,19 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.1. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.2. The same shapes are mirrored on the frontend.
 
-Two kinds of traffic flow over the socket:
+Two kinds of traffic flow over the socket, in BOTH directions:
   * Audio frames are raw BINARY messages (16 kHz mono 16-bit PCM). They carry
     no JSON and are NOT modelled here — they are just bytes validated by length.
+    Server-to-browser audio has the same format as client-to-server audio.
   * Control messages are JSON TEXT messages, each with a "type" field. Those
     are the models below.
+
+v0.2 adds server-to-browser audio: the server may now send audio frames back,
+bracketed by audio.start / audio.end control messages that carry a turn_id.
+A turn_id is a server-generated string, unique within a session. Every audio
+frame the browser receives belongs to the most recent audio.start.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
@@ -84,6 +90,22 @@ class ErrorMessage(BaseModel):
     message: str
 
 
+class AudioStart(BaseModel):
+    """Marks the start of a turn's audio. Sent before that turn's first audio
+    frame. Every frame the browser then receives belongs to this turn until the
+    matching audio.end (or the socket closes)."""
+
+    type: Literal["audio.start"] = "audio.start"
+    turn_id: str
+
+
+class AudioEnd(BaseModel):
+    """Marks the end of a turn's audio. Sent after that turn's last frame."""
+
+    type: Literal["audio.end"] = "audio.end"
+    turn_id: str
+
+
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
@@ -99,3 +121,13 @@ def error(code: ErrorCode, message: str) -> dict:
     wire message is exactly {"type": "error", "code": "...", "message": "..."}.
     """
     return ErrorMessage(code=code, message=message).model_dump(mode="json")
+
+
+def audio_start(turn_id: str) -> dict:
+    """Build the audio.start payload for `websocket.send_json`."""
+    return AudioStart(turn_id=turn_id).model_dump(mode="json")
+
+
+def audio_end(turn_id: str) -> dict:
+    """Build the audio.end payload for `websocket.send_json`."""
+    return AudioEnd(turn_id=turn_id).model_dump(mode="json")

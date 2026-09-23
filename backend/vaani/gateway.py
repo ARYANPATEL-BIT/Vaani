@@ -7,8 +7,10 @@ block however the connection ends. A separate background task logs the
 per-interval frame count so the read loop — the start of the latency-critical
 audio path — is never blocked by logging.
 
-What this file does NOT do yet: echo audio, run VAD, or call any provider.
-Today it only proves the transport and the session state machine work.
+Today the read loop also runs the day-3 ECHO path: while echo is enabled every
+valid frame is sent straight back to the client, bracketed by audio.start /
+audio.end, and each frame's receive->send gap is timed via telemetry spans.
+What this file does NOT do yet: run VAD or call any provider.
 """
 
 import asyncio
@@ -22,8 +24,16 @@ from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
 from vaani.config import AudioSettings, Settings
-from vaani.protocol import ErrorCode, SessionStart, error, session_started
+from vaani.protocol import (
+    ErrorCode,
+    SessionStart,
+    audio_end,
+    audio_start,
+    error,
+    session_started,
+)
 from vaani.session import Session
+from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, Telemetry
 
 log = logging.getLogger("vaani.gateway")
 
@@ -55,20 +65,41 @@ def _audio_matches(claimed, expected: AudioSettings) -> bool:
     )
 
 
-async def _log_frames(session: Session, interval_s: float) -> None:
-    """Background task: every `interval_s`, log how many valid frames arrived.
+async def _log_frames(
+    session: Session, telemetry: Telemetry, interval_s: float
+) -> None:
+    """Background task: every `interval_s`, log the frame count and echo timing.
 
-    It reads and resets the session's interval counter. Because everything runs
-    on one event loop (no real threads), the read-and-reset cannot interleave
-    with the read loop's increment, so no lock is needed. Cancellation (on
-    disconnect) surfaces as CancelledError out of `sleep`, which ends the task.
+    It reads and resets the session's interval counter and reads the rolling
+    echo statistic. Because everything runs on one event loop (no real threads),
+    the read-and-reset cannot interleave with the read loop's increment, so no
+    lock is needed. Cancellation (on disconnect) surfaces as CancelledError out
+    of `sleep`, which ends the task.
+
+    `echo_stats_ms()` is None until enough samples exist; we print dashes then
+    so an early, meaningless number is never shown.
     """
     while True:
         await asyncio.sleep(interval_s)
         count = session.take_interval_count()
-        log.info(
-            "session %s: %d frames in last %.3fs", session.session_id, count, interval_s
-        )
+        stats = telemetry.echo_stats_ms()
+        if stats is None:
+            log.info(
+                "session %s: %d frames in last %.3fs (echo p50=- p95=-)",
+                session.session_id,
+                count,
+                interval_s,
+            )
+        else:
+            p50, p95 = stats
+            log.info(
+                "session %s: %d frames in last %.3fs (echo p50=%.1fms p95=%.1fms)",
+                session.session_id,
+                count,
+                interval_s,
+                p50,
+                p95,
+            )
 
 
 @router.websocket("/ws/session")
@@ -78,11 +109,17 @@ async def session_endpoint(websocket: WebSocket) -> None:
     audio_cfg = settings.audio
     expected = expected_frame_bytes(audio_cfg)
     interval_s = settings.gateway.frame_log_interval_s
+    echo_enabled = settings.gateway.echo_enabled
 
     await websocket.accept()
 
     session: Session | None = None
+    telemetry: Telemetry | None = None
     log_task: asyncio.Task | None = None
+    # The echo turn's id, minted lazily on the first echoed frame. None means
+    # "no audio.start sent yet"; not-None means a turn is open and audio.end
+    # is owed on a clean session.end.
+    echo_turn_id: str | None = None
 
     try:
         while True:
@@ -110,6 +147,20 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     )
                     continue
                 session.record_frame()
+                if echo_enabled and telemetry is not None:
+                    # Mint the turn on the first frame so every span for this
+                    # frame — including frame_received — is tagged with it.
+                    first_frame = echo_turn_id is None
+                    if first_frame:
+                        echo_turn_id = uuid.uuid4().hex
+                    telemetry.record(FRAME_RECEIVED, echo_turn_id)
+                    if first_frame:
+                        # audio.start must precede the turn's first audio frame.
+                        await websocket.send_json(audio_start(echo_turn_id))
+                    await websocket.send_bytes(data)
+                    # Stamp echo_sent AFTER send_bytes returns so the measured
+                    # gap includes the send itself, not just our internal work.
+                    telemetry.record(ECHO_SENT, echo_turn_id)
                 continue
 
             # --- Text path: a JSON control message ---------------------------
@@ -153,7 +204,10 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     )
                     continue
                 session = Session(session_id=uuid.uuid4().hex, persona=start.persona)
-                log_task = asyncio.create_task(_log_frames(session, interval_s))
+                telemetry = Telemetry(session.session_id)
+                log_task = asyncio.create_task(
+                    _log_frames(session, telemetry, interval_s)
+                )
                 await websocket.send_json(session_started(session.session_id))
                 continue
 
@@ -165,6 +219,11 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 continue
 
             if mtype == "session.end":
+                # Close the open echo turn cleanly before we close the socket.
+                # (On a hard disconnect we cannot send this — the browser must
+                # treat a closed socket as an implicit audio.end.)
+                if echo_turn_id is not None:
+                    await websocket.send_json(audio_end(echo_turn_id))
                 await websocket.close(code=CLOSE_NORMAL)
                 break
 

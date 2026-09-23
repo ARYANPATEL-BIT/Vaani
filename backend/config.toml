@@ -26,3 +26,9 @@ frame_ms = 20
 # frames arrived in the last interval. 1.0 gives the "about 50 frames per
 # second" heartbeat. Tests override this to a tiny value to avoid real waits.
 frame_log_interval_s = 1.0
+
+# When true, every valid frame the server receives is echoed straight back to
+# the client, bracketed by audio.start / audio.end. This is the day-3 loopback
+# used to prove the return audio path end to end; it is switched off once the
+# real voice pipeline produces the audio instead.
+echo_enabled = true

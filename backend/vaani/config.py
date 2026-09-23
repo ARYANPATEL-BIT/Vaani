@@ -43,6 +43,9 @@ class GatewaySettings(BaseModel):
 
     # How often the gateway logs the per-interval valid-frame count, in seconds.
     frame_log_interval_s: float = 1.0
+    # When true, every valid frame the server receives is sent straight back to
+    # the client (the day-3 "echo" loopback). Turned off once real audio flows.
+    echo_enabled: bool = True
 
 
 class Settings(BaseSettings):
