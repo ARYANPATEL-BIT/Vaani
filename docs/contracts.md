@@ -85,17 +85,19 @@ Control messages use JSON text frames (not binary).
 
 #### Client → Server
 
-| Type           | Payload                          | When                              |
-|----------------|----------------------------------|-----------------------------------|
-| `session.start`| `{ "type": "session.start", "persona": "default", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects |
-| `session.end`  | `{ "type": "session.end" }`      | User ends conversation            |
+| Type             | Payload                                                   | When                                             |
+|------------------|-----------------------------------------------------------|--------------------------------------------------|
+| `session.start`  | `{ "type": "session.start", "persona": "default", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects                         |
+| `session.end`    | `{ "type": "session.end" }`                               | User ends conversation                           |
+| `audio.flush.ack`| `{ "type": "audio.flush.ack", "timestamp_ms": <number> }` | Sent immediately after audio playback is flushed |
 
 #### Server → Client
 
-| Type             | Payload                                      | When                              |
-|------------------|----------------------------------------------|-----------------------------------|
-| `session.started`| `{ "type": "session.started", "session_id": "..." }` | Backend accepted session.start |
-| `error`          | `{ "type": "error", "code": "...", "message": "..." }` | Protocol error (non-fatal) |
+| Type             | Payload                                               | When                              |
+|------------------|-------------------------------------------------------|-----------------------------------|
+| `session.started`| `{ "type": "session.started", "session_id": "..." }`  | Backend accepted session.start    |
+| `error`          | `{ "type": "error", "code": "...", "message": "..." }` | Protocol error (non-fatal)        |
+| `audio.flush`    | `{ "type": "audio.flush" }`                           | Server requests immediate silence |
 
 ---
 
@@ -103,7 +105,6 @@ Control messages use JSON text frames (not binary).
 
 These will be specified as their implementation days arrive:
 
-- **Flush / interrupt** — Week 1, Day 4
 - **Transcript streaming** — Week 2
 - **Barge-in signalling** — Week 3
 - **Voice enrolment API** — Week 4
@@ -112,9 +113,10 @@ These will be specified as their implementation days arrive:
 
 ## Changelog
 
-| Date       | Author  | Change                                                         |
-|------------|---------|----------------------------------------------------------------|
-| 2026-09-22 | Samyak  | Initial draft: audio frame format, session lifecycle           |
-| 2026-09-23 | Samyak  | Day 2 implementation: Int16LE 640B frames via AudioWorklet     |
-| 2026-09-23 | Samyak  | Day 3: fix endpoint to /ws/session, fix session.start payload, document playback format |
+| Date       | Author  | Change                                                                                  |
+|------------|---------|-----------------------------------------------------------------------------------------|
+| 2026-09-22 | Samyak  | Initial draft: audio frame format, session lifecycle                                    |
+| 2026-09-23 | Samyak  | Day 2 implementation: Int16LE 640B frames via AudioWorklet                              |
+| 2026-09-23 | Samyak  | Day 3: fix endpoint to /ws/session, fix session.start payload, document playback format  |
+| 2026-09-24 | Samyak  | Day 4: audio.flush and audio.flush.ack specification for immediate playback silencing   |
 

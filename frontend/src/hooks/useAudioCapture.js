@@ -100,8 +100,10 @@ export function useAudioCapture() {
    *   invoked for every binary WebSocket message received from the server.
    *   Day 3 passes the playback queue's enqueue() here so audio sent back by
    *   the server is played automatically.
+   * @param {function(): void} [onFlushCommand] - optional callback
+   *   invoked when the server sends an audio.flush control message.
    */
-  const startCapture = useCallback(async (onBinaryMessage) => {
+  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand) => {
     // Guard against multiple concurrent capture pipelines
     if (isCapturing) {
       return;
@@ -220,6 +222,23 @@ export function useAudioCapture() {
             // Backend sends 'session.started' (with session_id) per protocol.py.
             isSessionReadyRef.current = true;
             setWsStatus('ready');
+          } else if (msg.type === 'audio.flush') {
+            if (typeof onFlushCommand === 'function') {
+              onFlushCommand();
+            }
+            // Send acknowledgement immediately after flushing
+            if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+              try {
+                socketRef.current.send(
+                  JSON.stringify({
+                    type: 'audio.flush.ack',
+                    timestamp_ms: performance.now(),
+                  })
+                );
+              } catch (ackErr) {
+                console.warn('[useAudioCapture] Failed to send flush ack:', ackErr);
+              }
+            }
           } else if (msg.type === 'error') {
             console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
           }
