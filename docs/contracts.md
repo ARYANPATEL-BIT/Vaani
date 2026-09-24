@@ -103,7 +103,9 @@ Control messages use JSON text frames (not binary).
 
 These will be specified as their implementation days arrive:
 
-- **Flush / interrupt** — Week 1, Day 4
+- **Flush / interrupt** — Week 1, Day 4 (Agreed / Client Implemented)
+  - Server → Client: `{"type": "audio.flush"}`
+  - Client → Server ack: `{"type": "audio.flush.ack", "timestamp_ms": <performance.now()>}`
 - **Transcript streaming** — Week 2
 - **Barge-in signalling** — Week 3
 - **Voice enrolment API** — Week 4

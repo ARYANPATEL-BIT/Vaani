@@ -15,7 +15,7 @@ import './ConversationPage.css';
 
 export default function ConversationPage() {
   // Playback queue: enqueue() accepts an ArrayBuffer and plays it gaplessly.
-  const { enqueue } = usePlaybackQueue();
+  const { enqueue, flushPlayback } = usePlaybackQueue();
 
   const {
     isCapturing,
@@ -80,8 +80,8 @@ export default function ConversationPage() {
           <button
             type="button"
             className="action-btn start-btn"
-            // Pass enqueue so binary server messages are routed to the playback queue.
-            onClick={() => startCapture(enqueue)}
+            // Pass enqueue and flushPlayback so server messages are routed correctly.
+            onClick={() => startCapture(enqueue, flushPlayback)}
             id="start-mic-btn"
           >
             Start Microphone

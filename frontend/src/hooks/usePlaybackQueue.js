@@ -16,7 +16,7 @@
  * thread and advances at a perfectly steady rate regardless of what JavaScript
  * is doing. Scheduling on that clock guarantees gapless output.
  *
- * Day 4 note: flush/interrupt behaviour is intentionally NOT implemented here.
+ * Day 4 note: flush/interrupt behaviour is implemented via flushPlayback().
  */
 
 import { useRef, useCallback, useEffect } from 'react';
@@ -61,6 +61,9 @@ export function usePlaybackQueue() {
   // Advances by each chunk's duration after scheduling it.
   // Initialised to 0; reset to 0 on cleanup so a fresh session starts clean.
   const nextStartTimeRef = useRef(0);
+
+  // Set of active AudioBufferSourceNodes to stop on flush.
+  const activeSourcesRef = useRef(new Set());
 
   /**
    * Ensure the AudioContext exists and is running.
@@ -118,18 +121,65 @@ export function usePlaybackQueue() {
 
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(ctx.destination);
+    
+    // Create a GainNode for this source to allow fading out on flush
+    const gainNode = ctx.createGain();
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
     source.start(startAt);
+
+    // Track the source and its gain node for flushing
+    const sourceData = { source, gainNode };
+    activeSourcesRef.current.add(sourceData);
+    
+    // Clean up when the source finishes naturally
+    source.onended = () => {
+      activeSourcesRef.current.delete(sourceData);
+      gainNode.disconnect();
+    };
 
     // Advance the cursor by exactly this chunk's duration.
     nextStartTimeRef.current = startAt + audioBuffer.duration;
   }, [getAudioContext]);
 
   /**
+   * Stop all scheduled playback, clear the queue, and reset scheduling.
+   * Applies a 10 ms fade-out to avoid clicks.
+   */
+  const flushPlayback = useCallback(() => {
+    if (!audioCtxRef.current) return;
+    const ctx = audioCtxRef.current;
+    const now = ctx.currentTime;
+    const fadeDuration = 0.01; // 10 ms fade-out
+
+    // Stop all tracked sources
+    activeSourcesRef.current.forEach(({ source, gainNode }) => {
+      try {
+        // Apply short fade-out
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + fadeDuration);
+        
+        // Stop after fade
+        source.stop(now + fadeDuration);
+      } catch {
+        // Ignore if already stopped or invalid state
+      }
+    });
+
+    // Clear tracked references (onended might not fire predictably after manual stop)
+    activeSourcesRef.current.clear();
+
+    // Reset the scheduling cursor so new audio plays immediately
+    nextStartTimeRef.current = 0;
+  }, []);
+
+  /**
    * Release the AudioContext and reset the scheduling cursor.
    * Called when capture stops or the component unmounts.
    */
   const cleanup = useCallback(() => {
+    activeSourcesRef.current.clear();
     if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
@@ -142,5 +192,5 @@ export function usePlaybackQueue() {
     return cleanup;
   }, [cleanup]);
 
-  return { enqueue, cleanup };
+  return { enqueue, flushPlayback, cleanup };
 }
