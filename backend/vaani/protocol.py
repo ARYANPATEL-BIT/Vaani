@@ -19,6 +19,11 @@ bracketed by audio.start / audio.end control messages that carry a turn_id.
 A turn_id is a server-generated string, unique within a session. Every audio
 frame the browser receives belongs to the most recent audio.start.
 
+v0.2 also adds FLUSH: the server sends audio.flush to silence a turn at once,
+and the browser replies flush.ack as soon as its audio has stopped. A flushed
+turn gets no audio.end — the flush IS its ending. Frames the browser receives
+for a flushed turn_id must be discarded, not played.
+
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
 a malformed message through.
@@ -72,6 +77,31 @@ class SessionEnd(BaseModel):
     type: Literal["session.end"]
 
 
+class FlushAck(BaseModel):
+    """The browser's reply to audio.flush, sent once its audio has stopped.
+
+    `client_ts` is the browser's own monotonic time in milliseconds
+    (performance.now()). The server logs it but never subtracts it from a
+    server timestamp: the two clocks start at different moments, so their
+    difference is meaningless. The round trip is timed on the server clock.
+    """
+
+    type: Literal["flush.ack"]
+    turn_id: str
+    client_ts: float
+
+
+class DevFlush(BaseModel):
+    """DEV-ONLY — REMOVE WHEN BARGE-IN LANDS (week 3).
+
+    Asks the server to flush the current turn, so the flush path can be
+    exercised before anything real (VAD / barge-in) triggers it. Not part of
+    the product protocol; no production client should ever send it.
+    """
+
+    type: Literal["dev.flush"]
+
+
 # --- Server -> client -------------------------------------------------------
 
 
@@ -106,6 +136,15 @@ class AudioEnd(BaseModel):
     turn_id: str
 
 
+class AudioFlush(BaseModel):
+    """Tells the browser to silence a turn immediately: stop all scheduled
+    audio, drop every queued frame for that turn, fade out within 10 ms, and
+    reply with flush.ack. Replaces audio.end for that turn."""
+
+    type: Literal["audio.flush"] = "audio.flush"
+    turn_id: str
+
+
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
@@ -131,3 +170,8 @@ def audio_start(turn_id: str) -> dict:
 def audio_end(turn_id: str) -> dict:
     """Build the audio.end payload for `websocket.send_json`."""
     return AudioEnd(turn_id=turn_id).model_dump(mode="json")
+
+
+def audio_flush(turn_id: str) -> dict:
+    """Build the audio.flush payload for `websocket.send_json`."""
+    return AudioFlush(turn_id=turn_id).model_dump(mode="json")
