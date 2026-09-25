@@ -37,8 +37,12 @@ def test_secret_read_from_env(monkeypatch) -> None:
 
 
 def test_secret_absent_by_default() -> None:
-    """With no env var set, the secret is simply None."""
-    settings = Settings()
+    """With no env var set, the secret is simply None.
+
+    `_env_file=None` skips backend/.env, so a developer's real local secrets
+    cannot make this test pass or fail.
+    """
+    settings = Settings(_env_file=None)
 
     assert settings.secret_key is None
 
@@ -50,3 +54,27 @@ def test_secret_not_shown_in_repr(monkeypatch) -> None:
     settings = Settings()
 
     assert "do-not-print-me" not in repr(settings)
+
+
+def test_llm_settings_from_config_toml() -> None:
+    """Model, timeout and provider order come from config.toml."""
+    settings = Settings(_env_file=None)
+
+    assert settings.llm.provider_order == ["gemini"]
+    assert settings.llm.gemini.model == "gemini-3.5-flash-lite"
+    assert settings.llm.gemini.thinking_level == "minimal"
+    assert settings.llm.max_requests_per_process > 0
+
+
+def test_gemini_key_only_from_env(monkeypatch) -> None:
+    """The key is read from VAANI_GEMINI_API_KEY; config.toml never sets one."""
+    from vaani.config import _CONFIG_PATH
+
+    monkeypatch.setenv("VAANI_GEMINI_API_KEY", "test-key-value")
+    settings = Settings(_env_file=None)
+
+    assert settings.gemini_api_key.get_secret_value() == "test-key-value"
+    # No line in config.toml ASSIGNS a key (comments may mention the name).
+    toml_lines = _CONFIG_PATH.read_text(encoding="utf-8").splitlines()
+    assignments = [ln for ln in toml_lines if "=" in ln and not ln.startswith("#")]
+    assert not any("key" in ln.split("=")[0].lower() for ln in assignments)

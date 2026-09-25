@@ -7,7 +7,8 @@ directly — they call `get_settings()` and get one validated, typed object.
 
 Why split by source: config.toml is committed and safe to read in review;
 secrets must never be committed, so they are kept out of the file entirely and
-injected from the environment at runtime.
+injected from the environment at runtime — either real environment variables
+or the gitignored backend/.env file.
 """
 
 from functools import lru_cache
@@ -25,6 +26,8 @@ from pydantic_settings import (
 # package. Resolve it from this file's location so it is found no matter what
 # the current working directory is.
 _CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.toml"
+# backend/.env: optional, gitignored, holds secrets for local development.
+_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class AudioSettings(BaseModel):
@@ -48,6 +51,37 @@ class GatewaySettings(BaseModel):
     echo_enabled: bool = True
 
 
+class GeminiSettings(BaseModel):
+    """Gemini provider parameters, under [llm.gemini] in config.toml.
+
+    No defaults here on purpose: a model ID or endpoint written in code would
+    be a hardcoded value. config.toml is the only place these are set.
+    """
+
+    # Exact model ID, never a moving "-latest" alias, so latency numbers stay
+    # reproducible across days.
+    model: str
+    # API root; the provider appends /models/{model}:streamGenerateContent.
+    base_url: str
+    # Seconds httpx waits for EACH step (connect, first byte, next chunk) —
+    # not a limit on the whole response.
+    timeout_s: float
+    # Reasoning the model does before its first token. Lowest level = least
+    # delay before we can start speaking.
+    thinking_level: str
+
+
+class LLMSettings(BaseModel):
+    """Language model settings, under [llm] in config.toml."""
+
+    # Providers to use, first choice first. Only the first is used until
+    # failover exists.
+    provider_order: list[str]
+    # Paid requests allowed per process before every further call is refused.
+    max_requests_per_process: int
+    gemini: GeminiSettings
+
+
 class Settings(BaseSettings):
     """The one typed settings object for the whole backend.
 
@@ -62,6 +96,9 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         # The TOML file the TomlConfigSettingsSource below will read.
         toml_file=_CONFIG_PATH,
+        # Local secrets file. Missing is fine; real env vars still win.
+        env_file=_ENV_PATH,
+        env_file_encoding="utf-8",
         # Ignore unknown keys rather than erroring, so config.toml can carry
         # comments/keys this version does not yet model.
         extra="ignore",
@@ -71,10 +108,13 @@ class Settings(BaseSettings):
     app_name: str = "vaani"
     audio: AudioSettings = AudioSettings()
     gateway: GatewaySettings = GatewaySettings()
+    llm: LLMSettings
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
     # the value out of logs and reprs unless explicitly unwrapped.
     secret_key: SecretStr | None = None
+    # Env var VAANI_GEMINI_API_KEY. None if unset; the provider refuses to run.
+    gemini_api_key: SecretStr | None = None
 
     @classmethod
     def settings_customise_sources(
@@ -89,11 +129,13 @@ class Settings(BaseSettings):
 
         Order matters: the first source in the tuple wins on conflict. We put
         environment variables ahead of the TOML file so a secret or an override
-        in the environment always beats a committed default.
+        in the environment always beats a committed default. The .env file
+        sits just below real env vars, so an exported variable overrides it.
         """
         return (
             init_settings,
             env_settings,
+            dotenv_settings,
             TomlConfigSettingsSource(settings_cls),
             file_secret_settings,
         )
