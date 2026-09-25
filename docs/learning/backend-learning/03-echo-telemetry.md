@@ -66,7 +66,7 @@ The timing lives in `Telemetry.record` (`backend/vaani/telemetry.py`). A span is
 just a named instant; the *duration* is the gap between two of them:
 
 ```python
-span = Span(name=name, at=monotonic(), session_id=self.session_id, turn_id=turn_id)
+span = Span(name=name, at=perf_counter(), session_id=self.session_id, turn_id=turn_id)
 if name == FRAME_RECEIVED:
     self._pending_frame_at = span.at
 elif name == ECHO_SENT and self._pending_frame_at is not None:
@@ -79,7 +79,13 @@ gives a fixed-size sliding window for free. `echo_stats_ms()` sorts the window a
 returns `(median, p95)` in milliseconds — but only once at least 20 samples exist;
 below that it returns `None` and the log prints dashes (see the concepts below for
 why). The per-second logger reads that and formats
-`… (echo p50=%.1fms p95=%.1fms)`.
+`… (echo p50=%.3fms p95=%.3fms)`.
+
+> **Day 4 correction:** the clock was `time.monotonic()` and the log printed one
+> decimal place. On Windows `monotonic` ticks only every 15.6 ms, so the Day 3
+> numbers read 0.0 ms and were not real measurements. Telemetry now uses
+> `time.perf_counter()` (0.1 µs ticks) and logs three decimals; see
+> `04-flush.md` §4.
 
 Flow of one echoed frame:
 
@@ -99,7 +105,9 @@ and is not tied to the calendar. The wall clock (`time.time()`) can jump — NTP
 corrections, daylight saving, someone setting the system clock — and a jump
 backwards between two readings would produce a negative or nonsense duration. We
 only ever *subtract* two readings to get an elapsed gap, so monotonic is the
-correct clock; its numbers are meaningless as dates, and that is fine.
+correct clock; its numbers are meaningless as dates, and that is fine. (We now
+use `time.perf_counter()`, which is also monotonic but far finer on Windows —
+see `04-flush.md`.)
 
 **Span.** Our name for a single named point in time, tagged with the session and
 (later) the turn it belongs to. It is not a measurement on its own — you need two
@@ -116,8 +124,8 @@ That would overstate the tail, so `echo_stats_ms()` withholds all numbers until
 
 **Turn.** A turn is one stretch of audio belonging to one `audio.start`. **Today a
 turn lasts the whole session** — one `turn_id` from the first frame to
-`session.end`. That changes on day 4, when a "flush" (end-of-utterance) ends a
-turn mid-session and the next audio starts a new one.
+`session.end`. Day 4 added flush, but in echo mode a flushed turn simply stays
+closed (see `04-flush.md`). New turns mid-session arrive with barge-in in week 3.
 
 ## 5. Why this and not that
 
@@ -160,10 +168,12 @@ turn mid-session and the next audio starts a new one.
    240 ms frame among fast ones barely moves it. Median = typical, p95 = the tail.
 8. **Why is `echo_sent` stamped after the send?** So the measured gap includes the
    `send_bytes` cost, which is the only part that actually takes time here.
-9. **Why is the on-the-wire echo showing ~0.0 ms in the demo?** `send_bytes` just
-   enqueues bytes into the transport buffer and returns — it does not wait for the
-   browser to receive or play them. That is precisely why the meaningful number is
-   the one measured at the speaker.
+9. **Why did the echo show 0.0 ms in the Day 3 demo?** *(Corrected on Day 4.)*
+   Mostly clock resolution: `time.monotonic()` on Windows ticks every 15.6 ms, so
+   any shorter gap rounded to 0. With `perf_counter` it reads about 0.07 ms (p50).
+   It is still small because `send_bytes` returns once the bytes are in the
+   transport buffer, not when the browser plays them — which is why the real
+   number is measured at the speaker.
 10. **(Hardest) Could `audio.start` and its frame arrive out of order?** No. Both
     go through the same connection with `await` in sequence — JSON `audio.start`
     then the binary frame — and a WebSocket preserves message order, so the browser

@@ -11,19 +11,28 @@ receiver coroutine alongside the sender: websockets lets us send and receive on
 the same connection at once. The receiver counts the echoed frames and prints
 the audio.start / audio.end control messages that bracket them.
 
+Day 4: with --flush-after SECONDS the client sends the development-only
+dev.flush message at that point in the stream. The server replies audio.flush;
+the receiver answers flush.ack at once (as a browser would after silencing its
+speaker) and from then on DISCARDS any frame for the flushed turn, counting
+them instead of playing them.
+
 Run the server first:
     uv run uvicorn vaani.app:app
 Then, in another terminal:
     uv run python scripts/fake_client.py
+    uv run python scripts/fake_client.py --flush-after 3
 
 You should see the server log about 50 frames per second with a median echo
 time, and the client should report ~500 echoed frames received.
 """
 
+import argparse
 import asyncio
 import json
 import math
 import struct
+import time
 
 import websockets
 
@@ -62,21 +71,46 @@ async def receive_echo(ws) -> None:
     `async for message in ws` yields each incoming message; websockets hands us
     `bytes` for a binary (audio) message and `str` for a text (JSON control)
     message. We count the audio frames and print the control ones. The loop ends
-    when the server closes after audio.end, which raises ConnectionClosedOK.
+    when the server closes the socket, which raises ConnectionClosedOK.
+
+    Like the browser, we track which turn each frame belongs to (the latest
+    audio.start) and drop frames for any turn we have been told to flush.
     """
     frames = 0
+    discarded = 0
+    current_turn = None
+    flushed_turns = set()
     try:
         async for message in ws:
             if isinstance(message, bytes):
-                frames += 1
-            else:
-                print("server:", json.loads(message))  # audio.start / audio.end
+                if current_turn in flushed_turns:
+                    discarded += 1  # late frame for a flushed turn: never play
+                else:
+                    frames += 1
+                continue
+            msg = json.loads(message)
+            print("server:", msg)
+            if msg["type"] == "audio.start":
+                current_turn = msg["turn_id"]
+            elif msg["type"] == "audio.flush":
+                flushed_turns.add(msg["turn_id"])
+                # A browser would stop its audio here, then ack. client_ts is
+                # our own clock in ms; the server only logs it, never subtracts.
+                ack = {
+                    "type": "flush.ack",
+                    "turn_id": msg["turn_id"],
+                    "client_ts": time.perf_counter() * 1000,
+                }
+                await ws.send(json.dumps(ack))
+                print("client: sent flush.ack")
     except websockets.ConnectionClosedOK:
         pass
-    print(f"received {frames} echoed frames")
+    print(f"received {frames} echoed frames, discarded {discarded} late frames")
 
 
-async def main() -> None:
+async def main(flush_after: float | None) -> None:
+    # Which frame index to send dev.flush before; None means never flush.
+    flush_at = None if flush_after is None else int(flush_after / FRAME_SECONDS)
     async with websockets.connect(URL) as ws:
         await ws.send(
             json.dumps(
@@ -101,6 +135,10 @@ async def main() -> None:
         loop = asyncio.get_running_loop()
         next_deadline = loop.time()
         for n in range(total_frames):
+            if n == flush_at:
+                # DEV-ONLY message: stands in for barge-in until VAD exists.
+                await ws.send(json.dumps({"type": "dev.flush"}))
+                print(f"client: sent dev.flush at {flush_after}s")
             await ws.send(make_frame(n * SAMPLES_PER_FRAME))
             # Pace to real time: schedule each send one frame apart and sleep to
             # the next deadline, so we stream at ~50 frames/sec, not as fast as
@@ -116,4 +154,12 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--flush-after",
+        type=float,
+        metavar="SECONDS",
+        help="send dev.flush this many seconds into the stream",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.flush_after))
