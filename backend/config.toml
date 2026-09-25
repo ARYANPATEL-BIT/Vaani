@@ -32,3 +32,31 @@ frame_log_interval_s = 1.0
 # used to prove the return audio path end to end; it is switched off once the
 # real voice pipeline produces the audio instead.
 echo_enabled = true
+
+[llm]
+# Language model providers, first choice first. Only the first is used until
+# failover is built.
+provider_order = ["gemini"]
+
+# Per-process cap on paid LLM requests. Every call is counted when it is
+# dispatched, success or not; past the cap, calls are refused before any
+# network traffic. A stopgap until the real cost ledger exists.
+max_requests_per_process = 200
+
+[llm.gemini]
+# Exact model ID. Deliberately NOT the "gemini-flash-lite-latest" alias: an
+# alias can silently move to a new model and change our latency numbers.
+model = "gemini-3.5-flash-lite"
+
+# REST API root. The API key is NOT here — it comes only from the
+# VAANI_GEMINI_API_KEY environment variable (or the gitignored backend/.env).
+base_url = "https://generativelanguage.googleapis.com/v1beta"
+
+# Seconds to wait for each step of a request: connecting, the first byte, and
+# each following chunk. It does not cap the total length of a long answer.
+timeout_s = 10.0
+
+# How much the model reasons before its first token. "minimal" is the lowest
+# level this model accepts; thinking happens before the first token, so it
+# adds directly to time-to-first-token.
+thinking_level = "minimal"
