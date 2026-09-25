@@ -1,7 +1,7 @@
 """Tests for the telemetry span recorder and rolling echo statistic.
 
 These do not touch the network. They drive the Telemetry object directly and,
-where the timing gap must be a known number, monkeypatch the monotonic clock so
+where the timing gap must be a known number, monkeypatch the perf_counter clock so
 each frame_received -> echo_sent delta is exactly what we say it is.
 """
 
@@ -18,7 +18,7 @@ from vaani.telemetry import (
 
 
 class FakeClock:
-    """A monotonic() stand-in whose value we advance by hand."""
+    """A perf_counter() stand-in whose value we advance by hand."""
 
     def __init__(self) -> None:
         self.now = 0.0
@@ -47,7 +47,7 @@ def test_record_returns_span_with_session_and_turn() -> None:
 
 def test_stats_none_below_min_samples(monkeypatch) -> None:
     clock = FakeClock()
-    monkeypatch.setattr(telemetry_mod, "monotonic", clock)
+    monkeypatch.setattr(telemetry_mod, "perf_counter", clock)
     tele = Telemetry("sess-1")
 
     _feed(tele, [5.0] * (MIN_SAMPLES - 1), clock)
@@ -60,7 +60,7 @@ def test_stats_none_below_min_samples(monkeypatch) -> None:
 def test_rolling_stats_correct_on_known_sequence(monkeypatch) -> None:
     """Deltas 1..100 ms: median = 50.5 ms, nearest-rank p95 = 95 ms."""
     clock = FakeClock()
-    monkeypatch.setattr(telemetry_mod, "monotonic", clock)
+    monkeypatch.setattr(telemetry_mod, "perf_counter", clock)
     tele = Telemetry("sess-1")
 
     _feed(tele, [float(n) for n in range(1, 101)], clock)
@@ -75,7 +75,7 @@ def test_rolling_stats_correct_on_known_sequence(monkeypatch) -> None:
 def test_window_keeps_only_last_100(monkeypatch) -> None:
     """After 150 frames of 1..150 ms, the window holds 51..150; p95 tracks it."""
     clock = FakeClock()
-    monkeypatch.setattr(telemetry_mod, "monotonic", clock)
+    monkeypatch.setattr(telemetry_mod, "perf_counter", clock)
     tele = Telemetry("sess-1")
 
     _feed(tele, [float(n) for n in range(1, 151)], clock)

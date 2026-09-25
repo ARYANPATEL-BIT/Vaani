@@ -10,7 +10,12 @@ audio path — is never blocked by logging.
 Today the read loop also runs the day-3 ECHO path: while echo is enabled every
 valid frame is sent straight back to the client, bracketed by audio.start /
 audio.end, and each frame's receive->send gap is timed via telemetry spans.
-What this file does NOT do yet: run VAD or call any provider.
+
+Day 4 adds FLUSH: a dev.flush control message (development only) makes the
+session flush the current turn, and the browser's flush.ack closes the round
+trip. After a flush, no further frame is sent for that turn; the check sits
+directly in front of send_bytes. What this file does NOT do yet: run VAD,
+trigger barge-in, or call any provider.
 """
 
 import asyncio
@@ -26,6 +31,7 @@ from starlette.websockets import WebSocketDisconnect
 from vaani.config import AudioSettings, Settings
 from vaani.protocol import (
     ErrorCode,
+    FlushAck,
     SessionStart,
     audio_end,
     audio_start,
@@ -93,7 +99,7 @@ async def _log_frames(
         else:
             p50, p95 = stats
             log.info(
-                "session %s: %d frames in last %.3fs (echo p50=%.1fms p95=%.1fms)",
+                "session %s: %d frames in last %.3fs (echo p50=%.3fms p95=%.3fms)",
                 session.session_id,
                 count,
                 interval_s,
@@ -116,10 +122,6 @@ async def session_endpoint(websocket: WebSocket) -> None:
     session: Session | None = None
     telemetry: Telemetry | None = None
     log_task: asyncio.Task | None = None
-    # The echo turn's id, minted lazily on the first echoed frame. None means
-    # "no audio.start sent yet"; not-None means a turn is open and audio.end
-    # is owed on a clean session.end.
-    echo_turn_id: str | None = None
 
     try:
         while True:
@@ -148,19 +150,26 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     continue
                 session.record_frame()
                 if echo_enabled and telemetry is not None:
-                    # Mint the turn on the first frame so every span for this
+                    # Open the turn on the first frame so every span for this
                     # frame — including frame_received — is tagged with it.
-                    first_frame = echo_turn_id is None
-                    if first_frame:
-                        echo_turn_id = uuid.uuid4().hex
-                    telemetry.record(FRAME_RECEIVED, echo_turn_id)
+                    # Echo mode only: after a flush the flushed turn stays
+                    # current, so echo stays silent for the rest of the session.
+                    first_frame = session.current_turn_id is None
+                    turn_id = session.current_turn_id or session.open_turn()
+                    telemetry.record(FRAME_RECEIVED, turn_id)
                     if first_frame:
                         # audio.start must precede the turn's first audio frame.
-                        await websocket.send_json(audio_start(echo_turn_id))
+                        await websocket.send_json(audio_start(turn_id))
+                    # Late-frame gate. There is NO await between this check and
+                    # send_bytes, so nothing can flush the turn in between: if
+                    # the turn is flushed, this frame is dropped, never sent.
+                    if session.is_flushed(turn_id):
+                        session.late_frames_dropped += 1
+                        continue
                     await websocket.send_bytes(data)
                     # Stamp echo_sent AFTER send_bytes returns so the measured
                     # gap includes the send itself, not just our internal work.
-                    telemetry.record(ECHO_SENT, echo_turn_id)
+                    telemetry.record(ECHO_SENT, turn_id)
                 continue
 
             # --- Text path: a JSON control message ---------------------------
@@ -218,12 +227,32 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 )
                 continue
 
+            if mtype == "dev.flush":
+                # DEV-ONLY — remove together with DevFlush in protocol.py when
+                # barge-in lands. Lets us exercise flush before VAD exists.
+                await session.flush(websocket.send_json, telemetry)
+                continue
+
+            if mtype == "flush.ack":
+                try:
+                    ack = FlushAck.model_validate(payload)
+                except ValidationError:
+                    await websocket.send_json(
+                        error(ErrorCode.BAD_MESSAGE, "malformed flush.ack")
+                    )
+                    continue
+                # Unknown / stale acks are logged and ignored inside the session.
+                session.handle_flush_ack(ack, telemetry)
+                continue
+
             if mtype == "session.end":
                 # Close the open echo turn cleanly before we close the socket.
+                # A flushed turn owes no audio.end: the flush already ended it.
                 # (On a hard disconnect we cannot send this — the browser must
                 # treat a closed socket as an implicit audio.end.)
-                if echo_turn_id is not None:
-                    await websocket.send_json(audio_end(echo_turn_id))
+                turn_id = session.current_turn_id
+                if turn_id is not None and not session.is_flushed(turn_id):
+                    await websocket.send_json(audio_end(turn_id))
                 await websocket.close(code=CLOSE_NORMAL)
                 break
 
@@ -242,7 +271,8 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 await log_task
         if session is not None:
             log.info(
-                "session %s closed: %d frames total",
+                "session %s closed: %d frames total, %d late frames dropped",
                 session.session_id,
                 session.frame_count,
+                session.late_frames_dropped,
             )

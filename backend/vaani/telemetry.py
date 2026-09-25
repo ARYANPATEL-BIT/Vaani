@@ -1,26 +1,33 @@
 """Timing spans for the conversation path, plus one rolling latency statistic.
 
 A "span" here is the simplest possible unit of measurement: a *named point in
-time*, stamped with a monotonic clock and tagged with the session (and, once we
-have turns, the turn) it belongs to. It is not a duration on its own — a
-duration is the gap between two spans, e.g. frame_received -> echo_sent.
+time*, stamped with a high-resolution monotonic clock and tagged with the
+session (and, once we have turns, the turn) it belongs to. It is not a
+duration on its own — a duration is the gap between two spans, e.g.
+frame_received -> echo_sent.
 
 Today only two spans are actually emitted (frame_received, echo_sent), but the
 names for the whole pipeline are defined now so that every later stage records
 against a fixed, agreed vocabulary instead of inventing strings ad hoc. See the
 learning doc for why the names are declared before the code that uses them.
 
-A monotonic clock (`time.monotonic`) only ever moves forward and is unaffected
-by the wall clock being changed (NTP steps, daylight saving, a manual clock
-set). That makes it the correct clock for measuring elapsed time; wall-clock
-time can jump backwards and produce negative or absurd durations.
+A monotonic clock only ever moves forward and is unaffected by the wall clock
+being changed (NTP steps, daylight saving, a manual clock set). That makes it
+the correct kind of clock for measuring elapsed time; wall-clock time can jump
+backwards and produce negative or absurd durations.
+
+We use `time.perf_counter`, not `time.monotonic`. Both are monotonic, but on
+Windows `time.monotonic` is backed by GetTickCount64 and only ticks every
+15.6 ms, so any gap shorter than that reads as 0.0 ms. `perf_counter` uses
+QueryPerformanceCounter (sub-microsecond) on Windows and is at least as fine
+everywhere else.
 """
 
 from collections import deque
 from dataclasses import dataclass
 from math import ceil
 from statistics import median
-from time import monotonic
+from time import perf_counter
 
 # --- Span names -------------------------------------------------------------
 # Constants, not free strings, so every producer and reader spells them the
@@ -34,6 +41,9 @@ ASR_FINAL = "asr_final"
 LLM_FIRST_TOKEN = "llm_first_token"
 TTS_FIRST_AUDIO = "tts_first_audio"
 PLAYBACK_START = "playback_start"
+# Flush round trip: server sent audio.flush -> server received flush.ack.
+FLUSH_SENT = "flush_sent"
+FLUSH_ACKED = "flush_acked"
 
 # Below this many samples the rolling stats are not meaningful (see
 # echo_stats_ms), so we report nothing rather than a misleading number.
@@ -47,9 +57,10 @@ WINDOW = 100
 class Span:
     """A single named point in time.
 
-    `at` is monotonic seconds (only comparable to other monotonic readings, not
-    to a calendar). `turn_id` is None until a turn exists. Frozen because a
-    recorded measurement is a fact — nothing should mutate it after the event.
+    `at` is perf_counter seconds (only comparable to other perf_counter
+    readings, not to a calendar). `turn_id` is None until a turn exists.
+    Frozen because a recorded measurement is a fact — nothing should mutate
+    it after the event.
     """
 
     name: str
@@ -97,7 +108,7 @@ class Telemetry:
         other span name is just stamped and returned (used by later stages).
         """
         span = Span(
-            name=name, at=monotonic(), session_id=self.session_id, turn_id=turn_id
+            name=name, at=perf_counter(), session_id=self.session_id, turn_id=turn_id
         )
         if name == FRAME_RECEIVED:
             self._pending_frame_at = span.at
