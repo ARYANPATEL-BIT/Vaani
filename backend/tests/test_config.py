@@ -60,10 +60,21 @@ def test_llm_settings_from_config_toml() -> None:
     """Model, timeout and provider order come from config.toml."""
     settings = Settings(_env_file=None)
 
-    assert settings.llm.provider_order == ["gemini"]
+    assert settings.llm.provider_order == ["gemini", "groq"]
     assert settings.llm.gemini.model == "gemini-3.5-flash-lite"
     assert settings.llm.gemini.thinking_level == "minimal"
+    assert settings.llm.groq.model  # set in config.toml, never in code
+    assert settings.llm.groq.base_url.startswith("https://")
     assert settings.llm.max_requests_per_process > 0
+
+
+def test_groq_key_only_from_env(monkeypatch) -> None:
+    """VAANI_GROQ_API_KEY is read from the environment and stays masked."""
+    monkeypatch.setenv("VAANI_GROQ_API_KEY", "groq-test-key")
+    settings = Settings(_env_file=None)
+
+    assert settings.groq_api_key.get_secret_value() == "groq-test-key"
+    assert "groq-test-key" not in repr(settings)
 
 
 def test_gemini_key_only_from_env(monkeypatch) -> None:

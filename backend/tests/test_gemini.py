@@ -22,6 +22,7 @@ from vaani.providers.base import (
     ProviderError,
     ProviderFailedError,
     ProviderTimeoutError,
+    ProviderUnavailableError,
     RateLimitedError,
 )
 from vaani.providers.gemini import GeminiProvider
@@ -132,7 +133,9 @@ def test_request_shape_and_key_in_header_not_url() -> None:
         (403, AuthenticationError),
         (504, ProviderTimeoutError),
         (402, ProviderFailedError),
-        (500, ProviderFailedError),
+        (404, ProviderFailedError),
+        (500, ProviderUnavailableError),
+        (503, ProviderUnavailableError),
     ],
 )
 def test_status_codes_map_to_typed_errors(status, expected) -> None:
@@ -149,11 +152,11 @@ def test_timeout_raises_timeout_error() -> None:
         run(make(handler))
 
 
-def test_network_failure_raises_failed_error() -> None:
+def test_network_failure_raises_unavailable_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused", request=request)
 
-    with pytest.raises(ProviderFailedError):
+    with pytest.raises(ProviderUnavailableError):
         run(make(handler))
 
 

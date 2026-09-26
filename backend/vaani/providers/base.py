@@ -58,9 +58,40 @@ class ProviderTimeoutError(ProviderError):
     """No response (or no next chunk) arrived within the configured time."""
 
 
+class ProviderUnavailableError(ProviderError):
+    """Their side is broken: connection refused or reset, DNS failure, or an
+    HTTP 5xx / over-capacity response. Another provider may well work."""
+
+
 class ProviderFailedError(ProviderError):
-    """Anything else: server errors, network failures, malformed or blocked
-    responses."""
+    """Anything else, usually a problem on OUR side that another provider would
+    not fix: a bad request (400), unknown model ID (404), no credits (402), a
+    blocked prompt, or a malformed response."""
+
+
+@dataclass(frozen=True)
+class Attempt:
+    """What one provider in a chain did before the chain gave up on it."""
+
+    provider: str  # our name for it, as in config.toml's provider_order
+    error: str  # the error type's name, e.g. "RateLimitedError"
+    detail: str  # the error message (already free of secrets)
+    elapsed_ms: float  # from starting this provider to its failure
+
+
+class ProvidersExhaustedError(ProviderError):
+    """Every provider in the chain failed with an error that allowed failover.
+
+    `attempts` holds what each one did, in the order they were tried.
+    """
+
+    def __init__(self, attempts: Sequence[Attempt]) -> None:
+        self.attempts = list(attempts)
+        tried = "; ".join(
+            f"{a.provider}: {a.error} after {a.elapsed_ms:.0f} ms ({a.detail})"
+            for a in self.attempts
+        )
+        super().__init__(f"all providers failed: {tried}")
 
 
 class LLMProvider(ABC):
@@ -72,10 +103,10 @@ class LLMProvider(ABC):
     ) -> AsyncIterator[TextChunk]:
         """Send `messages` and yield text chunks in the order they arrive.
 
-        `cancel` is the cancellation token. Implementations check it before
-        sending and between chunks; once it is set they stop yielding and
-        close the underlying HTTP stream. It cannot interrupt a wait for the
-        next chunk — that needs task cancellation as well (week 3).
+        `cancel` is the cancellation token. Once it is set, implementations
+        stop yielding and close the underlying HTTP connection at once — even
+        in the middle of waiting for the headers or the next chunk (see
+        providers/streaming.py). A cancelled stream ends without an error.
 
         Implementations are async generators (`async def ... yield`), which
         is why this is declared with plain `def` returning an AsyncIterator.
