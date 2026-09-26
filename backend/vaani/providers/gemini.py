@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator, Sequence
+from contextlib import aclosing
 
 import httpx
 from pydantic import SecretStr
@@ -28,9 +29,11 @@ from vaani.providers.base import (
     ProviderError,
     ProviderFailedError,
     ProviderTimeoutError,
+    ProviderUnavailableError,
     RateLimitedError,
     TextChunk,
 )
+from vaani.providers.streaming import stream_lines
 from vaani.spend import RequestCap
 
 log = logging.getLogger("vaani.providers.gemini")
@@ -78,44 +81,36 @@ class GeminiProvider(LLMProvider):
     async def stream(
         self, messages: Sequence[Message], cancel: asyncio.Event
     ) -> AsyncIterator[TextChunk]:
-        # Cancellation check 1: before anything is sent or counted.
+        # Already cancelled: send nothing and count nothing.
         if cancel.is_set():
             return
         # Spend check BEFORE dispatch. Raises SpendCapExceededError if used up.
         self._cap.check_and_count()
 
-        headers = {"x-goog-api-key": self._api_key.get_secret_value()}
-        body = _request_body(messages, self._settings.thinking_level)
-        try:
-            # `stream(...)` returns as soon as the response HEADERS arrive; the
-            # body is then read piece by piece. Leaving this `async with` —
-            # normally, by `return`, or by an exception — closes the response
-            # and the HTTP stream with it.
-            async with self._client.stream(
-                "POST",
-                self._url,
-                params={"alt": "sse"},
-                headers=headers,
-                json=body,
-                timeout=self._timeout,
-            ) as response:
-                if response.status_code != 200:
-                    await response.aread()  # the error body is small; read it
-                    raise self._error_for(response)
-                async for line in response.aiter_lines():
-                    # Cancellation check 2: between chunks. `return` exits the
-                    # `async with`, which closes the stream.
-                    if cancel.is_set():
-                        return
-                    for chunk in self._parse_line(line):
-                        yield chunk
-        except httpx.TimeoutException as exc:
-            raise ProviderTimeoutError(
-                f"gemini: no response within {self._settings.timeout_s}s"
-            ) from exc
-        except httpx.HTTPError as exc:
-            # Connection refused, DNS failure, connection reset mid-stream...
-            raise ProviderFailedError(f"gemini: {type(exc).__name__}") from exc
+        request = self._client.build_request(
+            "POST",
+            self._url,
+            params={"alt": "sse"},
+            headers={"x-goog-api-key": self._api_key.get_secret_value()},
+            json=_request_body(messages, self._settings.thinking_level),
+            timeout=self._timeout,
+        )
+        # aclosing: if OUR caller stops early, the inner line stream is closed
+        # right away too (closing the connection), not whenever Python gets
+        # round to garbage-collecting it.
+        async with aclosing(
+            stream_lines(
+                self._client,
+                request,
+                cancel,
+                self._error_for,
+                "gemini",
+                self._settings.timeout_s,
+            )
+        ) as lines:
+            async for line in lines:
+                for chunk in self._parse_line(line):
+                    yield chunk
 
     def _parse_line(self, line: str) -> list[TextChunk]:
         """Turn one SSE line into zero or more text chunks.
@@ -158,7 +153,9 @@ class GeminiProvider(LLMProvider):
             return AuthenticationError(message)
         if status == 504:
             return ProviderTimeoutError(message)
-        # 402 (credits depleted), 400, 404 (bad model ID), 5xx, ...
+        if status in (500, 502, 503):
+            return ProviderUnavailableError(message)  # their side is broken
+        # 402 (credits depleted), 400, 404 (bad model ID): our side is wrong.
         return ProviderFailedError(message)
 
     def _redact(self, text: str) -> str:

@@ -71,15 +71,36 @@ class GeminiSettings(BaseModel):
     thinking_level: str
 
 
+class GroqSettings(BaseModel):
+    """Groq provider parameters, under [llm.groq] in config.toml.
+
+    Like GeminiSettings, the required fields have no defaults: config.toml is
+    the only place a model ID or endpoint is written.
+    """
+
+    # Exact model ID as Groq's /models endpoint lists it.
+    model: str
+    # API root of Groq's OpenAI-compatible API; the provider appends
+    # /chat/completions.
+    base_url: str
+    # Seconds httpx waits for EACH step, as for Gemini.
+    timeout_s: float
+    # Only for reasoning models (gpt-oss). Left out of config => not sent,
+    # because non-reasoning models reject these fields.
+    reasoning_effort: str | None = None
+    include_reasoning: bool | None = None
+
+
 class LLMSettings(BaseModel):
     """Language model settings, under [llm] in config.toml."""
 
-    # Providers to use, first choice first. Only the first is used until
-    # failover exists.
+    # Providers to try, first choice first. ProviderChain fails over along
+    # this list.
     provider_order: list[str]
-    # Paid requests allowed per process before every further call is refused.
+    # Paid requests allowed per process, across ALL providers together.
     max_requests_per_process: int
     gemini: GeminiSettings
+    groq: GroqSettings
 
 
 class Settings(BaseSettings):
@@ -115,6 +136,8 @@ class Settings(BaseSettings):
     secret_key: SecretStr | None = None
     # Env var VAANI_GEMINI_API_KEY. None if unset; the provider refuses to run.
     gemini_api_key: SecretStr | None = None
+    # Env var VAANI_GROQ_API_KEY. Required only if "groq" is in provider_order.
+    groq_api_key: SecretStr | None = None
 
     @classmethod
     def settings_customise_sources(

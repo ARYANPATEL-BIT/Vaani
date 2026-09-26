@@ -34,13 +34,15 @@ frame_log_interval_s = 1.0
 echo_enabled = true
 
 [llm]
-# Language model providers, first choice first. Only the first is used until
-# failover is built.
-provider_order = ["gemini"]
+# Language model providers, first choice first. If one is rate-limited, times
+# out or is unreachable BEFORE it has said anything, the next one is tried.
+# Every provider listed here must have its API key set, or startup fails.
+provider_order = ["gemini", "groq"]
 
-# Per-process cap on paid LLM requests. Every call is counted when it is
-# dispatched, success or not; past the cap, calls are refused before any
-# network traffic. A stopgap until the real cost ledger exists.
+# Per-process cap on paid LLM requests, shared by EVERY provider: a failover
+# is another counted request, not a way around the cap. Every call is counted
+# when it is dispatched, success or not; past the cap, calls are refused
+# before any network traffic. A stopgap until the real cost ledger exists.
 max_requests_per_process = 200
 
 [llm.gemini]
@@ -60,3 +62,18 @@ timeout_s = 10.0
 # level this model accepts; thinking happens before the first token, so it
 # adds directly to time-to-first-token.
 thinking_level = "minimal"
+
+[llm.groq]
+# Exact model ID, as returned by Groq's GET /openai/v1/models for our key.
+# MODEL_PLACEHOLDER
+model = "llama-3.1-8b-instant"
+
+# Groq's OpenAI-compatible API root. The key comes only from the
+# VAANI_GROQ_API_KEY environment variable (or the gitignored backend/.env).
+base_url = "https://api.groq.com/openai/v1"
+
+# Seconds to wait for each step of a request, as for Gemini.
+timeout_s = 10.0
+
+# reasoning_effort / include_reasoning: only for reasoning models such as
+# openai/gpt-oss-20b. Leave them out for any other model; it rejects them.
