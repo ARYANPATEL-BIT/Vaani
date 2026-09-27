@@ -18,12 +18,21 @@ the receiver answers flush.ack at once (as a browser would after silencing its
 speaker) and from then on DISCARDS any frame for the flushed turn, counting
 them instead of playing them.
 
+Day 8: with --speech-s A --silence-s B the client alternates A seconds of
+SPEECH with B seconds of real silence (all-zero frames), repeating, so VAD can
+be tested without a microphone. The speech is a recorded clip
+(tests/fixtures/speech_16k_mono.wav), not the tone: Silero is trained to
+reject pure tones, so a tone never registers as speech. The client prints
+each switch with its time so it can be matched against the server's
+speech_started / speech_ended log lines.
+
 Run the server first:
     uv run uvicorn vaani.app:app
 Then, in another terminal:
     uv run python scripts/fake_client.py
     uv run python scripts/fake_client.py --flush-after 3
     uv run python scripts/fake_client.py --duration 600   # 10-minute soak
+    uv run python scripts/fake_client.py --speech-s 3 --silence-s 2
 
 You should see the server log about 50 frames per second with a median echo
 time, and the client should report ~500 echoed frames received.
@@ -35,6 +44,8 @@ import json
 import math
 import struct
 import time
+import wave
+from pathlib import Path
 
 import websockets
 
@@ -53,6 +64,11 @@ FRAME_SECONDS = FRAME_MS / 1000  # 0.02
 # The address uvicorn listens on by default. A dev-script default, overridable
 # with --url; the server itself has no URL setting to read it from.
 DEFAULT_URL = "ws://127.0.0.1:8000/ws/session"
+# Speech clip for --speech-s; regenerate with scripts/make_speech_fixture.ps1.
+DEFAULT_SPEECH_WAV = (
+    Path(__file__).resolve().parent.parent / "tests/fixtures/speech_16k_mono.wav"
+)
+SILENT_FRAME = b"\x00" * (SAMPLES_PER_FRAME * CHANNELS * 2)
 
 
 def make_frame(start_sample: int) -> bytes:
@@ -69,6 +85,38 @@ def make_frame(start_sample: int) -> bytes:
         value = int(0.3 * 32767 * math.sin(2 * math.pi * TONE_HZ * t))
         samples += struct.pack("<h", value)
     return bytes(samples)
+
+
+def load_speech_frames(path: Path) -> list[bytes]:
+    """Split a WAV file into protocol-sized frames (a partial tail is dropped).
+
+    The WAV must already be in our wire format; we check rather than resample,
+    so a wrong file fails loudly instead of sending distorted audio.
+    """
+    with wave.open(str(path), "rb") as wav:
+        if (wav.getframerate(), wav.getnchannels(), wav.getsampwidth()) != (
+            SAMPLE_RATE,
+            CHANNELS,
+            2,
+        ):
+            raise SystemExit(f"{path} is not {SAMPLE_RATE} Hz / {CHANNELS} ch / 16-bit")
+        pcm = wav.readframes(wav.getnframes())
+    size = SAMPLES_PER_FRAME * CHANNELS * 2
+    return [pcm[i : i + size] for i in range(0, len(pcm) - size + 1, size)]
+
+
+def alternating_frame(
+    n: int, speech: list[bytes], speech_frames: int, silence_frames: int
+) -> tuple[bytes, bool]:
+    """Frame n of the speech/silence pattern, and whether it is speech.
+
+    Each cycle is speech_frames of speech then silence_frames of zeros. The
+    clip restarts every cycle (and loops if a speech phase outlasts it).
+    """
+    pos = n % (speech_frames + silence_frames)
+    if pos < speech_frames:
+        return speech[pos % len(speech)], True
+    return SILENT_FRAME, False
 
 
 async def receive_echo(ws) -> None:
@@ -114,7 +162,13 @@ async def receive_echo(ws) -> None:
     print(f"received {frames} echoed frames, discarded {discarded} late frames")
 
 
-async def main(url: str, duration_s: float, flush_after: float | None) -> None:
+async def main(
+    url: str,
+    duration_s: float,
+    flush_after: float | None,
+    pattern: tuple[float, float] | None,
+    speech_wav: Path,
+) -> None:
     # Which frame index to send dev.flush before; None means never flush.
     flush_at = None if flush_after is None else int(flush_after / FRAME_SECONDS)
     async with websockets.connect(url) as ws:
@@ -138,6 +192,11 @@ async def main(url: str, duration_s: float, flush_after: float | None) -> None:
         receiver = asyncio.create_task(receive_echo(ws))
 
         total_frames = int(duration_s / FRAME_SECONDS)  # 500 for 10 s
+        if pattern is not None:
+            speech = load_speech_frames(speech_wav)
+            speech_frames = round(pattern[0] / FRAME_SECONDS)
+            silence_frames = round(pattern[1] / FRAME_SECONDS)
+        was_speech = None
         loop = asyncio.get_running_loop()
         next_deadline = loop.time()
         for n in range(total_frames):
@@ -145,7 +204,17 @@ async def main(url: str, duration_s: float, flush_after: float | None) -> None:
                 # DEV-ONLY message: stands in for barge-in until VAD exists.
                 await ws.send(json.dumps({"type": "dev.flush"}))
                 print(f"client: sent dev.flush at {flush_after}s")
-            await ws.send(make_frame(n * SAMPLES_PER_FRAME))
+            if pattern is None:
+                frame = make_frame(n * SAMPLES_PER_FRAME)
+            else:
+                frame, is_speech = alternating_frame(
+                    n, speech, speech_frames, silence_frames
+                )
+                if is_speech != was_speech:
+                    phase = "speech" if is_speech else "silence"
+                    print(f"client: {phase} from frame {n} ({n * FRAME_SECONDS:.2f}s)")
+                    was_speech = is_speech
+            await ws.send(frame)
             # Pace to real time: schedule each send one frame apart and sleep to
             # the next deadline, so we stream at ~50 frames/sec, not as fast as
             # possible. Drift is avoided by advancing an absolute deadline.
@@ -175,5 +244,28 @@ if __name__ == "__main__":
         metavar="SECONDS",
         help="send dev.flush this many seconds into the stream",
     )
+    parser.add_argument(
+        "--speech-s",
+        type=float,
+        metavar="SECONDS",
+        help="alternate this many seconds of speech with --silence-s of silence",
+    )
+    parser.add_argument(
+        "--silence-s",
+        type=float,
+        metavar="SECONDS",
+        help="seconds of all-zero silence between speech phases",
+    )
+    parser.add_argument(
+        "--speech-wav",
+        type=Path,
+        default=DEFAULT_SPEECH_WAV,
+        help="16 kHz mono 16-bit WAV used for the speech phase",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.url, args.duration, args.flush_after))
+    if (args.speech_s is None) != (args.silence_s is None):
+        parser.error("--speech-s and --silence-s go together")
+    pattern = None if args.speech_s is None else (args.speech_s, args.silence_s)
+    asyncio.run(
+        main(args.url, args.duration, args.flush_after, pattern, args.speech_wav)
+    )

@@ -14,8 +14,12 @@ audio.end, and each frame's receive->send gap is timed via telemetry spans.
 Day 4 adds FLUSH: a dev.flush control message (development only) makes the
 session flush the current turn, and the browser's flush.ack closes the round
 trip. After a flush, no further frame is sent for that turn; the check sits
-directly in front of send_bytes. What this file does NOT do yet: run VAD,
-trigger barge-in, or call any provider.
+directly in front of send_bytes.
+
+Day 8 adds VAD: while [vad].enabled, every valid frame goes through the
+session's VadStream before the echo path, and speech_started / speech_ended
+are logged. What this file does NOT do yet: endpointing, barge-in, or call
+any provider.
 """
 
 import asyncio
@@ -23,6 +27,7 @@ import json
 import logging
 import uuid
 from contextlib import suppress
+from time import perf_counter
 
 from fastapi import APIRouter, WebSocket
 from pydantic import ValidationError
@@ -40,6 +45,7 @@ from vaani.protocol import (
 )
 from vaani.session import Session
 from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, Telemetry
+from vaani.vad import VadStream
 
 log = logging.getLogger("vaani.gateway")
 
@@ -71,41 +77,39 @@ def _audio_matches(claimed, expected: AudioSettings) -> bool:
     )
 
 
+def _fmt_ms(stats: tuple[float, float] | None) -> str:
+    """'p50=1.234ms p95=5.678ms', or dashes while there are too few samples."""
+    if stats is None:
+        return "p50=- p95=-"
+    return f"p50={stats[0]:.3f}ms p95={stats[1]:.3f}ms"
+
+
 async def _log_frames(
-    session: Session, telemetry: Telemetry, interval_s: float
+    session: Session, telemetry: Telemetry, interval_s: float, vad_enabled: bool
 ) -> None:
-    """Background task: every `interval_s`, log the frame count and echo timing.
+    """Background task: every `interval_s`, log frame count, echo and VAD timing.
 
     It reads and resets the session's interval counter and reads the rolling
-    echo statistic. Because everything runs on one event loop (no real threads),
+    statistics. Because everything runs on one event loop (no real threads),
     the read-and-reset cannot interleave with the read loop's increment, so no
     lock is needed. Cancellation (on disconnect) surfaces as CancelledError out
     of `sleep`, which ends the task.
 
-    `echo_stats_ms()` is None until enough samples exist; we print dashes then
+    The stats are None until enough samples exist; _fmt_ms prints dashes then
     so an early, meaningless number is never shown.
     """
     while True:
         await asyncio.sleep(interval_s)
         count = session.take_interval_count()
-        stats = telemetry.echo_stats_ms()
-        if stats is None:
-            log.info(
-                "session %s: %d frames in last %.3fs (echo p50=- p95=-)",
-                session.session_id,
-                count,
-                interval_s,
-            )
-        else:
-            p50, p95 = stats
-            log.info(
-                "session %s: %d frames in last %.3fs (echo p50=%.3fms p95=%.3fms)",
-                session.session_id,
-                count,
-                interval_s,
-                p50,
-                p95,
-            )
+        vad = _fmt_ms(telemetry.vad_stats_ms()) if vad_enabled else "off"
+        log.info(
+            "session %s: %d frames in last %.3fs (echo %s) (vad %s)",
+            session.session_id,
+            count,
+            interval_s,
+            _fmt_ms(telemetry.echo_stats_ms()),
+            vad,
+        )
 
 
 @router.websocket("/ws/session")
@@ -116,11 +120,13 @@ async def session_endpoint(websocket: WebSocket) -> None:
     expected = expected_frame_bytes(audio_cfg)
     interval_s = settings.gateway.frame_log_interval_s
     echo_enabled = settings.gateway.echo_enabled
+    vad_enabled = settings.vad.enabled
 
     await websocket.accept()
 
     session: Session | None = None
     telemetry: Telemetry | None = None
+    vad: VadStream | None = None
     log_task: asyncio.Task | None = None
 
     try:
@@ -149,6 +155,22 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     )
                     continue
                 session.record_frame()
+                if vad is not None and telemetry is not None:
+                    # VAD runs BEFORE echo, on every valid frame. It is plain
+                    # synchronous CPU work: while it runs, this event loop (and
+                    # every other session on it) waits, which is why its cost
+                    # is timed on every frame.
+                    vad_started = perf_counter()
+                    event = vad.push(data)
+                    telemetry.record_vad_decision(vad_started)
+                    if event is not None:
+                        log.info(
+                            "session %s: %s at frame %d (%.2fs into audio)",
+                            session.session_id,
+                            event.kind,
+                            event.frame_index,
+                            (event.frame_index + 1) * audio_cfg.frame_ms / 1000,
+                        )
                 if echo_enabled and telemetry is not None:
                     # Open the turn on the first frame so every span for this
                     # frame — including frame_received — is tagged with it.
@@ -214,8 +236,12 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     continue
                 session = Session(session_id=uuid.uuid4().hex, persona=start.persona)
                 telemetry = Telemetry(session.session_id)
+                if vad_enabled:
+                    # Fresh per-session VAD memory; model weights are shared.
+                    model = websocket.app.state.vad_model
+                    vad = VadStream(model, settings.vad, audio_cfg)
                 log_task = asyncio.create_task(
-                    _log_frames(session, telemetry, interval_s)
+                    _log_frames(session, telemetry, interval_s, vad_enabled)
                 )
                 await websocket.send_json(session_started(session.session_id))
                 continue

@@ -20,6 +20,14 @@ and tool in use. These are the versions resolved into `backend/uv.lock` on
 | fastapi | 0.141.1 | MIT | Web framework: routing, validation, ASGI app |
 | uvicorn | 0.53.0 | BSD-3-Clause | ASGI server that runs the app |
 | pydantic-settings | 2.15.0 | MIT | Typed settings from TOML + environment |
+| onnxruntime | 1.30.0 | MIT | Runs the Silero VAD model on CPU (added 2026-09-27) |
+| numpy | 2.4.6 | BSD-3-Clause | Audio sample arrays for VAD (added 2026-09-27) |
+
+## Model files
+
+| Model | Version | License | Source / sha256 |
+|---|---|---|---|
+| Silero VAD (`backend/models/silero_vad.onnx`) | v6.2.3 | MIT | github.com/snakers4/silero-vad tag v6.2.3, `src/silero_vad/data/silero_vad.onnx`; sha256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3` |
 
 ## Frontend runtime dependencies (direct)
 
@@ -57,6 +65,8 @@ and tool in use. These are the versions resolved into `backend/uv.lock` on
 | starlette | 1.6.0 | fastapi |
 | anyio | 4.15.1 | starlette, httpx |
 | python-dotenv | 1.2.3 | pydantic-settings |
+| protobuf | 7.36.2 | onnxruntime |
+| flatbuffers | 25.12.19 | onnxruntime |
 
 Licenses above are the well-known licenses for these projects; none is
 copyleft, so none constrains how Vaani is distributed. Verify against each

@@ -16,6 +16,8 @@ dependencies = [
     "uvicorn[standard]>=0.29",  # ASGI server + WebSocket support (websockets)
     "pydantic-settings>=2.2",   # typed settings from TOML + env (has TOML source)
     "httpx>=0.27",              # async HTTP client; LLM provider calls (streaming)
+    "onnxruntime>=1.18",        # runs the Silero VAD model on CPU, no torch
+    "numpy>=1.26",              # audio sample arrays fed to onnxruntime
 ]
 
 [dependency-groups]
