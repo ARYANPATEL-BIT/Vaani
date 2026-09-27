@@ -6,8 +6,8 @@ session (and, once we have turns, the turn) it belongs to. It is not a
 duration on its own — a duration is the gap between two spans, e.g.
 frame_received -> echo_sent.
 
-Today three spans are actually emitted (frame_received, echo_sent,
-vad_decision), but the
+Today four spans are actually emitted (frame_received, echo_sent,
+vad_decision, turn_ended), but the
 names for the whole pipeline are defined now so that every later stage records
 against a fixed, agreed vocabulary instead of inventing strings ad hoc. See the
 learning doc for why the names are declared before the code that uses them.
@@ -37,6 +37,8 @@ from time import perf_counter
 FRAME_RECEIVED = "frame_received"
 ECHO_SENT = "echo_sent"
 VAD_DECISION = "vad_decision"
+# The endpointer decided the user's turn is over.
+TURN_ENDED = "turn_ended"
 ASR_PARTIAL = "asr_partial"
 ASR_FINAL = "asr_final"
 LLM_FIRST_TOKEN = "llm_first_token"
