@@ -1,8 +1,9 @@
 """A synthetic WebSocket client, so the gateway can be demonstrated without the
 frontend.
 
-It connects to /ws/session, starts a session, streams 10 seconds of 20 ms audio
-frames at real-time pace (one every 20 ms), then ends the session. The audio is
+It connects to /ws/session, starts a session, streams audio frames at
+real-time pace (one per frame_ms) for --duration seconds (default 10), then
+ends the session. The audio is
 a pure sine tone generated with only the standard library (`math`, `struct`), so
 no audio files or extra packages are needed.
 
@@ -22,6 +23,7 @@ Run the server first:
 Then, in another terminal:
     uv run python scripts/fake_client.py
     uv run python scripts/fake_client.py --flush-after 3
+    uv run python scripts/fake_client.py --duration 600   # 10-minute soak
 
 You should see the server log about 50 frames per second with a median echo
 time, and the client should report ~500 echoed frames received.
@@ -36,17 +38,21 @@ import time
 
 import websockets
 
-# These MUST match the server's config.toml [audio] block, otherwise the server
-# replies UNSUPPORTED_FORMAT and rejects the session.
-SAMPLE_RATE = 16000
-CHANNELS = 1
-FRAME_MS = 20
+from vaani.config import get_settings
+
+# The audio format comes from the same config.toml [audio] block the server
+# reads, so the two cannot drift apart (a mismatch gets UNSUPPORTED_FORMAT).
+_AUDIO = get_settings().audio
+SAMPLE_RATE = _AUDIO.sample_rate
+CHANNELS = _AUDIO.channels
+FRAME_MS = _AUDIO.frame_ms
 TONE_HZ = 440  # musical A; any audible frequency works, it is only a demo
 
 SAMPLES_PER_FRAME = SAMPLE_RATE * FRAME_MS // 1000  # 320
 FRAME_SECONDS = FRAME_MS / 1000  # 0.02
-DURATION_SECONDS = 10
-URL = "ws://127.0.0.1:8000/ws/session"
+# The address uvicorn listens on by default. A dev-script default, overridable
+# with --url; the server itself has no URL setting to read it from.
+DEFAULT_URL = "ws://127.0.0.1:8000/ws/session"
 
 
 def make_frame(start_sample: int) -> bytes:
@@ -108,10 +114,10 @@ async def receive_echo(ws) -> None:
     print(f"received {frames} echoed frames, discarded {discarded} late frames")
 
 
-async def main(flush_after: float | None) -> None:
+async def main(url: str, duration_s: float, flush_after: float | None) -> None:
     # Which frame index to send dev.flush before; None means never flush.
     flush_at = None if flush_after is None else int(flush_after / FRAME_SECONDS)
-    async with websockets.connect(URL) as ws:
+    async with websockets.connect(url) as ws:
         await ws.send(
             json.dumps(
                 {
@@ -131,7 +137,7 @@ async def main(flush_after: float | None) -> None:
         # Start reading echoes now, concurrently with the send loop below.
         receiver = asyncio.create_task(receive_echo(ws))
 
-        total_frames = DURATION_SECONDS * 1000 // FRAME_MS  # 500
+        total_frames = int(duration_s / FRAME_SECONDS)  # 500 for 10 s
         loop = asyncio.get_running_loop()
         next_deadline = loop.time()
         for n in range(total_frames):
@@ -156,10 +162,18 @@ async def main(flush_after: float | None) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
+        "--duration",
+        type=float,
+        default=10.0,
+        metavar="SECONDS",
+        help="how long to stream audio (default 10)",
+    )
+    parser.add_argument("--url", default=DEFAULT_URL, help="gateway WebSocket URL")
+    parser.add_argument(
         "--flush-after",
         type=float,
         metavar="SECONDS",
         help="send dev.flush this many seconds into the stream",
     )
     args = parser.parse_args()
-    asyncio.run(main(args.flush_after))
+    asyncio.run(main(args.url, args.duration, args.flush_after))
