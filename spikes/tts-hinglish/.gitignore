@@ -1,0 +1,9 @@
+# Piper voice model binaries — large ONNX files, do not commit
+models/*.onnx
+
+# Generated audio clips — committed intentionally (they ARE the spike artefacts)
+# so audio/ is NOT ignored here. Remove this comment if you want to ignore them.
+
+# Python scratch
+__pycache__/
+*.pyc

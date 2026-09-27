@@ -1,0 +1,21 @@
+{
+  "provider": "piper",
+  "model": "hi_IN-priyamvada-medium.onnx",
+  "execution": "local",
+  "clips": {
+    "romanized": {
+      "text": "Namaste, aaj hum real-time voice conversation ke baare mein baat karenge.",
+      "output_file": "audio/piper_romanized.wav",
+      "size_bytes": 225836,
+      "latency_s": 0.106,
+      "status": "ok"
+    },
+    "devanagari": {
+      "text": "नमस्ते, आज हम real-time voice conversation के बारे में बात करेंगे।",
+      "output_file": "audio/piper_devanagari.wav",
+      "size_bytes": 213548,
+      "latency_s": 0.089,
+      "status": "ok"
+    }
+  }
+}
