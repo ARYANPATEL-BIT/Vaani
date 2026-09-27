@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from vaani import __version__
 from vaani.config import Settings, get_settings
 from vaani.gateway import router as gateway_router
+from vaani.vad import load_model
 
 
 def _configure_logging() -> None:
@@ -51,6 +52,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title=settings.app_name, version=__version__)
     # Stash settings so the WebSocket endpoint can read them off the app.
     app.state.settings = settings
+    # Load the VAD model now, at startup, never per session or per frame.
+    # load_model is cached, so every app built in this process (tests build
+    # many) shares the one loaded copy; the load time is logged once.
+    if settings.vad.enabled:
+        app.state.vad_model = load_model(
+            settings.vad.model_path, settings.vad.model_sha256
+        )
 
     @app.get("/health")
     def health() -> dict[str, str]:

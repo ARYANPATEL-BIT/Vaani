@@ -33,6 +33,31 @@ frame_log_interval_s = 1.0
 # real voice pipeline produces the audio instead.
 echo_enabled = true
 
+[vad]
+# Voice activity detection: decides, per 20 ms frame, whether it holds speech,
+# and turns those decisions into speech_started / speech_ended events.
+# When false, the gateway skips VAD entirely (used to measure what it costs).
+enabled = true
+
+# The Silero VAD model, run on CPU with ONNX Runtime. The path is relative to
+# backend/. The sha256 is checked when the model loads, so a corrupted or
+# swapped file fails at startup instead of silently changing behaviour.
+# Source: https://raw.githubusercontent.com/snakers4/silero-vad/v6.2.3/src/silero_vad/data/silero_vad.onnx
+model_path = "models/silero_vad.onnx"
+model_sha256 = "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3"
+
+# Silero outputs a speech probability from 0 to 1. A frame at or above this
+# value counts as a speech frame. 0.5 is Silero's own default.
+threshold = 0.5
+
+# Hysteresis. Speech starts only after this many consecutive speech frames
+# (4 x 20 ms = 80 ms), so a single click or cough does not count as speech...
+start_frames = 4
+# ...and ends only after this many consecutive silence frames (10 x 20 ms =
+# 200 ms), so a short pause between words does not end it. Starting values;
+# tuned on day 9 alongside endpointing.
+end_frames = 10
+
 [llm]
 # Language model providers, first choice first. If one is rate-limited, times
 # out or is unreachable BEFORE it has said anything, the next one is tried.
