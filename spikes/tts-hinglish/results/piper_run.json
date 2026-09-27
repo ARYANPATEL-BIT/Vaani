@@ -6,15 +6,15 @@
     "romanized": {
       "text": "Namaste, aaj hum real-time voice conversation ke baare mein baat karenge.",
       "output_file": "audio/piper_romanized.wav",
-      "size_bytes": 225836,
-      "latency_s": 0.106,
+      "size_bytes": 221228,
+      "latency_s": 0.098,
       "status": "ok"
     },
     "devanagari": {
       "text": "नमस्ते, आज हम real-time voice conversation के बारे में बात करेंगे।",
       "output_file": "audio/piper_devanagari.wav",
-      "size_bytes": 213548,
-      "latency_s": 0.089,
+      "size_bytes": 209452,
+      "latency_s": 0.086,
       "status": "ok"
     }
   }

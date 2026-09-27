@@ -5,7 +5,7 @@ spikes/tts-hinglish/generate_piper.py
 Week 1 Friday Spike — Piper TTS test.
 
 Synthesises two Hinglish sentences (romanised and Devanagari) locally
-using the piper-tts Python package and a downloaded Hindi voice model.
+using the Piper provider adapter and a downloaded Hindi voice model.
 
 Model required (download first, or run this script with --download):
     models/hi_IN-priyamvada-medium.onnx
@@ -23,21 +23,26 @@ Output files:
 Config log:
     results/piper_run.json
 
-IMPORTANT: The .onnx model file is ~75 MB. It is listed in .gitignore
-(or should be) and must NOT be committed to the repository.
+IMPORTANT: The .onnx model file is ~61 MB. It is listed in .gitignore
+and must NOT be committed to the repository.
 """
 
-import io
 import json
 import sys
-import time
 import urllib.request
 from pathlib import Path
 
+# Add parent directory for provider imports
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+from providers import get_tts_provider  # noqa: E402
+
 # ── model paths ───────────────────────────────────────────────────────────────
-MODELS_DIR  = Path(__file__).parent / "models"
-MODEL_ONNX  = MODELS_DIR / "hi_IN-priyamvada-medium.onnx"
-MODEL_JSON  = MODELS_DIR / "hi_IN-priyamvada-medium.onnx.json"
+MODELS_DIR = HERE / "models"
+MODEL_ONNX = MODELS_DIR / "hi_IN-priyamvada-medium.onnx"
+MODEL_JSON = MODELS_DIR / "hi_IN-priyamvada-medium.onnx.json"
 
 HF_BASE = (
     "https://huggingface.co/rhasspy/piper-voices/resolve/main"
@@ -45,7 +50,6 @@ HF_BASE = (
 )
 
 # ── test sentences ────────────────────────────────────────────────────────────
-# Same semantic content as the Sarvam test. Must match for fair comparison.
 SENTENCES = {
     "romanized": (
         "Namaste, aaj hum real-time voice conversation ke baare mein baat karenge."
@@ -55,8 +59,8 @@ SENTENCES = {
     ),
 }
 
-OUT_DIR     = Path(__file__).parent / "audio"
-RESULTS_DIR = Path(__file__).parent / "results"
+OUT_DIR = HERE / "audio"
+RESULTS_DIR = HERE / "results"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -66,7 +70,7 @@ def download_model() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     for fname in [MODEL_ONNX.name, MODEL_JSON.name]:
         dest = MODELS_DIR / fname
-        url  = f"{HF_BASE}/{fname}"
+        url = f"{HF_BASE}/{fname}"
         if dest.exists() and dest.stat().st_size > 10_000:
             print(f"  already present: {dest.name}")
             continue
@@ -76,50 +80,17 @@ def download_model() -> None:
 
 
 def synthesise(text: str) -> tuple[bytes, float]:
-    """
-    Synthesise text using Piper (piper-tts >= 1.8.0).
+    """Synthesise text using the Piper TTS provider.
 
     Returns (wav_bytes, wall_time_seconds).
-    The output is a standard RIFF WAV file.
-
-    piper-tts 1.8.0 changed the API: PiperVoice.synthesize() now returns
-    an iterable of AudioChunk objects (not a wave-writing callback). Each
-    chunk carries audio_int16_bytes (raw 16-bit PCM) plus sample metadata.
-    We collect all chunks and assemble a WAV file manually.
     """
-    import wave as wave_module
-
-    from piper.voice import PiperVoice  # type: ignore
-
-    voice = PiperVoice.load(str(MODEL_ONNX), config_path=str(MODEL_JSON))
-
-    buf = io.BytesIO()
-    t0  = time.perf_counter()
-
-    # synthesize() yields AudioChunk objects; drain to list first so we
-    # measure total generation time (not just the time to the first chunk).
-    chunks = list(voice.synthesize(text))
-
-    if not chunks:
-        raise RuntimeError(
-            "Piper returned 0 audio chunks — "
-            "model may have failed to phonemize the input."
-        )
-
-    # Use metadata from the first chunk (all chunks share the same config).
-    sample_rate     = chunks[0].sample_rate
-    sample_width    = chunks[0].sample_width
-    sample_channels = chunks[0].sample_channels
-
-    with wave_module.open(buf, "wb") as wav_file:
-        wav_file.setnchannels(sample_channels)
-        wav_file.setsampwidth(sample_width)
-        wav_file.setframerate(sample_rate)
-        for chunk in chunks:
-            wav_file.writeframes(chunk.audio_int16_bytes)
-
-    latency = time.perf_counter() - t0
-    return buf.getvalue(), latency
+    provider = get_tts_provider(
+        "piper",
+        model_onnx_path=MODEL_ONNX,
+        model_json_path=MODEL_JSON,
+    )
+    result = provider.synthesize(text)
+    return result.wav_bytes, result.latency_s
 
 
 def main() -> None:
@@ -154,10 +125,10 @@ def main() -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     run_log = {
-        "provider":  "piper",
-        "model":     MODEL_ONNX.name,
+        "provider": "piper",
+        "model": MODEL_ONNX.name,
         "execution": "local",
-        "clips":     {},
+        "clips": {},
     }
 
     for script, text in SENTENCES.items():
@@ -173,19 +144,19 @@ def main() -> None:
             print(f"  status : OK  ({size_kb:.1f} KB, {latency:.2f} s)")
 
             run_log["clips"][script] = {
-                "text":        text,
-                "output_file": str(out_path.relative_to(Path(__file__).parent)),
-                "size_bytes":  len(wav_bytes),
-                "latency_s":   round(latency, 3),
-                "status":      "ok",
+                "text": text,
+                "output_file": str(out_path.relative_to(HERE)),
+                "size_bytes": len(wav_bytes),
+                "latency_s": round(latency, 3),
+                "status": "ok",
             }
 
         except Exception as exc:
             print(f"  status : FAILED — {exc}", file=sys.stderr)
             run_log["clips"][script] = {
-                "text":   text,
+                "text": text,
                 "status": "failed",
-                "error":  str(exc),
+                "error": str(exc),
             }
 
     log_path = RESULTS_DIR / "piper_run.json"
