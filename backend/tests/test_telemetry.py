@@ -12,6 +12,7 @@ from vaani.telemetry import (
     ECHO_SENT,
     FRAME_RECEIVED,
     MIN_SAMPLES,
+    VAD_DECISION,
     Telemetry,
     _nearest_rank_p95,
 )
@@ -90,3 +91,18 @@ def test_window_keeps_only_last_100(monkeypatch) -> None:
 def test_nearest_rank_p95_small_window_is_max() -> None:
     """The documented caveat: on a tiny window p95 collapses to the maximum."""
     assert _nearest_rank_p95([1.0, 2.0, 3.0, 4.0, 5.0]) == 5.0
+
+
+def test_vad_decision_cost_kept_separately_from_echo(monkeypatch) -> None:
+    """record_vad_decision stamps vad_decision and feeds only the VAD window."""
+    clock = FakeClock()
+    monkeypatch.setattr(telemetry_mod, "perf_counter", clock)
+    tele = Telemetry("sess-1")
+    for _ in range(MIN_SAMPLES):
+        started = clock.now
+        clock.now += 0.0002  # every VAD call costs exactly 0.2 ms
+        span = tele.record_vad_decision(started)
+
+    assert span.name == VAD_DECISION
+    assert tele.vad_stats_ms() == pytest.approx((0.2, 0.2))
+    assert tele.echo_stats_ms() is None  # no echo pairs were recorded

@@ -51,6 +51,28 @@ class GatewaySettings(BaseModel):
     echo_enabled: bool = True
 
 
+class VadSettings(BaseModel):
+    """Voice activity detection parameters, under [vad] in config.toml.
+
+    The model file and its checksum have no defaults: like a provider model
+    ID, they are set only in config.toml. The tuning values mirror the TOML so
+    a test can build a VadSettings without restating every field.
+    """
+
+    # When false the gateway does not run VAD at all.
+    enabled: bool = True
+    # Silero ONNX file; relative paths are resolved against backend/.
+    model_path: str
+    # Expected sha256 of that file, verified at load.
+    model_sha256: str
+    # Speech probability at or above which a frame counts as speech.
+    threshold: float = 0.5
+    # Consecutive speech frames before speech_started fires.
+    start_frames: int = 4
+    # Consecutive silence frames before speech_ended fires.
+    end_frames: int = 10
+
+
 class GeminiSettings(BaseModel):
     """Gemini provider parameters, under [llm.gemini] in config.toml.
 
@@ -129,6 +151,7 @@ class Settings(BaseSettings):
     app_name: str = "vaani"
     audio: AudioSettings = AudioSettings()
     gateway: GatewaySettings = GatewaySettings()
+    vad: VadSettings
     llm: LLMSettings
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps

@@ -6,7 +6,8 @@ session (and, once we have turns, the turn) it belongs to. It is not a
 duration on its own — a duration is the gap between two spans, e.g.
 frame_received -> echo_sent.
 
-Today only two spans are actually emitted (frame_received, echo_sent), but the
+Today three spans are actually emitted (frame_received, echo_sent,
+vad_decision), but the
 names for the whole pipeline are defined now so that every later stage records
 against a fixed, agreed vocabulary instead of inventing strings ad hoc. See the
 learning doc for why the names are declared before the code that uses them.
@@ -46,10 +47,10 @@ FLUSH_SENT = "flush_sent"
 FLUSH_ACKED = "flush_acked"
 
 # Below this many samples the rolling stats are not meaningful (see
-# echo_stats_ms), so we report nothing rather than a misleading number.
+# RollingStat.stats_ms), so we report nothing rather than a misleading number.
 MIN_SAMPLES = 20
 
-# How many recent frame_received -> echo_sent deltas to keep.
+# How many recent durations each rolling window keeps.
 WINDOW = 100
 
 
@@ -77,25 +78,54 @@ def _nearest_rank_p95(sorted_values: list[float]) -> float:
 
     Caveat: on a small window this collapses to (nearly) the maximum — e.g. with
     N < 20, ceil(0.95 * N) == N, so p95 IS the largest sample. That is exactly
-    why echo_stats_ms withholds numbers until MIN_SAMPLES have been seen.
+    why RollingStat.stats_ms withholds numbers until MIN_SAMPLES have been seen.
     """
     rank = ceil(0.95 * len(sorted_values))  # 1-based position
     return sorted_values[rank - 1]
 
 
+class RollingStat:
+    """The last WINDOW durations, summarised as (median, p95) in milliseconds.
+
+    Used twice: for the echo gap (frame_received -> echo_sent) and for the
+    per-frame VAD cost. One class so both numbers are computed identically.
+    """
+
+    def __init__(self) -> None:
+        # Durations in seconds; deque(maxlen=...) drops the oldest automatically,
+        # giving a fixed-size sliding window for free.
+        self._values: deque[float] = deque(maxlen=WINDOW)
+
+    def add(self, seconds: float) -> None:
+        self._values.append(seconds)
+
+    def stats_ms(self) -> tuple[float, float] | None:
+        """(median, p95) in milliseconds, or None below MIN_SAMPLES.
+
+        On a small window the nearest-rank p95 is just the maximum (see
+        _nearest_rank_p95), so an early number would overstate the tail; None
+        says "not yet meaningful".
+        """
+        if len(self._values) < MIN_SAMPLES:
+            return None
+        ordered = sorted(self._values)
+        p50 = median(ordered) * 1000.0
+        p95 = _nearest_rank_p95(ordered) * 1000.0
+        return (p50, p95)
+
+
 class Telemetry:
-    """Per-session span recorder and rolling echo-latency statistic.
+    """Per-session span recorder and rolling latency statistics.
 
     One instance lives per WebSocket connection, owned by that connection's
-    coroutine, so like Session it needs no locking. It keeps the last WINDOW
-    frame_received -> echo_sent deltas and can summarise them as (median, p95).
+    coroutine, so like Session it needs no locking. It keeps two rolling
+    windows: the echo gap and the per-frame VAD cost.
     """
 
     def __init__(self, session_id: str) -> None:
         self.session_id = session_id
-        # Deltas in seconds; deque(maxlen=...) drops the oldest automatically,
-        # giving a fixed-size sliding window for free.
-        self._deltas: deque[float] = deque(maxlen=WINDOW)
+        self._echo = RollingStat()
+        self._vad = RollingStat()
         # Timestamp of the most recent frame_received still awaiting its
         # echo_sent. None between a completed pair and the next frame.
         self._pending_frame_at: float | None = None
@@ -113,20 +143,24 @@ class Telemetry:
         if name == FRAME_RECEIVED:
             self._pending_frame_at = span.at
         elif name == ECHO_SENT and self._pending_frame_at is not None:
-            self._deltas.append(span.at - self._pending_frame_at)
+            self._echo.add(span.at - self._pending_frame_at)
             self._pending_frame_at = None
         return span
 
-    def echo_stats_ms(self) -> tuple[float, float] | None:
-        """(median, p95) of frame_received -> echo_sent, in milliseconds.
+    def record_vad_decision(self, started_at: float) -> Span:
+        """Stamp vad_decision now and add its cost (now - started_at) to the window.
 
-        Returns None until at least MIN_SAMPLES deltas exist. On a small window
-        the nearest-rank p95 is just the maximum (see _nearest_rank_p95), so an
-        early number would overstate the tail; None says "not yet meaningful".
+        `started_at` is a perf_counter reading taken just before the VAD call,
+        so the recorded cost is exactly the time VAD held the event loop.
         """
-        if len(self._deltas) < MIN_SAMPLES:
-            return None
-        ordered = sorted(self._deltas)
-        p50 = median(ordered) * 1000.0
-        p95 = _nearest_rank_p95(ordered) * 1000.0
-        return (p50, p95)
+        span = self.record(VAD_DECISION)
+        self._vad.add(span.at - started_at)
+        return span
+
+    def echo_stats_ms(self) -> tuple[float, float] | None:
+        """(median, p95) of frame_received -> echo_sent, in milliseconds."""
+        return self._echo.stats_ms()
+
+    def vad_stats_ms(self) -> tuple[float, float] | None:
+        """(median, p95) of the per-frame VAD cost, in milliseconds."""
+        return self._vad.stats_ms()
