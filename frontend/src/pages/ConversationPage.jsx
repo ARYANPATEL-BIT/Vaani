@@ -3,17 +3,40 @@
  *
  * Week 1, Day 2: microphone capture → WebSocket streaming (16 kHz Int16LE PCM).
  * Week 1, Day 3: incoming server audio → playback queue → gapless speaker output.
+ * Week 1, Day 4: audio.flush / flush.ack for immediate playback silencing.
+ * Week 2, Day 1: explicit Connect / Disconnect actions, session status badge,
+ *   persona selector. The session state machine is driven by wsStatus values
+ *   from useAudioCapture, which directly reflect the WebSocket / protocol events
+ *   defined in docs/contracts.md §2.3 and backend/vaani/protocol.py.
  *
- * The page owns both hooks. It passes the playback queue's enqueue() into
- * startCapture() so the hook wires binary server messages directly to playback
- * without the component needing to inspect each WebSocket event itself.
+ * Persona note: the backend protocol.py SessionStart model accepts any string
+ * for `persona`; only "default" is currently meaningful in the backend.
+ * The selector lists only the value the backend will act on without error.
+ * Additional personas will be added here as the backend implements them.
  */
 
+import { useState } from 'react';
 import { useAudioCapture } from '../hooks/useAudioCapture.js';
 import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
 import './ConversationPage.css';
 
+/**
+ * Valid persona values known to the backend at this protocol revision.
+ * Source: backend/vaani/protocol.py SessionStart (persona: str = "default").
+ * Only "default" is meaningful; additional values are listed as a
+ * forward-declaration for the UI, not claimed to be implemented by the backend.
+ */
+const PERSONA_OPTIONS = [
+  { value: 'default', label: 'Default' },
+];
+
 export default function ConversationPage() {
+  // --- Persona selector state (Week 2, Day 1) ---
+  // selectedPersona is held here because it must survive connect/disconnect
+  // cycles: the user should be able to pick a persona before connecting and
+  // keep their choice after disconnecting.
+  const [selectedPersona, setSelectedPersona] = useState('default');
+
   // Playback queue: enqueue() accepts an ArrayBuffer and plays it gaplessly.
   const { enqueue, flushPlayback } = usePlaybackQueue();
 
@@ -21,6 +44,7 @@ export default function ConversationPage() {
     isCapturing,
     micStatus,
     wsStatus,
+    sessionId,
     framesSent,
     fps,
     errorMessage,
@@ -28,10 +52,41 @@ export default function ConversationPage() {
     stopCapture,
   } = useAudioCapture();
 
+  // ---- Session state helpers -----------------------------------------------
+  //
+  // wsStatus values and their meanings (from useAudioCapture / contracts.md):
+  //   'disconnected' — no WebSocket, no session.
+  //   'connecting'   — WebSocket TCP handshake in progress.
+  //   'connected'    — WebSocket open; session.start sent; awaiting session.started.
+  //   'ready'        — session.started received; session fully active.
+  //   'error'        — WebSocket or protocol error.
+
+  const isTransitioning = wsStatus === 'connecting' || wsStatus === 'connected';
+  const hasError = wsStatus === 'error';
+
+  /**
+   * Map wsStatus to a human-readable label and CSS class for the status badge.
+   * Only statuses that useAudioCapture actually sets are handled here.
+   */
+  const getSessionStatusDisplay = () => {
+    switch (wsStatus) {
+      case 'connecting':
+        return { label: 'Connecting…', className: 'status-warning' };
+      case 'connected':
+        return { label: 'Starting session…', className: 'status-warning' };
+      case 'ready':
+        return { label: 'Session active', className: 'status-active' };
+      case 'error':
+        return { label: 'Connection error', className: 'status-error' };
+      default:
+        return { label: 'Disconnected', className: 'status-idle' };
+    }
+  };
+
   const getMicStatusDisplay = () => {
     switch (micStatus) {
       case 'requesting':
-        return { label: 'Requesting permission...', className: 'status-warning' };
+        return { label: 'Requesting permission…', className: 'status-warning' };
       case 'active':
         return { label: 'Capturing (16 kHz mono)', className: 'status-active' };
       case 'denied':
@@ -43,23 +98,40 @@ export default function ConversationPage() {
     }
   };
 
-  const getWsStatusDisplay = () => {
-    switch (wsStatus) {
-      case 'connecting':
-        return { label: 'Connecting...', className: 'status-warning' };
-      case 'connected':
-        return { label: 'Connected (starting session)', className: 'status-warning' };
-      case 'ready':
-        return { label: 'Session ready (streaming)', className: 'status-active' };
-      case 'error':
-        return { label: 'Connection error', className: 'status-error' };
-      default:
-        return { label: 'Disconnected', className: 'status-idle' };
-    }
+  const session = getSessionStatusDisplay();
+  const mic = getMicStatusDisplay();
+
+  // ---- Handlers ------------------------------------------------------------
+
+  /**
+   * Connect: start audio capture and open the WebSocket session.
+   * The persona chosen in the selector is passed to useAudioCapture which
+   * includes it in the session.start control message per contracts.md §2.3.
+   * Guard: if already capturing, this is a no-op (useAudioCapture also guards).
+   */
+  const handleConnect = () => {
+    if (isCapturing) return;
+    startCapture(enqueue, flushPlayback, selectedPersona);
   };
 
-  const mic = getMicStatusDisplay();
-  const ws = getWsStatusDisplay();
+  /**
+   * Disconnect: send session.end, close WebSocket, release audio resources.
+   * stopCapture() performs all cleanup per useAudioCapture's teardown sequence.
+   */
+  const handleDisconnect = () => {
+    stopCapture();
+  };
+
+  /**
+   * Persona change: only allowed when disconnected to avoid mid-session
+   * persona switching (the backend associates a persona with a session at
+   * session.start time; it cannot be changed while the session is live).
+   */
+  const handlePersonaChange = (e) => {
+    if (!isCapturing) {
+      setSelectedPersona(e.target.value);
+    }
+  };
 
   return (
     <main className="conversation-page">
@@ -68,6 +140,7 @@ export default function ConversationPage() {
         <p className="subtitle">Real-time voice conversation</p>
       </div>
 
+      {/* Error banner — shown for connection / protocol errors */}
       {errorMessage && (
         <div className="error-banner" role="alert">
           <span className="error-icon">⚠️</span>
@@ -75,31 +148,87 @@ export default function ConversationPage() {
         </div>
       )}
 
+      {/* ---- Session status badge (Week 2, Day 1) ---- */}
+      <div className="session-status-row" aria-label="Session status">
+        <span className={`session-status-badge ${session.className}`}>
+          <span className="status-dot" />
+          {session.label}
+        </span>
+        {sessionId && (
+          <span className="session-id-display" title="Session ID">
+            ID: {sessionId.slice(0, 8)}…
+          </span>
+        )}
+      </div>
+
+      {/* ---- Persona selector (Week 2, Day 1) ---- */}
+      {/*
+        The selector is always visible so the user can see and choose their
+        persona before connecting. It is disabled while a session is active
+        because the backend binds the persona at session.start time.
+      */}
+      <div className="persona-section">
+        <label htmlFor="persona-select" className="persona-label">
+          Persona
+        </label>
+        <select
+          id="persona-select"
+          className="persona-select"
+          value={selectedPersona}
+          onChange={handlePersonaChange}
+          disabled={isCapturing}
+          aria-describedby="persona-hint"
+        >
+          {PERSONA_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p id="persona-hint" className="persona-hint">
+          {isCapturing
+            ? 'Persona cannot be changed while a session is active.'
+            : 'Choose a persona before connecting.'}
+        </p>
+      </div>
+
+      {/* ---- Connect / Disconnect controls (Week 2, Day 1) ---- */}
       <div className="controls-section">
         {!isCapturing ? (
           <button
             type="button"
             className="action-btn start-btn"
-            // Pass enqueue and flushPlayback so server messages are routed correctly.
-            onClick={() => startCapture(enqueue, flushPlayback)}
-            id="start-mic-btn"
+            onClick={handleConnect}
+            id="connect-btn"
+            disabled={isTransitioning}
+            aria-label="Connect and start voice session"
           >
-            Start Microphone
+            Connect
           </button>
         ) : (
           <button
             type="button"
             className="action-btn stop-btn"
-            onClick={stopCapture}
-            id="stop-mic-btn"
+            onClick={handleDisconnect}
+            id="disconnect-btn"
+            aria-label="Disconnect and end voice session"
           >
-            Stop Microphone
+            {hasError ? 'Close' : 'Disconnect'}
           </button>
         )}
       </div>
 
+      {/* ---- Diagnostics panel (Week 1 preserved) ---- */}
       <section className="status-panel" aria-label="Audio pipeline status">
         <h2 className="status-panel-title">Audio Pipeline Diagnostics</h2>
+
+        <div className="status-row">
+          <span className="status-label">Session</span>
+          <span className={`status-value ${session.className}`}>
+            <span className="status-dot" />
+            {session.label}
+          </span>
+        </div>
 
         <div className="status-row">
           <span className="status-label">Microphone</span>
@@ -110,10 +239,9 @@ export default function ConversationPage() {
         </div>
 
         <div className="status-row">
-          <span className="status-label">WebSocket Gateway</span>
-          <span className={`status-value ${ws.className}`}>
-            <span className="status-dot" />
-            {ws.label}
+          <span className="status-label">Persona</span>
+          <span className="status-value metrics-value">
+            {isCapturing ? selectedPersona : '—'}
           </span>
         </div>
 
