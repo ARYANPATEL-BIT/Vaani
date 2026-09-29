@@ -1,4 +1,6 @@
-/* ConversationPage layout — functional, modern, minimal, readable. */
+/* ConversationPage layout — functional, modern, minimal, readable.
+   Week 2, Day 1 additions: session status badge, persona selector.
+ */
 
 .conversation-page {
   display: flex;
@@ -56,6 +58,91 @@
   justify-content: center;
 }
 
+/* ---- Session status badge (Week 2, Day 1) -------------------------------- */
+
+.session-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  justify-content: center;
+}
+
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  letter-spacing: 0.01em;
+}
+
+.session-id-display {
+  font-size: 0.78rem;
+  font-family: var(--mono);
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* ---- Persona selector (Week 2, Day 1) ------------------------------------ */
+
+.persona-section {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.persona-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 6px;
+}
+
+.persona-select {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6375' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.persona-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+.persona-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.persona-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
 .action-btn {
   font-family: var(--sans);
   font-size: 1rem;
@@ -99,6 +186,12 @@
 
 .stop-btn:active {
   transform: translateY(0);
+}
+
+.action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .status-panel {

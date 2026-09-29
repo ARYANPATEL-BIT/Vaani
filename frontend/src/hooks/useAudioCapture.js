@@ -6,10 +6,18 @@
  * 2. Creating an AudioContext at 16 kHz mono.
  * 3. Loading and mounting the AudioWorkletProcessor (audio-processor.js).
  * 4. Connecting the microphone stream into the AudioWorklet pipeline.
- * 5. Managing the WebSocket lifecycle (session.start, session.ready, streaming binary frames, session.end).
+ * 5. Managing the WebSocket lifecycle (session.start, session.started, streaming binary frames, session.end).
  * 6. Live telemetry: frames sent count, instantaneous FPS calculation, status indicators.
  * 7. Routing binary server messages (future playback audio) to an optional callback.
  * 8. Clean teardown and resource deallocation on stop or unmount.
+ *
+ * Week 2, Day 1: accepts a `persona` argument in startCapture, exposes sessionId
+ * from the session.started acknowledgement.
+ *
+ * Protocol note: flush acknowledgement uses type "flush.ack" with fields
+ * `turn_id` and `client_ts`, per backend/vaani/protocol.py FlushAck model.
+ * The contracts.md changelog entry for Day 4 used "audio.flush.ack" and
+ * "timestamp_ms" — those were wrong; the backend never accepted them. Fixed here.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -19,6 +27,7 @@ export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [micStatus, setMicStatus] = useState('idle'); // 'idle' | 'requesting' | 'active' | 'denied' | 'error'
   const [wsStatus, setWsStatus] = useState('disconnected'); // 'disconnected' | 'connecting' | 'connected' | 'ready' | 'error'
+  const [sessionId, setSessionId] = useState(null); // session_id from session.started, null when not active
   const [framesSent, setFramesSent] = useState(0);
   const [fps, setFps] = useState(0);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -90,6 +99,7 @@ export function useAudioCapture() {
     setIsCapturing(false);
     setMicStatus('idle');
     setWsStatus('disconnected');
+    setSessionId(null);
     setFps(0);
   }, []);
 
@@ -102,8 +112,11 @@ export function useAudioCapture() {
    *   the server is played automatically.
    * @param {function(): void} [onFlushCommand] - optional callback
    *   invoked when the server sends an audio.flush control message.
+   * @param {string} [persona='default'] - persona name sent in session.start.
+   *   The backend accepts any string; only 'default' is currently meaningful.
+   *   (Week 2, Day 1 addition.)
    */
-  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand) => {
+  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default') => {
     // Guard against multiple concurrent capture pipelines
     if (isCapturing) {
       return;
@@ -193,10 +206,12 @@ export function useAudioCapture() {
         setWsStatus('connected');
         // session.start requires the audio params so the backend can validate
         // our frame format before accepting any binary data (protocol.py §SessionStart).
+        // The persona field is passed through from the caller; the backend stores
+        // it on the Session object for future routing (Week 2+).
         socket.send(
           JSON.stringify({
             type: 'session.start',
-            persona: 'default',
+            persona,
             audio: {
               sample_rate: AUDIO_SAMPLE_RATE,
               channels: 1,
@@ -221,22 +236,28 @@ export function useAudioCapture() {
           if (msg.type === 'session.started') {
             // Backend sends 'session.started' (with session_id) per protocol.py.
             isSessionReadyRef.current = true;
+            setSessionId(msg.session_id ?? null);
             setWsStatus('ready');
           } else if (msg.type === 'audio.flush') {
+            const flushTurnId = msg.turn_id;
             if (typeof onFlushCommand === 'function') {
               onFlushCommand();
             }
-            // Send acknowledgement immediately after flushing
+            // Send flush.ack immediately after flushing.
+            // Type is "flush.ack" and fields are turn_id + client_ts per
+            // backend/vaani/protocol.py FlushAck model. (contracts.md Day 4
+            // entry had the wrong type and field names — those are now fixed.)
             if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
               try {
                 socketRef.current.send(
                   JSON.stringify({
-                    type: 'audio.flush.ack',
-                    timestamp_ms: performance.now(),
+                    type: 'flush.ack',
+                    turn_id: flushTurnId,
+                    client_ts: performance.now(),
                   })
                 );
               } catch (ackErr) {
-                console.warn('[useAudioCapture] Failed to send flush ack:', ackErr);
+                console.warn('[useAudioCapture] Failed to send flush.ack:', ackErr);
               }
             }
           } else if (msg.type === 'error') {
@@ -312,6 +333,7 @@ export function useAudioCapture() {
     isCapturing,
     micStatus,
     wsStatus,
+    sessionId,
     framesSent,
     fps,
     errorMessage,
