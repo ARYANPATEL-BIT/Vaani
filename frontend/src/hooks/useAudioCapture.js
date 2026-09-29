@@ -115,8 +115,10 @@ export function useAudioCapture() {
    * @param {string} [persona='default'] - persona name sent in session.start.
    *   The backend accepts any string; only 'default' is currently meaningful.
    *   (Week 2, Day 1 addition.)
+   * @param {function(object): void} [onServerMessage] - optional callback
+   *   invoked for parsed JSON control messages received over the WebSocket.
    */
-  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default') => {
+  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage) => {
     // Guard against multiple concurrent capture pipelines
     if (isCapturing) {
       return;
@@ -262,6 +264,11 @@ export function useAudioCapture() {
             }
           } else if (msg.type === 'error') {
             console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
+          }
+
+          // Forward parsed control / server messages to optional subscriber
+          if (typeof onServerMessage === 'function') {
+            onServerMessage(msg);
           }
         } catch (parseErr) {
           console.warn('[useAudioCapture] Unparseable server message:', parseErr);

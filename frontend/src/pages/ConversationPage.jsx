@@ -15,9 +15,11 @@
  * Additional personas will be added here as the backend implements them.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAudioCapture } from '../hooks/useAudioCapture.js';
 import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
+import { useTranscript } from '../hooks/useTranscript.js';
+import { TranscriptView } from '../components/TranscriptView.jsx';
 import './ConversationPage.css';
 
 /**
@@ -39,6 +41,14 @@ export default function ConversationPage() {
 
   // Playback queue: enqueue() accepts an ArrayBuffer and plays it gaplessly.
   const { enqueue, flushPlayback } = usePlaybackQueue();
+
+  // Transcript state: manages live active partial and immutable finalized speech turns
+  const {
+    finalTranscriptEntries,
+    currentPartialTranscript,
+    clearActivePartial,
+    resetTranscript,
+  } = useTranscript();
 
   const {
     isCapturing,
@@ -105,22 +115,34 @@ export default function ConversationPage() {
 
   /**
    * Connect: start audio capture and open the WebSocket session.
+   * Resets transcript so stale turns from a previous session do not carry over.
    * The persona chosen in the selector is passed to useAudioCapture which
    * includes it in the session.start control message per contracts.md §2.3.
    * Guard: if already capturing, this is a no-op (useAudioCapture also guards).
    */
   const handleConnect = () => {
     if (isCapturing) return;
+    resetTranscript();
     startCapture(enqueue, flushPlayback, selectedPersona);
   };
 
   /**
    * Disconnect: send session.end, close WebSocket, release audio resources.
+   * Clears any active in-flight partial transcript so it does not linger.
+   * Finalized transcript entries remain visible until a new session starts.
    * stopCapture() performs all cleanup per useAudioCapture's teardown sequence.
    */
   const handleDisconnect = () => {
+    clearActivePartial();
     stopCapture();
   };
+
+  // Clear in-flight active partial whenever the session ends or errors
+  useEffect(() => {
+    if (wsStatus === 'disconnected' || wsStatus === 'error') {
+      clearActivePartial();
+    }
+  }, [wsStatus, clearActivePartial]);
 
   /**
    * Persona change: only allowed when disconnected to avoid mid-session
@@ -217,6 +239,13 @@ export default function ConversationPage() {
           </button>
         )}
       </div>
+
+      {/* ---- Live Transcript section (Week 2, Day 2) ---- */}
+      <TranscriptView
+        finalTranscriptEntries={finalTranscriptEntries}
+        currentPartialTranscript={currentPartialTranscript}
+        isCapturing={isCapturing}
+      />
 
       {/* ---- Diagnostics panel (Week 1 preserved) ---- */}
       <section className="status-panel" aria-label="Audio pipeline status">
