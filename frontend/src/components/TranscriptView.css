@@ -1,0 +1,169 @@
+/* TranscriptView styles — clean, accessible, dark/light theme aware.
+   Week 2, Day 2 addition.
+*/
+
+.transcript-section {
+  width: 100%;
+  border: 1px solid var(--border);
+  background-color: var(--bg);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.transcript-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.transcript-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin: 0;
+}
+
+.transcript-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.transcript-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse 2s infinite;
+}
+
+.transcript-empty {
+  padding: 24px 16px;
+  text-align: center;
+  border-radius: 8px;
+  background-color: var(--code-bg);
+  border: 1px dashed var(--border);
+}
+
+.transcript-empty-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.transcript-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Individual transcript item */
+.transcript-entry {
+  padding: 12px 14px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.transcript-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transcript-tag {
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-final {
+  color: var(--text);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tag-final {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.tag-partial {
+  color: var(--accent);
+  background-color: var(--accent-bg);
+  border: 1px solid rgba(170, 59, 255, 0.3);
+}
+
+.partial-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  display: inline-block;
+  animation: pulse 1.2s infinite;
+}
+
+.transcript-timestamp {
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.transcript-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+/* Finalized entry style — solid, fixed in place */
+.transcript-final {
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text);
+}
+
+/* Active partial entry style — accent highlight, in progress */
+.transcript-partial {
+  background-color: var(--accent-bg);
+  border: 1px solid rgba(170, 59, 255, 0.35);
+  border-left: 3px solid var(--accent);
+  font-style: italic;
+}
+
+.transcript-partial-text {
+  color: var(--text-h);
+}
