@@ -83,6 +83,62 @@ preroll_ms = 300
 # warning is logged, so memory per session stays bounded (30 s is ~1 MB).
 max_utterance_ms = 30000
 
+[asr]
+# Speech recognition: turns each finished utterance into text. Needs
+# [endpoint] (and so [vad]) enabled: no utterances, nothing to transcribe.
+enabled = true
+
+# Which recogniser to build. Only "whisper" (faster-whisper, local) exists.
+engine = "whisper"
+
+# Inference threads for the whole process. Each live session uses at most one
+# at a time, so this is also how many sessions can be transcribed at once.
+max_concurrent = 2
+
+# Give up on one transcription after this long and report it as failed. The
+# underlying decode cannot be interrupted, so this bounds how long a turn
+# WAITS, not how long the thread stays busy (see docs/learning 10-asr.md).
+timeout_s = 5.0
+
+# While the user speaks, re-decode the utterance-so-far this often and send
+# transcript.partial. 0 = off. Off by default: on cpu/small one re-decode
+# costs about as much as the final, and a partial still running when the turn
+# ends delays the final (numbers in docs/learning 10-asr.md).
+partial_interval_ms = 0
+
+[asr.whisper]
+# DELIBERATELY THE DEGRADED DEFAULT. cpu/small runs on any laptop and in CI,
+# but it CANNOT transcribe Hinglish (docs/spikes/asr-hinglish.md). Hinglish
+# needs large-v3 on a GPU; override on such a machine via the environment:
+#   VAANI_ASR__WHISPER__MODEL=large-v3
+#   VAANI_ASR__WHISPER__DEVICE=cuda
+#   VAANI_ASR__WHISPER__COMPUTE_TYPE=float16
+# (and install the GPU libraries with `uv sync --extra gpu`).
+# The model is downloaded from Hugging Face on first use and cached.
+model = "small"
+device = "cpu"
+compute_type = "int8"
+
+# 0 = let CTranslate2 pick the number of CPU threads per inference.
+cpu_threads = 0
+
+# Forced to Hindi. Auto-detection flips between hi, ur and la for the same
+# speaker, and "en" TRANSLATES Hindi into English instead of transcribing it.
+# Forcing "hi" still transcribes clean English correctly on large-v3.
+language = "hi"
+
+# Text "before" the audio, in the style we want back. A romanized Hinglish
+# sentence nudges Whisper to keep English words in Latin script.
+initial_prompt = "mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena"
+
+# Candidate transcripts kept while decoding (faster-whisper's default is 5).
+beam_size = 5
+
+# One decode only. faster-whisper's default retries at 0.2, 0.4 ... 1.0 when
+# the output looks bad; in the spike that turned one clip into a 62 s stall.
+# A wrong transcript is recoverable; a 62 s stall loses the turn.
+temperature = [0.0]
+
 [llm]
 # Language model providers, first choice first. If one is rate-limited, times
 # out or is unreachable BEFORE it has said anything, the next one is tried.

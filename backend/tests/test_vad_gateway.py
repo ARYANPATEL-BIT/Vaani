@@ -10,7 +10,7 @@ import time
 
 from fastapi.testclient import TestClient
 
-import vaani.gateway as gateway_mod
+import vaani.turns as turns_mod
 from tests.test_vad import SILENCE, speech_frames
 from vaani.app import create_app
 from vaani.config import GatewaySettings, Settings
@@ -43,7 +43,7 @@ def test_wrong_size_frames_never_reach_vad(monkeypatch) -> None:
         def push(self, frame: bytes) -> None:
             pushed.append(len(frame))
 
-    monkeypatch.setattr(gateway_mod, "VadStream", SpyVad)
+    monkeypatch.setattr(turns_mod, "VadStream", SpyVad)
     good = expected_frame_bytes(Settings().audio)
     with make_client().websocket_connect("/ws/session") as ws:
         ws.send_json(START)
@@ -59,7 +59,7 @@ def test_wrong_size_frames_never_reach_vad(monkeypatch) -> None:
 
 
 def test_speech_events_are_logged_with_session_id(caplog) -> None:
-    with caplog.at_level(logging.INFO, logger="vaani.gateway"):
+    with caplog.at_level(logging.INFO, logger="vaani.turns"):
         with make_client().websocket_connect("/ws/session") as ws:
             ws.send_json(START)
             session_id = ws.receive_json()["session_id"]
@@ -91,7 +91,7 @@ def test_vad_disabled_runs_no_vad(caplog, monkeypatch) -> None:
     def fail(*args):
         raise AssertionError("VadStream must not be built when VAD is off")
 
-    monkeypatch.setattr(gateway_mod, "VadStream", fail)
+    monkeypatch.setattr(turns_mod, "VadStream", fail)
     with caplog.at_level(logging.INFO, logger="vaani.gateway"):
         with make_client(False, 0.02).websocket_connect("/ws/session") as ws:
             ws.send_json(START)

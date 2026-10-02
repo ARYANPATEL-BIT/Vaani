@@ -41,7 +41,7 @@ def turn_test_pattern() -> list[bytes]:
 
 
 def send_and_collect(client: TestClient, frames: list[bytes], caplog) -> list[str]:
-    with caplog.at_level(logging.INFO, logger="vaani.gateway"):
+    with caplog.at_level(logging.INFO, logger="vaani.turns"):
         with client.websocket_connect("/ws/session") as ws:
             ws.send_json(START)
             session_id = ws.receive_json()["session_id"]

@@ -29,6 +29,9 @@ cd backend
 
 # Create the virtual environment and install the exact locked dependencies.
 uv sync
+# On a machine with an NVIDIA GPU, for asr.whisper.device = "cuda", use this
+# instead, and ALWAYS pass --extra gpu (a plain `uv sync` removes the GPU libs):
+#   uv sync --extra gpu
 
 # (Optional) provide secrets. Copy the template and fill in values as needed.
 # .env is gitignored and never committed. No secret is required to run today.

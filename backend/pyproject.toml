@@ -18,6 +18,20 @@ dependencies = [
     "httpx>=0.27",              # async HTTP client; LLM provider calls (streaming)
     "onnxruntime>=1.18",        # runs the Silero VAD model on CPU, no torch
     "numpy>=1.26",              # audio sample arrays fed to onnxruntime
+    "faster-whisper>=1.2.1",    # speech recognition: Whisper weights on CTranslate2
+]
+
+[project.optional-dependencies]
+# NVIDIA runtime libraries for asr.device = "cuda" (~600 MB of DLLs / .so files).
+# Opt-in so CPU-only machines and CI never download them:
+#   uv sync --extra gpu
+# NOTE: a plain `uv sync` REMOVES them again, so GPU machines must always pass
+# --extra gpu. nvrtc is pulled in by cudnn anyway; it is listed because
+# vaani/asr/whisper.py puts its directory on the Windows DLL path.
+gpu = [
+    "nvidia-cublas-cu12>=12.9.2.10",
+    "nvidia-cudnn-cu12>=9.27.0.42",
+    "nvidia-cuda-nvrtc-cu12>=12.9.86",
 ]
 
 [dependency-groups]
@@ -25,6 +39,8 @@ dependencies = [
 dev = [
     "pytest>=8.0",      # test runner
     "ruff>=0.5",        # linter and formatter
+    "sounddevice>=0.5.6", # microphone capture in ad-hoc recording scripts
+    "soundfile>=0.14.0",  # WAV read/write in ad-hoc scripts
     "websockets>=12.0", # WebSocket client used by scripts/fake_client.py
 ]
 
@@ -49,3 +65,8 @@ select = ["E", "W", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Tests that load a real Whisper model are marked slow and skipped by default:
+# they need a few hundred MB of model download and seconds of CPU each.
+# Run them with: uv run pytest -m slow
+markers = ["slow: needs a real speech recognition model (run with -m slow)"]
+addopts = "-m 'not slow'"

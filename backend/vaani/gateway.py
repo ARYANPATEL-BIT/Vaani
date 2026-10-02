@@ -7,23 +7,16 @@ block however the connection ends. A separate background task logs the
 per-interval frame count so the read loop — the start of the latency-critical
 audio path — is never blocked by logging.
 
-Today the read loop also runs the day-3 ECHO path: while echo is enabled every
-valid frame is sent straight back to the client, bracketed by audio.start /
-audio.end, and each frame's receive->send gap is timed via telemetry spans.
+What happens to a valid audio frame after validation (VAD, endpointing,
+turns, speech recognition, the day-3 echo) lives in turns.py: this file hands
+each frame to the session's TurnPipeline and stays a dispatcher.
 
-Day 4 adds FLUSH: a dev.flush control message (development only) makes the
-session flush the current turn, and the browser's flush.ack closes the round
-trip. After a flush, no further frame is sent for that turn; the check sits
-directly in front of send_bytes.
+Day 4 FLUSH: a dev.flush control message (development only) makes the session
+flush the current turn, and the browser's flush.ack closes the round trip. A
+flushed turn also has its speech recognition abandoned, so no transcript is
+ever sent for it (the stand-in for week-3 barge-in).
 
-Day 8 adds VAD: while [vad].enabled, every valid frame goes through the
-session's VadStream before the echo path, and speech_started / speech_ended
-are logged.
-
-Day 9 adds ENDPOINTING: while [endpoint].enabled (and VAD is on), every frame
-and its VAD event go to the session's Endpointer, and each turn_ended is
-logged and stamped as a span. What this file does NOT do yet: speech
-recognition, barge-in, or call any provider.
+What this file does NOT do yet: barge-in, or call an LLM provider.
 """
 
 import asyncio
@@ -31,26 +24,22 @@ import json
 import logging
 import uuid
 from contextlib import suppress
-from time import perf_counter
 
 from fastapi import APIRouter, WebSocket
 from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
 from vaani.config import AudioSettings, Settings
-from vaani.endpoint import Endpointer, TurnEnded
 from vaani.protocol import (
     ErrorCode,
     FlushAck,
     SessionStart,
-    audio_end,
-    audio_start,
     error,
     session_started,
 )
 from vaani.session import Session
-from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, TURN_ENDED, Telemetry
-from vaani.vad import VadStream
+from vaani.telemetry import Telemetry
+from vaani.turns import TurnPipeline
 
 log = logging.getLogger("vaani.gateway")
 
@@ -117,29 +106,6 @@ async def _log_frames(
         )
 
 
-def _log_turn(session: Session, telemetry: Telemetry, turn: TurnEnded) -> None:
-    """Stamp the turn_ended span and log the turn.
-
-    `waited` is wall-clock time from speech_ended to now: the dead air the
-    endpointer itself added. It excludes VAD's own 200 ms before speech_ended.
-    """
-    telemetry.record(TURN_ENDED)
-    waited = (
-        "forced"
-        if turn.speech_ended_at is None
-        else f"waited {(turn.at - turn.speech_ended_at) * 1000:.0f} ms"
-    )
-    log.info(
-        "session %s: turn_ended frames %d-%d, %d ms, %d frames buffered (%s)",
-        session.session_id,
-        turn.start_frame,
-        turn.end_frame,
-        turn.duration_ms,
-        turn.frame_count,
-        waited,
-    )
-
-
 @router.websocket("/ws/session")
 async def session_endpoint(websocket: WebSocket) -> None:
     """Handle one WebSocket connection for its entire lifetime."""
@@ -147,17 +113,13 @@ async def session_endpoint(websocket: WebSocket) -> None:
     audio_cfg = settings.audio
     expected = expected_frame_bytes(audio_cfg)
     interval_s = settings.gateway.frame_log_interval_s
-    echo_enabled = settings.gateway.echo_enabled
     vad_enabled = settings.vad.enabled
-    # Endpointing consumes VAD events, so it cannot run without VAD.
-    endpoint_enabled = vad_enabled and settings.endpoint.enabled
 
     await websocket.accept()
 
     session: Session | None = None
     telemetry: Telemetry | None = None
-    vad: VadStream | None = None
-    endpointer: Endpointer | None = None
+    pipeline: TurnPipeline | None = None
     log_task: asyncio.Task | None = None
 
     try:
@@ -186,51 +148,8 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     )
                     continue
                 session.record_frame()
-                if vad is not None and telemetry is not None:
-                    # VAD runs BEFORE echo, on every valid frame. It is plain
-                    # synchronous CPU work: while it runs, this event loop (and
-                    # every other session on it) waits, which is why its cost
-                    # is timed on every frame.
-                    vad_started = perf_counter()
-                    speech_event = vad.push(data)
-                    telemetry.record_vad_decision(vad_started)
-                    if speech_event is not None:
-                        log.info(
-                            "session %s: %s at frame %d (%.2fs into audio)",
-                            session.session_id,
-                            speech_event.kind,
-                            speech_event.frame_index,
-                            (speech_event.frame_index + 1) * audio_cfg.frame_ms / 1000,
-                        )
-                    # Routing seam. No agent speech exists yet, so the user's
-                    # audio always goes to the endpointer. Week 3: while the
-                    # agent is speaking, route speech_event to barge-in here
-                    # instead of endpointing.
-                    if endpointer is not None:
-                        turn = endpointer.push(data, speech_event)
-                        if turn is not None:
-                            _log_turn(session, telemetry, turn)
-                if echo_enabled and telemetry is not None:
-                    # Open the turn on the first frame so every span for this
-                    # frame — including frame_received — is tagged with it.
-                    # Echo mode only: after a flush the flushed turn stays
-                    # current, so echo stays silent for the rest of the session.
-                    first_frame = session.current_turn_id is None
-                    turn_id = session.current_turn_id or session.open_turn()
-                    telemetry.record(FRAME_RECEIVED, turn_id)
-                    if first_frame:
-                        # audio.start must precede the turn's first audio frame.
-                        await websocket.send_json(audio_start(turn_id))
-                    # Late-frame gate. There is NO await between this check and
-                    # send_bytes, so nothing can flush the turn in between: if
-                    # the turn is flushed, this frame is dropped, never sent.
-                    if session.is_flushed(turn_id):
-                        session.late_frames_dropped += 1
-                        continue
-                    await websocket.send_bytes(data)
-                    # Stamp echo_sent AFTER send_bytes returns so the measured
-                    # gap includes the send itself, not just our internal work.
-                    telemetry.record(ECHO_SENT, turn_id)
+                if pipeline is not None:
+                    await pipeline.on_frame(data)
                 continue
 
             # --- Text path: a JSON control message ---------------------------
@@ -275,14 +194,18 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     continue
                 session = Session(session_id=uuid.uuid4().hex, persona=start.persona)
                 telemetry = Telemetry(session.session_id)
-                if vad_enabled:
-                    # Fresh per-session VAD memory; model weights are shared.
-                    model = websocket.app.state.vad_model
-                    vad = VadStream(model, settings.vad, audio_cfg)
-                if endpoint_enabled:
-                    endpointer = Endpointer(
-                        settings.endpoint, audio_cfg.frame_ms, session.session_id
-                    )
+                # Fresh per-session VAD / endpointing / ASR state. The models
+                # themselves (VAD, Whisper) are loaded once per process and
+                # shared; getattr gives None for one that is disabled.
+                pipeline = TurnPipeline(
+                    settings,
+                    session,
+                    telemetry,
+                    websocket.send_json,
+                    websocket.send_bytes,
+                    getattr(websocket.app.state, "vad_model", None),
+                    getattr(websocket.app.state, "recognizer", None),
+                )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)
                 )
@@ -299,7 +222,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
             if mtype == "dev.flush":
                 # DEV-ONLY — remove together with DevFlush in protocol.py when
                 # barge-in lands. Lets us exercise flush before VAD exists.
-                await session.flush(websocket.send_json, telemetry)
+                flushed = await session.flush(websocket.send_json, telemetry)
+                if flushed is not None and pipeline is not None:
+                    pipeline.on_flush(flushed)
                 continue
 
             if mtype == "flush.ack":
@@ -316,12 +241,10 @@ async def session_endpoint(websocket: WebSocket) -> None:
 
             if mtype == "session.end":
                 # Close the open echo turn cleanly before we close the socket.
-                # A flushed turn owes no audio.end: the flush already ended it.
                 # (On a hard disconnect we cannot send this — the browser must
                 # treat a closed socket as an implicit audio.end.)
-                turn_id = session.current_turn_id
-                if turn_id is not None and not session.is_flushed(turn_id):
-                    await websocket.send_json(audio_end(turn_id))
+                if pipeline is not None:
+                    await pipeline.on_session_end()
                 await websocket.close(code=CLOSE_NORMAL)
                 break
 
@@ -338,8 +261,10 @@ async def session_endpoint(websocket: WebSocket) -> None:
             log_task.cancel()
             with suppress(asyncio.CancelledError):
                 await log_task
-        if endpointer is not None:
-            endpointer.close()
+        # Abandon recognition in flight: a result for a closed socket must
+        # never be sent, and must not keep a task alive.
+        if pipeline is not None:
+            await pipeline.close()
         if session is not None:
             log.info(
                 "session %s closed: %d frames total, %d late frames dropped",
