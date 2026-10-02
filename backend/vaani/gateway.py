@@ -18,8 +18,12 @@ directly in front of send_bytes.
 
 Day 8 adds VAD: while [vad].enabled, every valid frame goes through the
 session's VadStream before the echo path, and speech_started / speech_ended
-are logged. What this file does NOT do yet: endpointing, barge-in, or call
-any provider.
+are logged.
+
+Day 9 adds ENDPOINTING: while [endpoint].enabled (and VAD is on), every frame
+and its VAD event go to the session's Endpointer, and each turn_ended is
+logged and stamped as a span. What this file does NOT do yet: speech
+recognition, barge-in, or call any provider.
 """
 
 import asyncio
@@ -34,6 +38,7 @@ from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
 from vaani.config import AudioSettings, Settings
+from vaani.endpoint import Endpointer, TurnEnded
 from vaani.protocol import (
     ErrorCode,
     FlushAck,
@@ -44,7 +49,7 @@ from vaani.protocol import (
     session_started,
 )
 from vaani.session import Session
-from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, Telemetry
+from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, TURN_ENDED, Telemetry
 from vaani.vad import VadStream
 
 log = logging.getLogger("vaani.gateway")
@@ -112,6 +117,29 @@ async def _log_frames(
         )
 
 
+def _log_turn(session: Session, telemetry: Telemetry, turn: TurnEnded) -> None:
+    """Stamp the turn_ended span and log the turn.
+
+    `waited` is wall-clock time from speech_ended to now: the dead air the
+    endpointer itself added. It excludes VAD's own 200 ms before speech_ended.
+    """
+    telemetry.record(TURN_ENDED)
+    waited = (
+        "forced"
+        if turn.speech_ended_at is None
+        else f"waited {(turn.at - turn.speech_ended_at) * 1000:.0f} ms"
+    )
+    log.info(
+        "session %s: turn_ended frames %d-%d, %d ms, %d frames buffered (%s)",
+        session.session_id,
+        turn.start_frame,
+        turn.end_frame,
+        turn.duration_ms,
+        turn.frame_count,
+        waited,
+    )
+
+
 @router.websocket("/ws/session")
 async def session_endpoint(websocket: WebSocket) -> None:
     """Handle one WebSocket connection for its entire lifetime."""
@@ -121,12 +149,15 @@ async def session_endpoint(websocket: WebSocket) -> None:
     interval_s = settings.gateway.frame_log_interval_s
     echo_enabled = settings.gateway.echo_enabled
     vad_enabled = settings.vad.enabled
+    # Endpointing consumes VAD events, so it cannot run without VAD.
+    endpoint_enabled = vad_enabled and settings.endpoint.enabled
 
     await websocket.accept()
 
     session: Session | None = None
     telemetry: Telemetry | None = None
     vad: VadStream | None = None
+    endpointer: Endpointer | None = None
     log_task: asyncio.Task | None = None
 
     try:
@@ -161,16 +192,24 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     # every other session on it) waits, which is why its cost
                     # is timed on every frame.
                     vad_started = perf_counter()
-                    event = vad.push(data)
+                    speech_event = vad.push(data)
                     telemetry.record_vad_decision(vad_started)
-                    if event is not None:
+                    if speech_event is not None:
                         log.info(
                             "session %s: %s at frame %d (%.2fs into audio)",
                             session.session_id,
-                            event.kind,
-                            event.frame_index,
-                            (event.frame_index + 1) * audio_cfg.frame_ms / 1000,
+                            speech_event.kind,
+                            speech_event.frame_index,
+                            (speech_event.frame_index + 1) * audio_cfg.frame_ms / 1000,
                         )
+                    # Routing seam. No agent speech exists yet, so the user's
+                    # audio always goes to the endpointer. Week 3: while the
+                    # agent is speaking, route speech_event to barge-in here
+                    # instead of endpointing.
+                    if endpointer is not None:
+                        turn = endpointer.push(data, speech_event)
+                        if turn is not None:
+                            _log_turn(session, telemetry, turn)
                 if echo_enabled and telemetry is not None:
                     # Open the turn on the first frame so every span for this
                     # frame — including frame_received — is tagged with it.
@@ -240,6 +279,10 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     # Fresh per-session VAD memory; model weights are shared.
                     model = websocket.app.state.vad_model
                     vad = VadStream(model, settings.vad, audio_cfg)
+                if endpoint_enabled:
+                    endpointer = Endpointer(
+                        settings.endpoint, audio_cfg.frame_ms, session.session_id
+                    )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)
                 )
@@ -295,6 +338,8 @@ async def session_endpoint(websocket: WebSocket) -> None:
             log_task.cancel()
             with suppress(asyncio.CancelledError):
                 await log_task
+        if endpointer is not None:
+            endpointer.close()
         if session is not None:
             log.info(
                 "session %s closed: %d frames total, %d late frames dropped",

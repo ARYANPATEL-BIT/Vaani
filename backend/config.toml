@@ -58,6 +58,31 @@ start_frames = 4
 # tuned on day 9 alongside endpointing.
 end_frames = 10
 
+[endpoint]
+# Endpointing: turns VAD's speech_started / speech_ended into ONE turn_ended
+# when the user has finished speaking. Needs [vad] enabled; if VAD is off,
+# endpointing does not run either.
+enabled = true
+
+# Silence AFTER speech_ended before the turn is over. VAD already waited
+# 200 ms (end_frames) to say "speech stopped", so the user hears about
+# 200 + 700 = 900 ms of dead air before turn_ended. Much longer than VAD's
+# 200 ms on purpose: people pause 200-500 ms mid-sentence to think.
+# Speech resuming inside this window cancels the pending end.
+end_of_turn_silence_ms = 700
+
+# Speech shorter than this (speech_started to speech_ended) makes no turn, so
+# a cough or a lone "mm" is ignored.
+min_utterance_ms = 300
+
+# Audio kept from before speech_started. VAD confirms speech 80 ms after it
+# really begins (start_frames), so without this the first syllable is lost.
+preroll_ms = 300
+
+# Hard cap on one utterance's audio. Past it the turn is forced to end and a
+# warning is logged, so memory per session stays bounded (30 s is ~1 MB).
+max_utterance_ms = 30000
+
 [llm]
 # Language model providers, first choice first. If one is rate-limited, times
 # out or is unreachable BEFORE it has said anything, the next one is tried.
