@@ -99,13 +99,44 @@ Control messages use JSON text frames (not binary).
 | `error`          | `{ "type": "error", "code": "...", "message": "..." }` | Protocol error (non-fatal)        |
 | `audio.flush`    | `{ "type": "audio.flush" }`                           | Server requests immediate silence |
 
+### 2.4 Transcripts — SHARED PROTOCOL v0.3 (Agreed)
+
+Server → client, JSON text frames. Implemented on the backend in
+`backend/vaani/protocol.py` (`TranscriptPartial`, `TranscriptFinal`).
+
+| Type | Payload | When |
+|---|---|---|
+| `transcript.partial` | `{ "type": "transcript.partial", "turn_id": "<string>", "text": "<string>" }` | While the user is still speaking. Each one **replaces** the previous partial for that `turn_id`; it is not appended |
+| `transcript.final` | `{ "type": "transcript.final", "turn_id": "<string>", "text": "<string>", "duration_ms": <number>, "language": "<string or null>" }` | Once per turn, after endpointing fires. Replaces the partial |
+
+A final may arrive with no preceding partial, and may differ from the last
+partial shown. The browser must handle both.
+
+Backend notes (day 10):
+- **A turn is one user utterance.** Its `turn_id` is created when speech
+  starts. Partials, the final, and any echo audio for that utterance share it.
+  This changes echo mode: `audio.start` / `audio.end` now come **once per
+  utterance**, not once per session, and frames between utterances are not
+  echoed.
+- Partials are **off by default** (`[asr].partial_interval_ms = 0`), so today
+  the browser receives finals only.
+- A turn that is flushed (`audio.flush`) gets no transcript at all.
+- `text` may contain Devanagari and Latin script in the same sentence.
+- `duration_ms` is the length of the user's speech in the turn.
+
+### 2.5 Error code `ASR_FAILED` (Proposed — backend addition, pending Samyak)
+
+`{ "type": "error", "code": "ASR_FAILED", "message": "..." }` is sent when a
+turn's final transcript could not be produced (recogniser error, or the
+`[asr].timeout_s` hard timeout). It is non-fatal: the connection stays open.
+No `transcript.final` follows for that turn. The message has no `turn_id`.
+
 ---
 
 ## 3. Future Contracts (Planned)
 
 These will be specified as their implementation days arrive:
 
-- **Transcript streaming** — Week 2
 - **Barge-in signalling** — Week 3
 - **Voice enrolment API** — Week 4
 
@@ -119,4 +150,5 @@ These will be specified as their implementation days arrive:
 | 2026-09-23 | Samyak  | Day 2 implementation: Int16LE 640B frames via AudioWorklet                              |
 | 2026-09-23 | Samyak  | Day 3: fix endpoint to /ws/session, fix session.start payload, document playback format  |
 | 2026-09-24 | Samyak  | Day 4: audio.flush and audio.flush.ack specification for immediate playback silencing   |
+| 2026-10-02 | Aryan   | Day 10: shared protocol v0.3 transcripts; turn = utterance (echo per utterance); proposed ASR_FAILED |
 

@@ -10,7 +10,12 @@ import logging
 
 from starlette.websockets import WebSocketDisconnect
 
-from tests.test_gateway import START, distinct_frame, make_client
+from tests.test_gateway import (  # noqa: F401 (autouse fixture, used by name)
+    START,
+    distinct_frame,
+    make_client,
+    speech_on_first_frame,
+)
 
 
 def _start_echo_turn(ws) -> str:

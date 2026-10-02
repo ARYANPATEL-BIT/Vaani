@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.2. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.3. The same shapes are mirrored on the frontend.
 
 Two kinds of traffic flow over the socket, in BOTH directions:
   * Audio frames are raw BINARY messages (16 kHz mono 16-bit PCM). They carry
@@ -23,6 +23,13 @@ v0.2 also adds FLUSH: the server sends audio.flush to silence a turn at once,
 and the browser replies flush.ack as soon as its audio has stopped. A flushed
 turn gets no audio.end — the flush IS its ending. Frames the browser receives
 for a flushed turn_id must be discarded, not played.
+
+v0.3 adds TRANSCRIPTS: transcript.partial (zero or more while the user is
+still speaking; each REPLACES the previous partial for that turn_id) and
+transcript.final (once per turn, after endpointing; replaces the partial). A
+final may arrive with no partial before it, and may differ from the last
+partial. A turn is one user utterance: its turn_id is created when speech
+starts, so partials, the final, and any echo audio share it.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
@@ -48,6 +55,7 @@ class ErrorCode(StrEnum):
     BAD_FRAME_SIZE = "BAD_FRAME_SIZE"  # binary frame not the expected length
     BAD_MESSAGE = "BAD_MESSAGE"  # not valid JSON, or no "type"
     UNKNOWN_MESSAGE_TYPE = "UNKNOWN_MESSAGE_TYPE"  # a "type" we do not handle
+    ASR_FAILED = "ASR_FAILED"  # a turn's final transcript could not be produced
 
 
 # --- Client -> server -------------------------------------------------------
@@ -145,6 +153,31 @@ class AudioFlush(BaseModel):
     turn_id: str
 
 
+class TranscriptPartial(BaseModel):
+    """Best guess so far at what the user is saying, sent while they speak.
+    Replaces (does not append to) the previous partial for the same turn."""
+
+    type: Literal["transcript.partial"] = "transcript.partial"
+    turn_id: str
+    text: str
+
+
+class TranscriptFinal(BaseModel):
+    """The turn's transcript, sent once after the turn ends.
+
+    `duration_ms` is the length of the user's speech in the turn (endpointing's
+    speech_started..speech_ended span). `language` is the language the
+    recogniser reports, or None if it does not say. Today it is always the
+    forced language from config, not a detection.
+    """
+
+    type: Literal["transcript.final"] = "transcript.final"
+    turn_id: str
+    text: str
+    duration_ms: int
+    language: str | None
+
+
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
@@ -175,3 +208,17 @@ def audio_end(turn_id: str) -> dict:
 def audio_flush(turn_id: str) -> dict:
     """Build the audio.flush payload for `websocket.send_json`."""
     return AudioFlush(turn_id=turn_id).model_dump(mode="json")
+
+
+def transcript_partial(turn_id: str, text: str) -> dict:
+    """Build the transcript.partial payload for `websocket.send_json`."""
+    return TranscriptPartial(turn_id=turn_id, text=text).model_dump(mode="json")
+
+
+def transcript_final(
+    turn_id: str, text: str, duration_ms: int, language: str | None
+) -> dict:
+    """Build the transcript.final payload for `websocket.send_json`."""
+    return TranscriptFinal(
+        turn_id=turn_id, text=text, duration_ms=duration_ms, language=language
+    ).model_dump(mode="json")

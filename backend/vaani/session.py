@@ -43,8 +43,12 @@ class Session:
     created_at: float = field(default_factory=monotonic)
     frame_count: int = 0
     frames_this_interval: int = 0
-    # The turn whose audio we are sending now. None until the first one opens.
+    # The most recent turn. A turn is one user utterance: it opens when speech
+    # starts and closes when endpointing ends it. The id is kept after the
+    # turn closes, so a late flush.ack can still be matched to it.
     current_turn_id: str | None = None
+    # True while current_turn_id is open (between speech start and turn end).
+    turn_open: bool = False
     # Frames that arrived for a flushed turn and were therefore not sent.
     late_frames_dropped: int = 0
     # Every turn ever flushed in this session. A turn in here must never have
@@ -69,7 +73,12 @@ class Session:
     def open_turn(self) -> str:
         """Start a new turn, make it current, and return its id."""
         self.current_turn_id = uuid.uuid4().hex
+        self.turn_open = True
         return self.current_turn_id
+
+    def close_turn(self) -> None:
+        """The current turn has ended (or was discarded as too short)."""
+        self.turn_open = False
 
     def is_flushed(self, turn_id: str) -> bool:
         """True if `turn_id` was flushed. Callers MUST check this immediately
@@ -83,7 +92,7 @@ class Session:
         turn yet, or this turn was already flushed — flushing is idempotent).
         """
         turn_id = self.current_turn_id
-        if turn_id is None:
+        if turn_id is None or not self.turn_open:
             log.info("session %s: dev flush ignored, no turn open", self.session_id)
             return None
         if turn_id in self._flushed_turns:

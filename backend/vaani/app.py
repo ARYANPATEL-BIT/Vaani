@@ -13,6 +13,7 @@ import logging
 from fastapi import FastAPI
 
 from vaani import __version__
+from vaani.asr import Recognizer, build_recognizer
 from vaani.config import Settings, get_settings
 from vaani.gateway import router as gateway_router
 from vaani.vad import load_model
@@ -37,7 +38,9 @@ def _configure_logging() -> None:
         logger.addHandler(handler)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, recognizer: Recognizer | None = None
+) -> FastAPI:
     """Build and return a configured FastAPI application.
 
     Reads settings once (cached) to title the app, registers routes, and hands
@@ -46,6 +49,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     `settings` is normally left as None and pulled from `get_settings()`. Tests
     pass an explicit Settings object to, for example, shrink the gateway's
     frame-log interval without touching the environment.
+
+    `recognizer` is for tests only: a stand-in speech recogniser used instead
+    of loading the model named in settings.
     """
     settings = settings or get_settings()
     _configure_logging()
@@ -58,6 +64,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.vad.enabled:
         app.state.vad_model = load_model(
             settings.vad.model_path, settings.vad.model_sha256
+        )
+    # Same for speech recognition: load (and warm up) once at startup, so a
+    # bad model name or a missing GPU fails here, not on a user's first turn.
+    # build_recognizer is cached too. A misconfiguration raises: the server
+    # refuses to start rather than run without transcripts.
+    if recognizer is not None:
+        app.state.recognizer = recognizer
+    elif settings.asr.enabled:
+        app.state.recognizer = build_recognizer(
+            settings.asr, settings.audio.sample_rate
         )
 
     @app.get("/health")

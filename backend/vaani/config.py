@@ -92,6 +92,49 @@ class EndpointSettings(BaseModel):
     max_utterance_ms: int = 30000
 
 
+class WhisperSettings(BaseModel):
+    """faster-whisper parameters, under [asr.whisper] in config.toml.
+
+    No defaults: like an LLM model ID, these are written only in config.toml
+    (or overridden from the environment on a GPU machine).
+    """
+
+    # Whisper size ("small", "large-v3") or a path to a converted model folder.
+    model: str
+    # "cpu" or "cuda". cuda never falls back to cpu: startup fails instead.
+    device: str
+    # Number format for the weights at run time, e.g. "int8", "float16".
+    compute_type: str
+    # CPU threads per inference; 0 lets CTranslate2 choose.
+    cpu_threads: int
+    # Forced language code. Never auto-detect (see docs/spikes/asr-hinglish.md).
+    language: str
+    # Example text in the style we want back (romanized Hinglish).
+    initial_prompt: str
+    # Candidate sequences kept while decoding; higher is slower, slightly better.
+    beam_size: int
+    # Temperatures tried in turn when a decode looks bad. [0.0] = one decode.
+    temperature: list[float]
+
+
+class AsrSettings(BaseModel):
+    """Speech recognition, under [asr] in config.toml."""
+
+    # When false the gateway never transcribes and no model is loaded.
+    enabled: bool = True
+    # Which recogniser implementation to build. Only "whisper" exists today.
+    engine: str
+    # Process-wide inference threads; also the number of sessions that can be
+    # transcribed at the same moment.
+    max_concurrent: int
+    # Longest we wait for one transcription before giving up on it.
+    timeout_s: float
+    # Re-decode the growing utterance this often while the user speaks, to
+    # produce transcript.partial. 0 = partials off.
+    partial_interval_ms: int
+    whisper: WhisperSettings
+
+
 class GeminiSettings(BaseModel):
     """Gemini provider parameters, under [llm.gemini] in config.toml.
 
@@ -172,6 +215,7 @@ class Settings(BaseSettings):
     gateway: GatewaySettings = GatewaySettings()
     vad: VadSettings
     endpoint: EndpointSettings = EndpointSettings()
+    asr: AsrSettings
     llm: LLMSettings
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps

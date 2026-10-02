@@ -7,16 +7,41 @@ what the server sends back and whether the connection stays open.
 
 import logging
 import time
+from time import perf_counter
 
+import pytest
 from fastapi.testclient import TestClient
 
+import vaani.turns as turns_mod
 from vaani.app import create_app
 from vaani.config import GatewaySettings, Settings
 from vaani.gateway import expected_frame_bytes
+from vaani.vad import SPEECH_STARTED, SpeechEvent
 
 # The audio block every valid session.start must carry to match the server.
 GOOD_AUDIO = {"sample_rate": 16000, "channels": 1, "frame_ms": 20}
 START = {"type": "session.start", "persona": "default", "audio": GOOD_AUDIO}
+
+
+class SpeechOnFirstFrame:
+    """Stand-in VadStream: speech_started on the very first frame, then never
+    another event. Echo is turn-scoped (a turn is one utterance), so a turn
+    must open before anything is echoed; this opens one at once, keeping these
+    tests about echo and flush rather than about the Silero model."""
+
+    def __init__(self, *args) -> None:
+        self._frames = 0
+
+    def push(self, frame: bytes) -> SpeechEvent | None:
+        self._frames += 1
+        if self._frames == 1:
+            return SpeechEvent(SPEECH_STARTED, 0, perf_counter())
+        return None
+
+
+@pytest.fixture(autouse=True)
+def speech_on_first_frame(monkeypatch) -> None:
+    monkeypatch.setattr(turns_mod, "VadStream", SpeechOnFirstFrame)
 
 
 def make_client(interval_s: float = 1.0, echo_enabled: bool = True) -> TestClient:
@@ -163,8 +188,8 @@ def test_echo_returns_same_bytes_after_audio_start() -> None:
 
 
 def test_audio_start_sent_once_for_the_session() -> None:
-    """Only the first echoed frame is preceded by audio.start; later frames are
-    bare binary. All frames share the one turn_id."""
+    """Only the turn's first echoed frame is preceded by audio.start; later
+    frames of the same turn are bare binary."""
     frame = distinct_frame()
     with make_client().websocket_connect("/ws/session") as ws:
         ws.send_json(START)
@@ -202,7 +227,7 @@ def test_audio_end_sent_on_session_end_with_same_turn_id() -> None:
             raised = exc
 
     assert end["type"] == "audio.end"
-    assert end["turn_id"] == start["turn_id"]  # same turn for the whole session
+    assert end["turn_id"] == start["turn_id"]  # the turn still open at session end
     assert raised is not None and raised.code == 1000
 
 

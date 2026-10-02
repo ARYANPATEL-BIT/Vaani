@@ -12,6 +12,9 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    # A hung test (e.g. waiting for a message that never comes) fails the run
+    # in 10 minutes instead of GitHub's 6-hour default.
+    timeout-minutes: 10
     defaults:
       run:
         # All steps run inside backend/, where pyproject.toml and uv.lock live.
@@ -42,6 +45,7 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
 
-      # Run the test suite.
+      # Run the test suite. Tests marked `slow` (they load a real Whisper
+      # model) are excluded by pyproject's addopts; asr-slow.yml runs them.
       - name: Pytest
         run: uv run pytest

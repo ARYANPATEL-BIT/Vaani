@@ -102,6 +102,11 @@ class UtteranceBuffer:
     def add(self, frame: bytes) -> None:
         self._frames.append(frame)
 
+    def snapshot(self) -> bytes:
+        """The open utterance's audio so far (pre-roll included), as one copy.
+        Used for partial transcripts; the utterance stays open."""
+        return b"".join(self._frames)
+
     def take(self, speech_frames: int) -> list[bytes]:
         """Close the utterance, keeping pre-roll + the first `speech_frames`.
 
@@ -178,6 +183,34 @@ class Endpointer:
             # than pre-roll + max + silence window frames.
             return self._force_while_speaking(i)
         return None
+
+    # --- Read-only views, for turn tracking and partial transcripts ---------
+
+    @property
+    def utterance_open(self) -> bool:
+        """True from speech_started until the turn ends (or is discarded)."""
+        return self._start_frame is not None
+
+    @property
+    def speaking(self) -> bool:
+        """Open and NOT in the silence window after speech_ended."""
+        return self._start_frame is not None and self._ended_frame is None
+
+    @property
+    def frames_since_start(self) -> int:
+        """Frames from speech_started to now (0 when no utterance is open)."""
+        if self._start_frame is None:
+            return 0
+        return self._frame_index - self._start_frame + 1
+
+    @property
+    def min_frames(self) -> int:
+        """min_utterance_ms in frames: shorter utterances make no turn."""
+        return self._min_frames
+
+    def snapshot(self) -> bytes:
+        """Audio of the open utterance so far, pre-roll included."""
+        return self._buffer.snapshot()
 
     def close(self) -> None:
         """Session ending: an open utterance has nobody to receive it."""
