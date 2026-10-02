@@ -13,6 +13,7 @@ from starlette.websockets import WebSocketDisconnect
 from tests.test_gateway import (  # noqa: F401 (autouse fixture, used by name)
     START,
     distinct_frame,
+    expect_state,
     make_client,
     speech_on_first_frame,
 )
@@ -23,6 +24,7 @@ def _start_echo_turn(ws) -> str:
     ws.send_json(START)
     ws.receive_json()  # session.started
     ws.send_bytes(distinct_frame())
+    expect_state(ws, "listening")  # the frame opened a turn
     turn_id = ws.receive_json()["turn_id"]  # audio.start
     ws.receive_bytes()  # the echoed frame
     return turn_id

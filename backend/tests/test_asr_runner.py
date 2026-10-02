@@ -22,11 +22,24 @@ def asr_cfg(**update):
     return Settings().asr.model_copy(update={"enabled": True, **update})
 
 
-def new_runner(rec: FakeRecognizer, sent: list, session: str = "s1", **cfg):
+def new_runner(
+    rec: FakeRecognizer,
+    sent: list,
+    session: str = "s1",
+    finals: list | None = None,
+    **cfg,
+):
+    """A runner whose sends land in `sent`, and on_final hand-overs in
+    `finals` as (turn_id, text) when a list is given."""
+
     async def send(msg: dict) -> None:
         sent.append((perf_counter(), msg))
 
-    return AsrRunner(rec, asr_cfg(**cfg), send, Telemetry(session))
+    async def on_final(turn_id: str, text: str | None) -> None:
+        if finals is not None:
+            finals.append((turn_id, text))
+
+    return AsrRunner(rec, asr_cfg(**cfg), send, Telemetry(session), on_final)
 
 
 async def settle(runner: AsrRunner, seconds: float = 0.0) -> None:
@@ -53,6 +66,33 @@ def test_final_is_sent_in_protocol_shape() -> None:
             "language": "hi",
         }
     ]
+
+
+def test_on_final_gets_text_none_on_failure_and_nothing_when_abandoned() -> None:
+    """The day-11 hand-over to the reply: text for a final, None for a failed
+    one (after its ASR_FAILED), and no call at all for an abandoned turn."""
+
+    async def go():
+        finals: list = []
+        ok = new_runner(FakeRecognizer(), [], finals=finals)
+        ok.request_final("ok", PCM, 500, perf_counter())
+        await settle(ok)
+        slow = new_runner(
+            FakeRecognizer(decode_s=0.3), [], finals=finals, timeout_s=0.05
+        )
+        slow.request_final("timed-out", PCM, 500, perf_counter())
+        await settle(slow)
+        gated = FakeRecognizer(gated=True)
+        dropped = new_runner(gated, [], finals=finals)
+        dropped.request_final("abandoned", PCM, 500, perf_counter())
+        while not gated.started.is_set():
+            await asyncio.sleep(0.005)
+        dropped.abandon_turn("abandoned")
+        gated.gate.set()
+        await settle(dropped)
+        return finals
+
+    assert asyncio.run(go()) == [("ok", "namaste duniya"), ("timed-out", None)]
 
 
 def test_abandon_mid_inference_emits_nothing() -> None:

@@ -11,10 +11,11 @@ injected from the environment at runtime — either real environment variables
 or the gitignored backend/.env file.
 """
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -178,13 +179,35 @@ class GroqSettings(BaseModel):
 class LLMSettings(BaseModel):
     """Language model settings, under [llm] in config.toml."""
 
+    # When false no provider chain is built and turns get no reply. Tests and
+    # CI run with it off: they have no API keys, and build_chain refuses to
+    # start without them.
+    enabled: bool = True
     # Providers to try, first choice first. ProviderChain fails over along
     # this list.
     provider_order: list[str]
     # Paid requests allowed per process, across ALL providers together.
     max_requests_per_process: int
+    # Completed user+assistant exchanges re-sent with every request.
+    history_turns: int
     gemini: GeminiSettings
     groq: GroqSettings
+
+
+class GuardrailSettings(BaseModel):
+    """Input guardrail, under [guardrail] in config.toml."""
+
+    # Regular expressions, matched case-insensitively against the transcript
+    # BEFORE it is put into a prompt. Any match blocks the turn.
+    patterns: list[str]
+
+    @field_validator("patterns")
+    @classmethod
+    def _compiles(cls, patterns: list[str]) -> list[str]:
+        # A typo in a pattern fails at startup, not on a user's turn.
+        for pattern in patterns:
+            re.compile(pattern)
+        return patterns
 
 
 class Settings(BaseSettings):
@@ -217,6 +240,9 @@ class Settings(BaseSettings):
     endpoint: EndpointSettings = EndpointSettings()
     asr: AsrSettings
     llm: LLMSettings
+    guardrail: GuardrailSettings
+    # Persona key -> system prompt. session.start's "persona" must be a key.
+    personas: dict[str, str]
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
     # the value out of logs and reprs unless explicitly unwrapped.

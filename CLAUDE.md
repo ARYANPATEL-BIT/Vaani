@@ -151,3 +151,5 @@ Reality check
 The learning document is how I learn this project. My mentor will ask "where is the code that does this", "what happens if this fails", and "why not the other way" — so those answers must be in the document, in language I can absorb, before he asks.
 
 If I read a learning document and still cannot answer those three questions about the module, the document was not good enough. Tell me what you were unsure how to explain, and we will fix it together rather than leaving a gap.
+
+Write the simplest code that does the job. No abstraction until there is a second case that needs it. No options nothing uses. No defensive handling for cases that cannot occur. If a reader has to jump between three files to follow one request, the design is wrong.

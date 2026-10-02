@@ -73,7 +73,10 @@ async def time_final(runner_parts, turn: TurnEnded) -> tuple[float, dict]:
     async def send(msg: dict) -> None:
         sent.append((perf_counter(), msg))
 
-    runner = AsrRunner(recognizer, cfg, send, Telemetry("measure"))
+    async def on_final(turn_id: str, text: str | None) -> None:
+        pass  # only the transcript's timing is measured here
+
+    runner = AsrRunner(recognizer, cfg, send, Telemetry("measure"), on_final)
     ended_at = perf_counter()
     runner.request_final("t", turn.audio, turn.duration_ms, ended_at)
     while not sent:

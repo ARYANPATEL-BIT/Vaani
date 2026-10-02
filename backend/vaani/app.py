@@ -16,6 +16,9 @@ from vaani import __version__
 from vaani.asr import Recognizer, build_recognizer
 from vaani.config import Settings, get_settings
 from vaani.gateway import router as gateway_router
+from vaani.providers.base import LLMProvider
+from vaani.providers.chain import build_chain
+from vaani.spend import RequestCap
 from vaani.vad import load_model
 
 
@@ -39,7 +42,9 @@ def _configure_logging() -> None:
 
 
 def create_app(
-    settings: Settings | None = None, recognizer: Recognizer | None = None
+    settings: Settings | None = None,
+    recognizer: Recognizer | None = None,
+    llm: LLMProvider | None = None,
 ) -> FastAPI:
     """Build and return a configured FastAPI application.
 
@@ -50,8 +55,8 @@ def create_app(
     pass an explicit Settings object to, for example, shrink the gateway's
     frame-log interval without touching the environment.
 
-    `recognizer` is for tests only: a stand-in speech recogniser used instead
-    of loading the model named in settings.
+    `recognizer` and `llm` are for tests only: a stand-in speech recogniser
+    and language model used instead of the real ones named in settings.
     """
     settings = settings or get_settings()
     _configure_logging()
@@ -75,6 +80,15 @@ def create_app(
         app.state.recognizer = build_recognizer(
             settings.asr, settings.audio.sample_rate
         )
+    # The language model chain, built once and shared by every session: its
+    # HTTP clients keep connections (and their TLS handshakes) open between
+    # turns. One RequestCap for the process, so the spend limit is global.
+    # A provider without its API key raises here: the server refuses to start.
+    if llm is not None:
+        app.state.llm = llm
+    elif settings.llm.enabled:
+        cap = RequestCap(settings.llm.max_requests_per_process)
+        app.state.llm = build_chain(settings, cap)
 
     @app.get("/health")
     def health() -> dict[str, str]:

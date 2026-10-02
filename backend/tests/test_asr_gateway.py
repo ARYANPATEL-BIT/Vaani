@@ -62,9 +62,12 @@ def test_final_transcript_after_turn_end() -> None:
         ws.receive_json()  # session.started
         for frame in utterance():
             ws.send_bytes(frame)
-        final = ws.receive_json()
+        listening, idle, final = [ws.receive_json() for _ in range(3)]
         rest = drain(ws)
 
+    # No language model in this app: the turn goes straight back to idle,
+    # and the transcript still arrives.
+    assert (listening["state"], idle["state"]) == ("listening", "idle")
     assert final["type"] == "transcript.final"
     assert final["text"] == "namaste duniya" and final["language"] == "hi"
     assert final["turn_id"] and final["duration_ms"] > 0
@@ -86,7 +89,8 @@ def test_partials_share_the_finals_turn_id() -> None:
 
     partials = [m for m in msgs if m["type"] == "transcript.partial"]
     assert partials, msgs
-    assert {m["turn_id"] for m in msgs} == {msgs[-1]["turn_id"]}
+    transcripts = [m for m in msgs if m["type"].startswith("transcript")]
+    assert {m["turn_id"] for m in transcripts} == {msgs[-1]["turn_id"]}
 
 
 def test_flush_mid_inference_emits_nothing_for_that_turn() -> None:
@@ -105,6 +109,7 @@ def test_flush_mid_inference_emits_nothing_for_that_turn() -> None:
                 sent += 1
                 time.sleep(0.002)
             ws.send_json({"type": "dev.flush"})
+            assert ws.receive_json()["state"] == "listening"  # sent at turn open
             assert ws.receive_json()["type"] == "audio.flush"
             rec.gate.set()
             for frame in frames[sent:]:

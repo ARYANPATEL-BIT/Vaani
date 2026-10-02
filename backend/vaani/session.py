@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from time import monotonic
 
 from vaani.protocol import FlushAck, audio_flush
+from vaani.providers.base import Message
 from vaani.telemetry import FLUSH_ACKED, FLUSH_SENT, Telemetry
 
 log = logging.getLogger("vaani.session")
@@ -51,6 +52,10 @@ class Session:
     turn_open: bool = False
     # Frames that arrived for a flushed turn and were therefore not sent.
     late_frames_dropped: int = 0
+    # The conversation so far, oldest first: user and assistant messages of
+    # COMPLETED exchanges only, re-sent to the model every turn. reply.py
+    # appends to it and trims it to [llm].history_turns exchanges.
+    history: list[Message] = field(default_factory=list)
     # Every turn ever flushed in this session. A turn in here must never have
     # another audio frame sent for it.
     _flushed_turns: set[str] = field(default_factory=set)

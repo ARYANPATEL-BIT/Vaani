@@ -1,0 +1,42 @@
+"""What the model is sent: the input guardrail, then prompt assembly.
+
+The two live together because their ORDER is the point. A transcript is
+untrusted text: a person can say "ignore your instructions" into the
+microphone. While it is still a separate string we can check it. Once it has
+been placed in the request beside the system prompt, it is just more text and
+there is no longer any way to tell instruction from content. So reply.py
+calls `looks_like_injection` first and `assemble` only if that passed.
+
+Persona prompts themselves are strings in config.toml's [personas] table,
+looked up by key; nothing persona-specific is written here.
+"""
+
+import re
+
+from vaani.providers.base import Message
+
+
+def looks_like_injection(transcript: str, patterns: list[str]) -> bool:
+    """True if any guardrail pattern matches the transcript.
+
+    `re` keeps its own cache of compiled patterns, so compiling on every call
+    costs nothing after the first turn. The patterns were already checked to
+    compile when config loaded.
+    """
+    return any(re.search(p, transcript, re.IGNORECASE) for p in patterns)
+
+
+def assemble(
+    system_prompt: str, history: list[Message], transcript: str
+) -> list[Message]:
+    """The full request: persona system prompt, past exchanges, this turn.
+
+    `history` is already capped (reply.py trims it after each turn), so this
+    is a plain concatenation. The model is stateless: it remembers the
+    conversation only because we re-send it here, every turn.
+    """
+    return [
+        Message(role="system", content=system_prompt),
+        *history,
+        Message(role="user", content=transcript),
+    ]
