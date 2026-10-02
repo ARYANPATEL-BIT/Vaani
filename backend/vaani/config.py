@@ -73,6 +73,25 @@ class VadSettings(BaseModel):
     end_frames: int = 10
 
 
+class EndpointSettings(BaseModel):
+    """End-of-turn detection, under [endpoint] in config.toml.
+
+    Deliberately separate from VadSettings: VAD's end_frames decides "speech
+    stopped", these decide "the turn is over". Defaults mirror the TOML.
+    """
+
+    # When false (or when VAD is off) the gateway does no endpointing.
+    enabled: bool = True
+    # Silence after speech_ended before the turn counts as over.
+    end_of_turn_silence_ms: int = 700
+    # An utterance shorter than this produces no turn (a cough, a lone "mm").
+    min_utterance_ms: int = 300
+    # Audio kept from BEFORE speech_started, so the first syllable survives.
+    preroll_ms: int = 300
+    # Longest utterance kept; past this the turn is forced to end.
+    max_utterance_ms: int = 30000
+
+
 class GeminiSettings(BaseModel):
     """Gemini provider parameters, under [llm.gemini] in config.toml.
 
@@ -152,6 +171,7 @@ class Settings(BaseSettings):
     audio: AudioSettings = AudioSettings()
     gateway: GatewaySettings = GatewaySettings()
     vad: VadSettings
+    endpoint: EndpointSettings = EndpointSettings()
     llm: LLMSettings
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
