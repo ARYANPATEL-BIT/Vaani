@@ -90,3 +90,37 @@ is made on.
 
 - Aryan's 10 Hinglish recordings (ASR p50/p95 on real speech, not TTS).
 - An end-to-end measurement once ASR → LLM → TTS is connected (week 2–3).
+
+## Day 11 update: the first connected, end-to-end measurement
+
+Date: 2026-10-02 (day 11). The pipeline is now connected through the model's
+first token, so this is one measurement, not separate p50s added together.
+
+Setup: server on cuda/large-v3 (RTX 5070 Laptop), echo off, provider order
+`gemini, groq` (Gemini answered every turn). Client `scripts/measure_turn.py`,
+12 turns, one Hinglish TTS clip (Piper, "Namaste, aaj hum real-time voice
+conversation ke baare mein baat karenge.", 5 s), real-time pace, one session,
+so history grew to the 6-exchange cap.
+
+| Span | p50 | p95 | Clock |
+|---|---|---|---|
+| `speech_ended` → `turn_ended` (endpointer wait) | 704 ms | 718 ms | server |
+| `turn_ended` → `transcript.final` (ASR, large-v3) | 1188 ms | 1389 ms | server |
+| LLM request → first token (Gemini, real prompts) | 913 ms | 1256 ms | server |
+| **`turn_ended` → first `agent.text`** | **2140 ms** | **2429 ms** | server |
+| **last voiced frame → first `agent.text`** | **3127 ms** | **3440 ms** | client |
+
+**Against the 1,000 ms target: 3.1× over at p50, and nothing is audible yet**
+(TTS and playback still to add).
+
+Two things moved since the day-10 table:
+- ASR on this 5 s clip took 1188 ms, about twice day 10's 577 ms on 4 shorter
+  clips. Decode time grows with clip length; we have not separated that
+  from other causes.
+- Gemini warm first token, timed on its own with `scripts/measure_llm.py`
+  (10 real assembled prompts): **p50 898 ms, p95 1075 ms** (day 6: 1291 ms,
+  on toy prompts and cold connections).
+
+**Groq was not measured.** `VAANI_GROQ_API_KEY` in `backend/.env` was rejected
+(HTTP 401, Invalid API Key). Whether flipping `provider_order` is a cheap win
+is still unknown until the key is replaced and `measure_llm.py` is re-run.

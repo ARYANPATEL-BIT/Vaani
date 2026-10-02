@@ -18,6 +18,10 @@ rapid turns from one user cannot starve everyone else.
 
 A job that was abandoned (barge-in, disconnect) is never emitted: the check
 sits directly in front of the send.
+
+Day 11: once a final has been sent (or has failed), `on_final` is awaited
+with the text (or None), so turns.py can hand the transcript to the model.
+An abandoned final calls nothing: whoever abandoned it owns the turn.
 """
 
 import asyncio
@@ -36,6 +40,9 @@ from vaani.telemetry import ASR_FINAL, ASR_PARTIAL, ASR_START, Telemetry
 log = logging.getLogger("vaani.asr")
 
 SendJson = Callable[[dict], Awaitable[None]]
+# (turn_id, final text or None if transcription failed). Must return quickly:
+# the next transcription waits for it.
+OnFinal = Callable[[str, str | None], Awaitable[None]]
 
 
 @dataclass
@@ -60,8 +67,10 @@ class AsrRunner:
         cfg: AsrSettings,
         send_json: SendJson,
         telemetry: Telemetry,
+        on_final: OnFinal,
     ) -> None:
         self._recognizer = recognizer
+        self._on_final = on_final
         self._timeout_s = cfg.timeout_s
         self._send = send_json
         self._telemetry = telemetry
@@ -206,6 +215,9 @@ class AsrRunner:
             decode_ms,
             result.text,
         )
+        # Re-checked: the turn may have been abandoned during the send above.
+        if not job.abandoned:
+            await self._on_final(job.turn_id, result.text)
 
     async def _fail(self, job: _Job, reason: str) -> None:
         """A partial failing is only logged; a final failing tells the browser."""
@@ -222,3 +234,5 @@ class AsrRunner:
             await self._send(
                 error(ErrorCode.ASR_FAILED, f"transcription failed: {reason}")
             )
+            if not job.abandoned:  # re-checked after the send, as in _emit
+                await self._on_final(job.turn_id, None)

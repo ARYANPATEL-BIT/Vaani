@@ -124,12 +124,42 @@ Backend notes (day 10):
 - `text` may contain Devanagari and Latin script in the same sentence.
 - `duration_ms` is the length of the user's speech in the turn.
 
-### 2.5 Error code `ASR_FAILED` (Proposed — backend addition, pending Samyak)
+### 2.5 Agent turn — SHARED PROTOCOL v0.4 (Proposed — pending Samyak, agree as one block)
 
-`{ "type": "error", "code": "ASR_FAILED", "message": "..." }` is sent when a
-turn's final transcript could not be produced (recogniser error, or the
-`[asr].timeout_s` hard timeout). It is non-fatal: the connection stays open.
-No `transcript.final` follows for that turn. The message has no `turn_id`.
+Server → client, JSON text frames. Implemented on the backend in
+`backend/vaani/protocol.py` (`TurnStateMessage`, `AgentText`, `AgentDone`,
+`ErrorCode`). Everything in this section is new in v0.4 and is meant to be
+agreed **together**.
+
+| Type | Payload | When |
+|---|---|---|
+| `turn.state` | `{ "type": "turn.state", "turn_id": "<string or null>", "state": "idle" \| "listening" \| "thinking" \| "speaking" \| "cancelling" }` | On every state change. `turn_id` is `null` only when `state` is `idle` |
+| `agent.text` | `{ "type": "agent.text", "turn_id": "<string>", "delta": "<string>" }` | One streamed fragment of the reply. **Append** these (unlike `transcript.partial`, which replaces) |
+| `agent.done` | `{ "type": "agent.done", "turn_id": "<string>", "text": "<string>" }` | The reply is complete; `text` is the full reply. A client may ignore it if it accumulated the deltas |
+
+One normal turn traces `listening → thinking → speaking → idle`. The
+`turn_id` is the user utterance's id, so the transcript and the reply share it.
+A failed turn gets `error` then `turn.state idle`, and **no** `agent.done`. A
+cancelled turn (`dev.flush` today) traces `cancelling → idle`, and also gets
+no `agent.done`.
+
+Backend notes (day 11):
+- `speaking` means "reply text is streaming" until speech synthesis lands
+  (day 12). Nothing is audible yet.
+- The backend is **half-duplex**: speech while the agent is thinking or
+  speaking is dropped (logged server-side), so no `listening` appears then.
+- `session.start`'s `persona` must be one of `default`, `tutor`, `support`
+  (config.toml `[personas]`); anything else gets `BAD_MESSAGE`.
+
+**Error codes (all three pending Samyak).** Shape:
+`{ "type": "error", "code": "<code>", "message": "..." }`. All are non-fatal:
+the connection stays open. None carries a `turn_id`.
+
+| Code | Meaning | What follows |
+|---|---|---|
+| `ASR_FAILED` | The turn's final transcript could not be produced (recogniser error, or the `[asr].timeout_s` timeout) | No `transcript.final`; `turn.state idle` |
+| `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be surfaced to the user, never silence. Once synthesis exists (day 12) the backend will **speak** an apology instead of only sending text |
+| `INPUT_REJECTED` | The user's turn was blocked by the input guardrail before reaching the model | `turn.state idle`. The message is deliberately vague ("that turn wasn't processed"): the user needs to know nothing happened, not which rule fired |
 
 ---
 
@@ -152,3 +182,4 @@ These will be specified as their implementation days arrive:
 | 2026-09-24 | Samyak  | Day 4: audio.flush and audio.flush.ack specification for immediate playback silencing   |
 | 2026-10-02 | Aryan   | Day 10: shared protocol v0.3 transcripts; turn = utterance (echo per utterance); proposed ASR_FAILED |
 
+| 2026-10-02 | Aryan   | Day 11: shared protocol v0.4 (turn.state, agent.text, agent.done); ASR_FAILED, LLM_FAILED, INPUT_REJECTED proposed together in §2.5 |

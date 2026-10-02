@@ -16,7 +16,11 @@ flush the current turn, and the browser's flush.ack closes the round trip. A
 flushed turn also has its speech recognition abandoned, so no transcript is
 ever sent for it (the stand-in for week-3 barge-in).
 
-What this file does NOT do yet: barge-in, or call an LLM provider.
+Day 11: a dev.flush while the agent is thinking or speaking cancels its
+reply instead (TurnPipeline.on_dev_flush decides which). session.start's
+persona must be a key of config.toml's [personas].
+
+What this file does NOT do yet: barge-in.
 """
 
 import asyncio
@@ -192,11 +196,18 @@ async def session_endpoint(websocket: WebSocket) -> None:
                         )
                     )
                     continue
+                if start.persona not in settings.personas:
+                    await websocket.send_json(
+                        error(
+                            ErrorCode.BAD_MESSAGE, f"unknown persona: {start.persona}"
+                        )
+                    )
+                    continue
                 session = Session(session_id=uuid.uuid4().hex, persona=start.persona)
                 telemetry = Telemetry(session.session_id)
-                # Fresh per-session VAD / endpointing / ASR state. The models
-                # themselves (VAD, Whisper) are loaded once per process and
-                # shared; getattr gives None for one that is disabled.
+                # Fresh per-session VAD / endpointing / ASR / reply state. The
+                # models (VAD, Whisper) and the LLM chain are built once per
+                # process and shared; getattr gives None for one disabled.
                 pipeline = TurnPipeline(
                     settings,
                     session,
@@ -205,6 +216,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     websocket.send_bytes,
                     getattr(websocket.app.state, "vad_model", None),
                     getattr(websocket.app.state, "recognizer", None),
+                    getattr(websocket.app.state, "llm", None),
                 )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)
@@ -221,10 +233,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
 
             if mtype == "dev.flush":
                 # DEV-ONLY — remove together with DevFlush in protocol.py when
-                # barge-in lands. Lets us exercise flush before VAD exists.
-                flushed = await session.flush(websocket.send_json, telemetry)
-                if flushed is not None and pipeline is not None:
-                    pipeline.on_flush(flushed)
+                # barge-in lands. Stands in for barge-in until it exists.
+                if pipeline is not None:
+                    await pipeline.on_dev_flush()
                 continue
 
             if mtype == "flush.ack":

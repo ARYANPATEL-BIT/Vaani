@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.3. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.4. The same shapes are mirrored on the frontend.
 
 Two kinds of traffic flow over the socket, in BOTH directions:
   * Audio frames are raw BINARY messages (16 kHz mono 16-bit PCM). They carry
@@ -30,6 +30,12 @@ transcript.final (once per turn, after endpointing; replaces the partial). A
 final may arrive with no partial before it, and may differ from the last
 partial. A turn is one user utterance: its turn_id is created when speech
 starts, so partials, the final, and any echo audio share it.
+
+v0.4 adds the AGENT'S SIDE: turn.state (sent on every state change of the
+turn state machine in turns.py), agent.text (one streamed fragment of the
+reply; APPEND these, unlike transcript.partial which replaces) and agent.done
+(the full reply). A failed turn gets an error and then turn.state idle, never
+agent.done; a cancelled turn gets no agent.done either.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
@@ -56,6 +62,23 @@ class ErrorCode(StrEnum):
     BAD_MESSAGE = "BAD_MESSAGE"  # not valid JSON, or no "type"
     UNKNOWN_MESSAGE_TYPE = "UNKNOWN_MESSAGE_TYPE"  # a "type" we do not handle
     ASR_FAILED = "ASR_FAILED"  # a turn's final transcript could not be produced
+    LLM_FAILED = "LLM_FAILED"  # the agent could not answer
+    INPUT_REJECTED = "INPUT_REJECTED"  # the turn was blocked before the model
+
+
+class TurnState(StrEnum):
+    """What the agent is doing, as sent in turn.state.
+
+    Lives here, beside ErrorCode, because these five strings are wire values
+    the frontend must match. WHICH moves between them are legal is decided
+    in turns.py, not here.
+    """
+
+    IDLE = "idle"  # nothing in progress; turn_id is null
+    LISTENING = "listening"  # the user is speaking
+    THINKING = "thinking"  # turn over; transcribing and waiting for the model
+    SPEAKING = "speaking"  # reply streaming (until day 12: as text only)
+    CANCELLING = "cancelling"  # reply being stopped
 
 
 # --- Client -> server -------------------------------------------------------
@@ -178,6 +201,30 @@ class TranscriptFinal(BaseModel):
     language: str | None
 
 
+class TurnStateMessage(BaseModel):
+    """The agent's state changed. turn_id is None (JSON null) only in idle."""
+
+    type: Literal["turn.state"] = "turn.state"
+    turn_id: str | None
+    state: TurnState
+
+
+class AgentText(BaseModel):
+    """One streamed fragment of the agent's reply. The browser APPENDS it."""
+
+    type: Literal["agent.text"] = "agent.text"
+    turn_id: str
+    delta: str
+
+
+class AgentDone(BaseModel):
+    """The reply is complete. `text` is the whole reply, for the scrollback."""
+
+    type: Literal["agent.done"] = "agent.done"
+    turn_id: str
+    text: str
+
+
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
@@ -222,3 +269,18 @@ def transcript_final(
     return TranscriptFinal(
         turn_id=turn_id, text=text, duration_ms=duration_ms, language=language
     ).model_dump(mode="json")
+
+
+def turn_state(turn_id: str | None, state: TurnState) -> dict:
+    """Build the turn.state payload for `websocket.send_json`."""
+    return TurnStateMessage(turn_id=turn_id, state=state).model_dump(mode="json")
+
+
+def agent_text(turn_id: str, delta: str) -> dict:
+    """Build the agent.text payload for `websocket.send_json`."""
+    return AgentText(turn_id=turn_id, delta=delta).model_dump(mode="json")
+
+
+def agent_done(turn_id: str, text: str) -> dict:
+    """Build the agent.done payload for `websocket.send_json`."""
+    return AgentDone(turn_id=turn_id, text=text).model_dump(mode="json")

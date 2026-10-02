@@ -54,6 +54,17 @@ def make_client(interval_s: float = 1.0, echo_enabled: bool = True) -> TestClien
     return TestClient(create_app(settings))
 
 
+def expect_state(ws, state: str) -> dict:
+    """Receive the next message and check it is turn.state `state`.
+
+    Since day 11 every turn opening sends turn.state listening first; these
+    echo and flush tests consume it here and get on with what they test.
+    """
+    msg = ws.receive_json()
+    assert msg["type"] == "turn.state" and msg["state"] == state, msg
+    return msg
+
+
 def good_frame() -> bytes:
     """One correctly sized silent frame (640 zero bytes for the defaults)."""
     return b"\x00" * expected_frame_bytes(Settings().audio)
@@ -104,8 +115,10 @@ def test_wrong_size_frame_returns_bad_frame_size_and_stays_open() -> None:
         reply = ws.receive_json()
         assert reply["code"] == "BAD_FRAME_SIZE"
 
-        # Connection is still usable: a good frame afterwards draws no error.
+        # Connection is still usable: a good frame afterwards draws no error
+        # (it opens a turn: turn.state listening, and nothing else).
         ws.send_bytes(good_frame())
+        expect_state(ws, "listening")
         ws.send_json(START)  # idempotent re-ack proves the socket is alive
         assert ws.receive_json()["type"] == "session.started"
 
@@ -179,6 +192,7 @@ def test_echo_returns_same_bytes_after_audio_start() -> None:
         ws.receive_json()  # session.started
 
         ws.send_bytes(frame)
+        expect_state(ws, "listening")
         start = ws.receive_json()  # audio.start precedes the first frame
         echoed = ws.receive_bytes()
 
@@ -196,6 +210,7 @@ def test_audio_start_sent_once_for_the_session() -> None:
         ws.receive_json()
 
         ws.send_bytes(frame)
+        expect_state(ws, "listening")
         start = ws.receive_json()
         ws.receive_bytes()  # first echo
 
@@ -215,6 +230,7 @@ def test_audio_end_sent_on_session_end_with_same_turn_id() -> None:
         ws.receive_json()
 
         ws.send_bytes(frame)
+        expect_state(ws, "listening")
         start = ws.receive_json()  # audio.start
         ws.receive_bytes()  # echoed frame
 
@@ -257,6 +273,7 @@ def test_echo_disabled_returns_no_audio() -> None:
         ws.receive_json()
 
         ws.send_bytes(distinct_frame())
+        expect_state(ws, "listening")
         # Prove nothing was echoed: the next server message is the idempotent
         # session.started re-ack, not an audio.start.
         ws.send_json(START)

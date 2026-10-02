@@ -151,6 +151,13 @@ provider_order = ["gemini", "groq"]
 # before any network traffic. A stopgap until the real cost ledger exists.
 max_requests_per_process = 200
 
+# How many completed exchanges (one user turn + the agent's reply) are sent
+# back to the model with each new turn, so it remembers the conversation.
+# The WHOLE history is re-sent on every turn, so each extra exchange makes
+# every later request bigger: more tokens to pay for, more to read before
+# the first token. Older exchanges are dropped, not summarised (week 5).
+history_turns = 6
+
 [llm.gemini]
 # Exact model ID. Deliberately NOT the "gemini-flash-lite-latest" alias: an
 # alias can silently move to a new model and change our latency numbers.
@@ -183,3 +190,49 @@ timeout_s = 10.0
 
 # reasoning_effort / include_reasoning: only for reasoning models such as
 # openai/gpt-oss-20b. Leave them out for any other model; it rejects them.
+
+[guardrail]
+# Input guardrail. Each pattern is a regular expression matched,
+# case-insensitively, against the user's TRANSCRIPT before it is placed in a
+# prompt. Any match blocks the turn: the model is never called and the browser
+# gets INPUT_REJECTED. Speech is untrusted input: someone can say "ignore your
+# instructions" into the microphone exactly as they could type it.
+# This is a short list of phrasings, NOT a defence against a determined
+# attacker: a paraphrase it does not list gets through. See
+# docs/learning/backend-learning/11-turn-llm.md.
+patterns = [
+    # English: "ignore / forget / disregard (all) (your) previous instructions"
+    '\b(ignore|forget|disregard)\b.{0,20}\b(previous|prior|above|earlier|all|your)\b.{0,20}\b(instructions?|rules|prompt)\b',
+    # Asking for, or overriding, the hidden instructions themselves
+    '\b(system|developer|hidden)\s+(prompt|instructions?|message)\b',
+    # Role takeover
+    '\byou\s+are\s+now\b',
+    '\bpretend\s+(to\s+be|you\s+are)\b',
+    '\b(jailbreak|developer\s+mode|dan\s+mode)\b',
+    # Romanized Hinglish: "(pichle) instructions ignore karo / bhool jao"
+    '\b(instructions?|rules|nirdesh)\b.{0,15}\b(ignore|bhool|bhul)\w*',
+    # Devanagari: "निर्देश ... भूल / अनदेखा", and "इग्नोर"
+    'निर्देश.{0,20}(भूल|अनदेखा)',
+    'इग्नोर',
+]
+
+[personas]
+# One system prompt per persona key. session.start's "persona" field must be
+# one of these keys, or the session is refused. Kept short on purpose: the
+# system prompt is re-sent with every turn, and replies are meant to be spoken,
+# so they must be brief.
+default = """You are Vaani, a friendly voice assistant. The user speaks Hindi, \
+English or a mix of both (Hinglish). Reply in the same mix they use, written \
+in Latin script. Your reply will be spoken aloud: keep it to one or two short \
+sentences, with no lists, markdown or emoji."""
+
+tutor = """You are Vaani, a patient tutor. The user speaks Hindi, English or \
+Hinglish; reply in the same mix, in Latin script. Explain one idea at a time \
+in plain words, then check they followed. Your reply is spoken aloud: at most \
+three short sentences, no lists, markdown or emoji."""
+
+support = """You are Vaani, a customer support agent. The user speaks Hindi, \
+English or Hinglish; reply in the same mix, in Latin script. Be calm and \
+practical: ask for the one detail you need, or give the one next step. Your \
+reply is spoken aloud: one or two short sentences, no lists, markdown or \
+emoji."""
