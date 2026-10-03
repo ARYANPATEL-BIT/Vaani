@@ -1,0 +1,195 @@
+{
+  "meta": {
+    "name": "Hinglish ASR Test Set — Part 1",
+    "version": "1.0.0",
+    "date": "2026-10-03",
+    "author": "Samyak",
+    "purpose": "Evaluation input corpus for faster-whisper (large-v3, language=hi) on conversational Hinglish. Used to produce real p50/p95 ASR latency measurements (see docs/findings/perf-1-latency-budget.md).",
+    "categories": ["pure-hindi", "pure-english", "light-mix", "heavy-mix", "numbers-dates", "question"],
+    "recording_spec": {
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "encoding": "PCM Int16LE",
+      "format": "WAV",
+      "environment": "quiet indoor, no background noise",
+      "speaker": "single human voice",
+      "note": "These are transcription inputs, not TTS-generated clips. Each case must be recorded by a human speaker."
+    },
+    "notes": [
+      "Do NOT fabricate ASR output. The expected_script field describes anticipated script behaviour from the spike (asr-hinglish.md), not a measured result.",
+      "Cases are designed to cover the categories identified in docs/spikes/asr-hinglish.md.",
+      "Part 1 covers short-to-medium utterances (2-8 s). Long utterances and multi-turn interaction are deferred to Part 2.",
+      "The duration_budget_s field is a recording target, not a hard limit."
+    ]
+  },
+  "cases": [
+    {
+      "id": "H1-PH-01",
+      "category": "pure-hindi",
+      "label": "Pure Hindi — greeting",
+      "text": "नमस्ते, आप कैसे हैं?",
+      "romanized": "Namaste, aap kaise hain?",
+      "language_mix": "hindi",
+      "duration_budget_s": 2,
+      "expected_script": "Devanagari",
+      "what_it_checks": "Baseline: pure Hindi greeting. Establishes that the pipeline writes Devanagari for Hindi-only speech without any code-switching artefacts.",
+      "notes": "Should be the easiest case. Failure here is a hard blocker."
+    },
+    {
+      "id": "H1-PH-02",
+      "category": "pure-hindi",
+      "label": "Pure Hindi — instruction with time",
+      "text": "कल सुबह मुझे आठ बजे याद दिला देना।",
+      "romanized": "Kal subah mujhe aath baje yaad dila dena.",
+      "language_mix": "hindi",
+      "duration_budget_s": 3,
+      "expected_script": "Devanagari",
+      "what_it_checks": "Pure Hindi sentence with a time reference. Verifies correct Devanagari rendering of a common conversational request without any English words present.",
+      "notes": "Close to the committed initial_prompt from asr-hinglish.md. Should transcribe cleanly."
+    },
+    {
+      "id": "H1-PE-01",
+      "category": "pure-english",
+      "label": "Pure English — everyday request",
+      "text": "Can you book me a table for two at eight tonight?",
+      "romanized": null,
+      "language_mix": "english",
+      "duration_budget_s": 3,
+      "expected_script": "Latin (all-English output expected)",
+      "what_it_checks": "Forces language=hi on clean English speech. The spike (section 4) showed large-v3 leaves clean English intact when using the real model. Confirms this holds for a human speaker, not TTS.",
+      "notes": "Regression guard: if this fails, forcing language=hi is broken for English-only users. This exact sentence appeared in the spike."
+    },
+    {
+      "id": "H1-PE-02",
+      "category": "pure-english",
+      "label": "Pure English — longer technical sentence",
+      "text": "The quarterly report is due on Friday, please send me your numbers by Wednesday afternoon.",
+      "romanized": null,
+      "language_mix": "english",
+      "duration_budget_s": 5,
+      "expected_script": "Latin",
+      "what_it_checks": "Longer English utterance under language=hi. The spike used this sentence (cut mid-word) to expose the Devanagari-repetition-loop failure on partial decodes. Recorded in full, the whole-utterance decode should be safe.",
+      "notes": "Spike section 4b showed loops occur only on cut-off audio. Full recording expected to produce correct Latin output."
+    },
+    {
+      "id": "H1-LM-01",
+      "category": "light-mix",
+      "label": "Light mix — English noun embedded in Hindi sentence",
+      "text": "मुझे कल एक meeting attend करनी है।",
+      "romanized": "Mujhe kal ek meeting attend karni hai.",
+      "language_mix": "mixed",
+      "duration_budget_s": 3,
+      "expected_script": "Devanagari for Hindi words; Latin for meeting and attend",
+      "what_it_checks": "Most common real-world Hinglish pattern: a Hindi sentence with one or two borrowed English nouns. Checks that the code-switch is preserved (Latin for English words) and not collapsed into all-Devanagari.",
+      "notes": "The spike showed this type works on large-v3 with language=hi. Priority case."
+    },
+    {
+      "id": "H1-LM-02",
+      "category": "light-mix",
+      "label": "Light mix — English verb phrase embedded in Hindi",
+      "text": "क्या तुम मेरे लिए यह file upload कर सकते हो?",
+      "romanized": "Kya tum mere liye yeh file upload kar sakte ho?",
+      "language_mix": "mixed",
+      "duration_budget_s": 4,
+      "expected_script": "Devanagari for Hindi words; Latin for file and upload",
+      "what_it_checks": "English technical verb + noun pair inside a Hindi question. Tests whether the model correctly code-switches on common tech vocabulary used in Indian workplace conversation.",
+      "notes": "A common conversational pattern in Indian workplaces."
+    },
+    {
+      "id": "H1-LM-03",
+      "category": "light-mix",
+      "label": "Light mix — English discourse marker at sentence start",
+      "text": "Actually, mujhe nahi lagta ki yeh theek rahega.",
+      "romanized": "Actually, mujhe nahi lagta ki yeh theek rahega.",
+      "language_mix": "mixed",
+      "duration_budget_s": 3,
+      "expected_script": "Latin for Actually; Devanagari for the rest",
+      "what_it_checks": "English discourse marker at the start of an otherwise Hindi sentence. Very common in spoken Hinglish. Tests sentence-initial code-switch, which is a different pattern from noun/verb borrowing mid-sentence.",
+      "notes": "Discourse markers such as actually, basically, and I mean are a distinct linguistic pattern from borrowing content words."
+    },
+    {
+      "id": "H1-HM-01",
+      "category": "heavy-mix",
+      "label": "Heavy mix — spike sample B sentence (exact reuse)",
+      "text": "जितना ज़्यादा clear करोगे, उतना ज़्यादा अच्छे से ASI respond करेगा।",
+      "romanized": "Jitna zyada clear karoge, utna zyada achhe se ASI respond karega.",
+      "language_mix": "mixed",
+      "duration_budget_s": 5,
+      "expected_script": "Devanagari for Hindi words; Latin for clear, ASI, respond",
+      "what_it_checks": "This is the exact sample used in the ASR spike (asr-hinglish.md sample B, forced-hi row). Using the identical sentence lets us compare real human recording results directly against the spike results from a TTS clip.",
+      "notes": "Spike reference output: जितना ज्यादा clear कोईंगे उसमें शायद इतना ज्यादा अच्छे से ASI respond कोईगा. Deviations between human recording and TTS clip are expected and informative."
+    },
+    {
+      "id": "H1-HM-02",
+      "category": "heavy-mix",
+      "label": "Heavy mix — dense alternation with English fillers",
+      "text": "Matlab, basically yeh kaam already ho gaya hai, but confirmation nahi aayi abhi tak.",
+      "romanized": "Matlab, basically yeh kaam already ho gaya hai, but confirmation nahi aayi abhi tak.",
+      "language_mix": "mixed",
+      "duration_budget_s": 5,
+      "expected_script": "Devanagari for matlab, kaam, nahi, abhi tak; Latin for basically, already, but, confirmation",
+      "what_it_checks": "Dense mixing: mid-sentence alternation between Hindi and English at roughly equal density. Tests the model's handling of rapid script switches within a single short sentence.",
+      "notes": "Near-equal language density. More script-switching failures expected here than in light-mix cases."
+    },
+    {
+      "id": "H1-HM-03",
+      "category": "heavy-mix",
+      "label": "Heavy mix — Vaani project sentence (used in Day 11 measurement)",
+      "text": "Namaste, aaj hum real-time voice conversation ke baare mein baat karenge.",
+      "romanized": "Namaste, aaj hum real-time voice conversation ke baare mein baat karenge.",
+      "language_mix": "mixed",
+      "duration_budget_s": 5,
+      "expected_script": "Devanagari for Hindi words; Latin for real-time, voice, conversation",
+      "what_it_checks": "The sentence used in Piper TTS clips and in the Day 11 measure_turn.py end-to-end run (perf-1-latency-budget.md). Including the same sentence recorded by a human speaker allows comparison: TTS clip ASR decode time of 1188 ms vs human voice decode time.",
+      "notes": "The single most referenced Hinglish sentence in the project. Must be included."
+    },
+    {
+      "id": "H1-ND-01",
+      "category": "numbers-dates",
+      "label": "Numbers and dates — Hindi number-words with English month name",
+      "text": "मीटिंग पाँच अक्तूबर को है, दोपहर तीन बजे।",
+      "romanized": "Meeting paanch October ko hai, dopahar teen baje.",
+      "language_mix": "mixed",
+      "duration_budget_s": 4,
+      "expected_script": "Devanagari for Hindi words; Latin for Meeting and October may vary",
+      "what_it_checks": "Dates and times in spoken Hinglish frequently mix Hindi number-words with English month names. Tests numeric and date word handling which is relevant to scheduling assistant queries.",
+      "notes": "ASR output for month names and numbers may be inconsistent across runs. Record the exact output each time."
+    },
+    {
+      "id": "H1-ND-02",
+      "category": "numbers-dates",
+      "label": "Numbers and dates — price with Hindi number-words",
+      "text": "Iski price approximately paanch sau rupaye hai.",
+      "romanized": "Iski price approximately paanch sau rupaye hai.",
+      "language_mix": "mixed",
+      "duration_budget_s": 3,
+      "expected_script": "Devanagari for paanch sau rupaye; Latin for price, approximately",
+      "what_it_checks": "Currency and quantity phrases common in shopping or travel queries. Tests that Hindi numeral words are written in Devanagari and English modifiers in Latin.",
+      "notes": "None."
+    },
+    {
+      "id": "H1-QU-01",
+      "category": "question",
+      "label": "Question — English opener then Hindi clarification",
+      "text": "Sorry, can you please repeat that? Mujhe samajh nahi aaya.",
+      "romanized": "Sorry, can you please repeat that? Mujhe samajh nahi aaya.",
+      "language_mix": "mixed",
+      "duration_budget_s": 4,
+      "expected_script": "Latin for the English question; Devanagari for the Hindi follow-on",
+      "what_it_checks": "Natural user clarification pattern: English opener, Hindi explanation. Tests sentence-boundary code-switching. Also tests whether a question mark mid-utterance causes the pipeline to split into two transcripts prematurely.",
+      "notes": "The transcript pipeline may split this into two turns depending on VAD and endpointing. Record as one continuous utterance without a long pause between the two halves."
+    },
+    {
+      "id": "H1-QU-02",
+      "category": "question",
+      "label": "Question — Hindi WH-question with embedded English nouns",
+      "text": "Aapka office address kya hai?",
+      "romanized": "Aapka office address kya hai?",
+      "language_mix": "mixed",
+      "duration_budget_s": 3,
+      "expected_script": "Devanagari for Aapka, kya, hai; Latin for office, address",
+      "what_it_checks": "Short question with embedded English nouns. Common in voice assistant usage. Tests that the model does not hallucinate or collapse short questions when language=hi is forced.",
+      "notes": "Short utterances under 3 s are more vulnerable to VAD filter edge cases. Record with clear speech onset and a clean silence after the final word."
+    }
+  ]
+}
