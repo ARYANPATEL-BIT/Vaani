@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  loopback-tests.html — browser test runner for the loopback analysis algorithm.
+
+  Open this page in any browser while the Vite dev server is running:
+    cd frontend && npm run dev
+    Then visit: http://localhost:5173/loopback-tests.html
+
+  Or serve directly from the frontend root without Vite:
+    python3 -m http.server 5174 --directory frontend/
+    Then visit: http://localhost:5174/loopback-tests.html
+
+  No framework, no build step — the test file imports loopbackAnalysis.js
+  directly as an ES module.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loopback Analysis Tests</title>
+    <style>
+      body {
+        font-family: ui-monospace, Consolas, monospace;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 20px;
+        background: #16171d;
+        color: #f3f4f6;
+        line-height: 1.6;
+      }
+      h1 { color: #c084fc; margin-bottom: 4px; font-size: 1.4rem; }
+      p.sub { color: #9ca3af; font-size: 0.85rem; margin-top: 0; }
+      #status { color: #f59e0b; margin-bottom: 16px; }
+      #summary { font-size: 1.1rem; margin: 16px 0; }
+      #summary.pass { color: #10b981; }
+      #summary.fail { color: #ef4444; }
+      #log { white-space: pre-wrap; font-size: 0.85rem; color: #d1d5db; }
+      .pass { color: #10b981; }
+      .fail { color: #ef4444; }
+    </style>
+  </head>
+  <body>
+    <h1>Loopback Analysis — Unit Tests</h1>
+    <p class="sub">
+      Tests the cross-correlation algorithm without hardware or React.
+      Open the browser console for full output.
+    </p>
+    <div id="status">Running tests…</div>
+    <div id="summary"></div>
+    <pre id="log"></pre>
+
+    <script type="module">
+      // Intercept console.log/error to mirror output to the page
+      const log = document.getElementById('log');
+      const origLog = console.log.bind(console);
+      const origErr = console.error.bind(console);
+      function appendLog(text, cls) {
+        const line = document.createElement('span');
+        if (cls) line.className = cls;
+        line.textContent = text + '\n';
+        log.appendChild(line);
+      }
+      console.log = (...args) => {
+        origLog(...args);
+        const text = args.join(' ');
+        appendLog(text, text.startsWith('  ✓') ? 'pass' : text.startsWith('  ✗') ? 'fail' : '');
+      };
+      console.error = (...args) => {
+        origErr(...args);
+        appendLog(args.join(' '), 'fail');
+      };
+
+      // Run the tests
+      try {
+        await import('./src/loopback/loopbackAnalysis.test.js');
+      } catch (err) {
+        appendLog('IMPORT ERROR: ' + err.message, 'fail');
+      }
+
+      // Retrieve results from the window after the module runs
+      const r = window.__loopbackTestResults;
+      const statusEl = document.getElementById('status');
+      const summaryEl = document.getElementById('summary');
+      if (r) {
+        statusEl.textContent = 'Done.';
+        summaryEl.textContent = `${r.passed} passed, ${r.failed} failed`;
+        summaryEl.className = r.failed === 0 ? 'pass' : 'fail';
+      } else {
+        statusEl.textContent = 'Tests completed (check console).';
+      }
+    </script>
+  </body>
+</html>
