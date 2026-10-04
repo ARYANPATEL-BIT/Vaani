@@ -34,6 +34,7 @@ from time import perf_counter
 
 from vaani.asr.base import AsrError, Recognizer, Transcript
 from vaani.config import AsrSettings
+from vaani.endpoint import Endpointer, ms_to_frames
 from vaani.protocol import ErrorCode, error, transcript_final, transcript_partial
 from vaani.telemetry import ASR_FINAL, ASR_PARTIAL, ASR_START, Telemetry
 
@@ -65,6 +66,7 @@ class AsrRunner:
         self,
         recognizer: Recognizer,
         cfg: AsrSettings,
+        frame_ms: int,
         send_json: SendJson,
         telemetry: Telemetry,
         on_final: OnFinal,
@@ -72,6 +74,13 @@ class AsrRunner:
         self._recognizer = recognizer
         self._on_final = on_final
         self._timeout_s = cfg.timeout_s
+        # Partial re-decode interval in frames; 0 = partials off.
+        interval = cfg.partial_interval_ms
+        self._partial_frames = ms_to_frames(interval, frame_ms) if interval else 0
+        # The turn partials were last requested for, and at which of its
+        # frames_since_start: a new turn starts counting from 0 again.
+        self._partial_turn: str | None = None
+        self._last_partial_at = 0
         self._send = send_json
         self._telemetry = telemetry
         self._session_id = telemetry.session_id
@@ -89,6 +98,23 @@ class AsrRunner:
             return
         self._partial = _Job(turn_id, pcm, final=False)
         self._kick()
+
+    def maybe_request_partial(self, turn_id: str, ep: Endpointer) -> None:
+        """Ask for a partial every `partial_interval_ms` of an utterance.
+
+        Only while the user is actively speaking (a re-decode in the silence
+        window would hear nothing new) and only once the utterance is longer
+        than min_utterance_ms. The utterance then cannot be discarded as too
+        short later, so the browser never shows a partial whose turn vanishes.
+        """
+        frames = ep.frames_since_start
+        if not self._partial_frames or not ep.speaking or frames < ep.min_frames:
+            return
+        if turn_id != self._partial_turn:
+            self._partial_turn, self._last_partial_at = turn_id, 0
+        if frames - self._last_partial_at >= self._partial_frames:
+            self._last_partial_at = frames
+            self.request_partial(turn_id, ep.snapshot())
 
     def request_final(
         self, turn_id: str, pcm: bytes, duration_ms: int, ended_at: float

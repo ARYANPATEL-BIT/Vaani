@@ -37,7 +37,7 @@ from vaani.telemetry import LLM_FIRST_TOKEN, Telemetry
 log = logging.getLogger("vaani.reply")
 
 SendJson = Callable[[dict], Awaitable[None]]
-# TurnPipeline.move_to: checks the transition is legal, then sends turn.state.
+# TurnStateMachine.move_to: checks the transition is legal, then sends turn.state.
 MoveTo = Callable[[TurnState], Awaitable[None]]
 
 # Deliberately vague. Naming the rule that matched would teach a person

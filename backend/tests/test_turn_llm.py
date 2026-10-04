@@ -27,7 +27,7 @@ from vaani.providers.base import (
     TextChunk,
 )
 from vaani.providers.chain import ProviderChain
-from vaani.turns import IllegalTransition, check_transition
+from vaani.turn_state import IllegalTransition, check_transition
 
 
 class ScriptedLLM(LLMProvider):
