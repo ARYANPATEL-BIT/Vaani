@@ -9,7 +9,8 @@ there, in order:
      transcript, any echo audio and the agent's reply all carry the same id;
   4. ASR (asr/runner.py) is asked for partials while the user speaks and for
      the final when the turn ends — asked only: recognition never runs here;
-  5. the final transcript goes to reply.py, which streams the model's answer;
+  5. the final transcript goes to reply.py, which streams the model's answer
+     and has it spoken (chunker.py, speaker.py, tts/);
   6. echo (echo.py; day 3, development only) sends the turn's frames back.
 
 Everything in on_frame is quick: VAD is ~1 ms, the rest microseconds. The
@@ -38,6 +39,7 @@ from vaani.providers.base import LLMProvider
 from vaani.reply import Responder
 from vaani.session import Session
 from vaani.telemetry import TURN_ENDED, Telemetry
+from vaani.tts import Synthesizer
 from vaani.turn_state import TurnStateMachine
 from vaani.vad import SPEECH_ENDED, SPEECH_STARTED, SpeechEvent, VadStream
 
@@ -60,6 +62,7 @@ class TurnPipeline:
         vad_model,
         recognizer: Recognizer | None,
         chain: LLMProvider | None,
+        synth: Synthesizer | None,
     ) -> None:
         self._session = session
         self._telemetry = telemetry
@@ -67,7 +70,12 @@ class TurnPipeline:
         self._frame_ms = settings.audio.frame_ms
         self._machine = TurnStateMachine(session, send_json)
         self._echo = Echo(
-            settings.gateway.echo_enabled, session, telemetry, send_json, send_bytes
+            settings.gateway.echo_enabled,
+            settings.audio.sample_rate,
+            session,
+            telemetry,
+            send_json,
+            send_bytes,
         )
         # Each stage needs the one before it: no VAD, no endpointing; no
         # endpointing (no utterances), nothing to transcribe; no transcript
@@ -96,7 +104,14 @@ class TurnPipeline:
         )
         self._responder = (
             Responder(
-                chain, settings, session, telemetry, send_json, self._machine.move_to
+                chain,
+                synth,
+                settings,
+                session,
+                telemetry,
+                send_json,
+                send_bytes,
+                self._machine.move_to,
             )
             if self._asr is not None and chain is not None
             else None
@@ -140,6 +155,11 @@ class TurnPipeline:
         the user's open turn (day 4) and abandon its recognition."""
         if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
             await self._cancel_reply()
+            return
+        if not self._session.turn_open:
+            log.info(
+                "session %s: dev flush ignored, no turn open", self._session.session_id
+            )
             return
         flushed = await self._session.flush(self._send_json, self._telemetry)
         if flushed is not None and self._asr is not None:
@@ -292,6 +312,9 @@ class TurnPipeline:
         # Still transcribing? Then no transcript, and so no reply, will come.
         if self._asr is not None and turn_id is not None:
             self._asr.abandon_turn(turn_id)
+        # Silence what the browser has queued. Day 13 settles the order of
+        # these steps; today the requirement is that audio.flush is sent.
+        await self._session.flush(self._send_json, self._telemetry)
         await self._machine.move_to(TurnState.CANCELLING)
         await self._responder.wait()  # returns once the HTTP stream is closed
         ms = (perf_counter() - started) * 1000

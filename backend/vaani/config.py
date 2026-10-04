@@ -49,7 +49,7 @@ class GatewaySettings(BaseModel):
     frame_log_interval_s: float = 1.0
     # When true, every valid frame the server receives is sent straight back to
     # the client (the day-3 "echo" loopback). Turned off once real audio flows.
-    echo_enabled: bool = True
+    echo_enabled: bool = False
 
 
 class VadSettings(BaseModel):
@@ -134,6 +134,42 @@ class AsrSettings(BaseModel):
     # produce transcript.partial. 0 = partials off.
     partial_interval_ms: int
     whisper: WhisperSettings
+
+
+class PiperSettings(BaseModel):
+    """The Piper voice, under [tts.piper] in config.toml."""
+
+    model_path: str  # relative to backend/; fetched by scripts/fetch_models.py
+    config_path: str  # the voice's .onnx.json (committed)
+    model_sha256: str  # checked at load and by fetch_models.py
+    model_url: str  # where fetch_models.py downloads it from
+
+
+class TtsSettings(BaseModel):
+    """Speech synthesis, under [tts] in config.toml."""
+
+    # When false the agent replies in text only and no voice is loaded.
+    enabled: bool = True
+    # Which synthesiser to build. Only "piper" exists today.
+    engine: str
+    # Synthesis threads for the whole process.
+    max_concurrent: int
+    piper: PiperSettings
+
+
+class ChunkerSettings(BaseModel):
+    """Clause chunking of the reply, under [chunker] in config.toml."""
+
+    # The first chunk is cut at the earliest boundary once it has this many
+    # characters, and at a word boundary if it reaches first_max_chars.
+    first_min_chars: int
+    first_max_chars: int
+    # Later chunks wait for a sentence end, up to this many characters.
+    max_chars: int
+    # Words whose trailing "." is not a sentence end ("Dr.").
+    abbreviations: list[str]
+    # Words a chunk may be cut in front of ("but", "lekin").
+    conjunctions: list[str]
 
 
 class GeminiSettings(BaseModel):
@@ -240,6 +276,8 @@ class Settings(BaseSettings):
     endpoint: EndpointSettings = EndpointSettings()
     asr: AsrSettings
     llm: LLMSettings
+    tts: TtsSettings
+    chunker: ChunkerSettings
     guardrail: GuardrailSettings
     # Persona key -> system prompt. session.start's "persona" must be a key.
     personas: dict[str, str]

@@ -24,12 +24,14 @@ class Echo:
     def __init__(
         self,
         enabled: bool,
+        sample_rate: int,
         session: Session,
         telemetry: Telemetry,
         send_json: SendJson,
         send_bytes: SendBytes,
     ) -> None:
         self._enabled = enabled
+        self._sample_rate = sample_rate  # echoed audio is the mic's own format
         self._session = session
         self._telemetry = telemetry
         self._send_json = send_json
@@ -38,7 +40,7 @@ class Echo:
     async def start(self, turn_id: str) -> None:
         """A turn opened: audio.start must precede its first echoed frame."""
         if self._enabled:
-            await self._send_json(audio_start(turn_id))
+            await self._send_json(audio_start(turn_id, self._sample_rate))
 
     async def frame(self, data: bytes) -> None:
         """Send the frame back if echo is on and a turn is open."""
