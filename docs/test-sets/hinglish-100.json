@@ -1,0 +1,843 @@
+{
+  "meta": {
+    "name": "Hinglish ASR Test Set",
+    "version": "2.0.0",
+    "date": "2026-10-03",
+    "author": "Samyak",
+    "branch": "data/hinglish-test-set",
+    "week": 2,
+    "day": 4,
+    "purpose": "Complete 100-utterance evaluation corpus for faster-whisper (large-v3, language=hi) on conversational Hinglish. Ground-truth text is the authoritative reference for WER measurement. All 100 utterances (H1-001 through H1-100) are real human speech recordings.",
+    "recording_spec": {
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "bit_depth": 16,
+      "encoding": "PCM signed 16-bit little-endian",
+      "format": "WAV",
+      "naming": "H1-NNN.wav where NNN is zero-padded ID",
+      "location": "data/hinglish-test-set/audio/",
+      "environment": "Quiet indoor. No background music. Single speaker.",
+      "speaker": "Human — real speech only. No TTS, no Piper, no synthetic audio."
+    },
+    "ground_truth_note": "The 'text' field is the EXACT sentence the speaker is asked to say. It is the ground truth. It is NOT an ASR output and must NOT be modified after recording unless the recording is re-recorded.",
+    "categories": [
+      "conversational",
+      "question",
+      "command",
+      "technology",
+      "college",
+      "scheduling",
+      "numbers-dates",
+      "money",
+      "travel",
+      "work",
+      "food",
+      "entertainment",
+      "health",
+      "family",
+      "code-switch-heavy"
+    ]
+  },
+  "utterances": [
+    {
+      "id": "H1-001",
+      "part": 1,
+      "category": "conversational",
+      "text": "Mujhe kal ka meeting schedule check karna hai.",
+      "length": "short",
+      "audio_file": "audio/H1-001.wav"
+    },
+    {
+      "id": "H1-002",
+      "part": 1,
+      "category": "conversational",
+      "text": "Yaar, aaj traffic bahut zyada tha, office late pahuncha.",
+      "length": "medium",
+      "audio_file": "audio/H1-002.wav"
+    },
+    {
+      "id": "H1-003",
+      "part": 1,
+      "category": "question",
+      "text": "Kya tum mere saath lunch ke liye aa sakte ho?",
+      "length": "short",
+      "audio_file": "audio/H1-003.wav"
+    },
+    {
+      "id": "H1-004",
+      "part": 1,
+      "category": "conversational",
+      "text": "Main abhi busy hoon, thodi der baad call karta hoon.",
+      "length": "medium",
+      "audio_file": "audio/H1-004.wav"
+    },
+    {
+      "id": "H1-005",
+      "part": 1,
+      "category": "question",
+      "text": "Aaj ki presentation kaisi gayi, sab theek tha?",
+      "length": "short",
+      "audio_file": "audio/H1-005.wav"
+    },
+    {
+      "id": "H1-006",
+      "part": 1,
+      "category": "technology",
+      "text": "Mera laptop restart ho gaya, sab files band ho gayi.",
+      "length": "medium",
+      "audio_file": "audio/H1-006.wav"
+    },
+    {
+      "id": "H1-007",
+      "part": 1,
+      "category": "technology",
+      "text": "Yeh app bahut slow hai, update karna padega.",
+      "length": "short",
+      "audio_file": "audio/H1-007.wav"
+    },
+    {
+      "id": "H1-008",
+      "part": 1,
+      "category": "command",
+      "text": "Please mera WiFi password share karo na.",
+      "length": "short",
+      "audio_file": "audio/H1-008.wav"
+    },
+    {
+      "id": "H1-009",
+      "part": 1,
+      "category": "technology",
+      "text": "Kya tumne Google Drive par file upload kar di?",
+      "length": "short",
+      "audio_file": "audio/H1-009.wav"
+    },
+    {
+      "id": "H1-010",
+      "part": 1,
+      "category": "technology",
+      "text": "Mera phone battery low hai, charger hai kya tumhare paas?",
+      "length": "medium",
+      "audio_file": "audio/H1-010.wav"
+    },
+    {
+      "id": "H1-011",
+      "part": 1,
+      "category": "college",
+      "text": "Assignment deadline kal hai, abhi tak complete nahi hua.",
+      "length": "medium",
+      "audio_file": "audio/H1-011.wav"
+    },
+    {
+      "id": "H1-012",
+      "part": 1,
+      "category": "college",
+      "text": "Professor ne class cancel kar di, library mein padhte hain.",
+      "length": "medium",
+      "audio_file": "audio/H1-012.wav"
+    },
+    {
+      "id": "H1-013",
+      "part": 1,
+      "category": "college",
+      "text": "Exam mein kitna percentage chahiye passing ke liye?",
+      "length": "short",
+      "audio_file": "audio/H1-013.wav"
+    },
+    {
+      "id": "H1-014",
+      "part": 1,
+      "category": "college",
+      "text": "Notes share karo, main kal ki class miss kar gaya tha.",
+      "length": "medium",
+      "audio_file": "audio/H1-014.wav"
+    },
+    {
+      "id": "H1-015",
+      "part": 1,
+      "category": "college",
+      "text": "Semester ke baad internship ke liye apply karna hai.",
+      "length": "medium",
+      "audio_file": "audio/H1-015.wav"
+    },
+    {
+      "id": "H1-016",
+      "part": 1,
+      "category": "money",
+      "text": "Yeh phone kitne ka hai, EMI available hai kya?",
+      "length": "short",
+      "audio_file": "audio/H1-016.wav"
+    },
+    {
+      "id": "H1-017",
+      "part": 1,
+      "category": "money",
+      "text": "Sale mein discount mil raha hai, abhi order karo.",
+      "length": "short",
+      "audio_file": "audio/H1-017.wav"
+    },
+    {
+      "id": "H1-018",
+      "part": 1,
+      "category": "money",
+      "text": "Amazon par free delivery hai agar order do sau rupaye se zyada ho.",
+      "length": "medium",
+      "audio_file": "audio/H1-018.wav"
+    },
+    {
+      "id": "H1-019",
+      "part": 1,
+      "category": "money",
+      "text": "Paytm se pay karun ya UPI use karun?",
+      "length": "short",
+      "audio_file": "audio/H1-019.wav"
+    },
+    {
+      "id": "H1-020",
+      "part": 1,
+      "category": "money",
+      "text": "Yeh jacket bahut expensive hai, budget ke bahar hai.",
+      "length": "short",
+      "audio_file": "audio/H1-020.wav"
+    },
+    {
+      "id": "H1-021",
+      "part": 1,
+      "category": "scheduling",
+      "text": "Meeting teen baje hai, conference room book kiya kya?",
+      "length": "short",
+      "audio_file": "audio/H1-021.wav"
+    },
+    {
+      "id": "H1-022",
+      "part": 1,
+      "category": "scheduling",
+      "text": "Kal Monday hai, public holiday nahi hai na?",
+      "length": "short",
+      "audio_file": "audio/H1-022.wav"
+    },
+    {
+      "id": "H1-023",
+      "part": 1,
+      "category": "scheduling",
+      "text": "Train saat baje hai, ghar se paanch baje nikalna padega.",
+      "length": "medium",
+      "audio_file": "audio/H1-023.wav"
+    },
+    {
+      "id": "H1-024",
+      "part": 1,
+      "category": "scheduling",
+      "text": "Birthday party Saturday ko plan kar rahe hain, available ho?",
+      "length": "medium",
+      "audio_file": "audio/H1-024.wav"
+    },
+    {
+      "id": "H1-025",
+      "part": 1,
+      "category": "scheduling",
+      "text": "Doctor appointment Friday teen baje book kar do.",
+      "length": "short",
+      "audio_file": "audio/H1-025.wav"
+    },
+    {
+      "id": "H1-026",
+      "part": 1,
+      "category": "travel",
+      "text": "Airport se cab book karo, flight six baje land karti hai.",
+      "length": "medium",
+      "audio_file": "audio/H1-026.wav"
+    },
+    {
+      "id": "H1-027",
+      "part": 1,
+      "category": "travel",
+      "text": "Metro station kahan hai, walking distance mein hai kya?",
+      "length": "short",
+      "audio_file": "audio/H1-027.wav"
+    },
+    {
+      "id": "H1-028",
+      "part": 1,
+      "category": "travel",
+      "text": "Iss address par pahunchne mein kitna time lagega?",
+      "length": "short",
+      "audio_file": "audio/H1-028.wav"
+    },
+    {
+      "id": "H1-029",
+      "part": 1,
+      "category": "travel",
+      "text": "Hotel mein room book kiya, check-in four baje hai.",
+      "length": "short",
+      "audio_file": "audio/H1-029.wav"
+    },
+    {
+      "id": "H1-030",
+      "part": 1,
+      "category": "travel",
+      "text": "Delhi se Mumbai ka flight ticket kitne ka hai?",
+      "length": "short",
+      "audio_file": "audio/H1-030.wav"
+    },
+    {
+      "id": "H1-031",
+      "part": 1,
+      "category": "question",
+      "text": "Yeh kaam kab tak complete ho jayega?",
+      "length": "short",
+      "audio_file": "audio/H1-031.wav"
+    },
+    {
+      "id": "H1-032",
+      "part": 1,
+      "category": "question",
+      "text": "Samajh nahi aaya, thoda aur explain kar sakte ho?",
+      "length": "short",
+      "audio_file": "audio/H1-032.wav"
+    },
+    {
+      "id": "H1-033",
+      "part": 1,
+      "category": "technology",
+      "text": "Kya yeh feature already implement ho gaya hai?",
+      "length": "short",
+      "audio_file": "audio/H1-033.wav"
+    },
+    {
+      "id": "H1-034",
+      "part": 1,
+      "category": "work",
+      "text": "Meeting mein kaun kaun aa raha hai, list share karo.",
+      "length": "short",
+      "audio_file": "audio/H1-034.wav"
+    },
+    {
+      "id": "H1-035",
+      "part": 1,
+      "category": "work",
+      "text": "Report submit karni hai, exact format kya chahiye?",
+      "length": "short",
+      "audio_file": "audio/H1-035.wav"
+    },
+    {
+      "id": "H1-036",
+      "part": 1,
+      "category": "command",
+      "text": "Please presentation ka PDF share kar do abhi.",
+      "length": "short",
+      "audio_file": "audio/H1-036.wav"
+    },
+    {
+      "id": "H1-037",
+      "part": 1,
+      "category": "command",
+      "text": "Message forward kar do, WhatsApp par bhej dena.",
+      "length": "short",
+      "audio_file": "audio/H1-037.wav"
+    },
+    {
+      "id": "H1-038",
+      "part": 1,
+      "category": "technology",
+      "text": "System restart karo, issue fix ho jayega.",
+      "length": "short",
+      "audio_file": "audio/H1-038.wav"
+    },
+    {
+      "id": "H1-039",
+      "part": 1,
+      "category": "technology",
+      "text": "Data backup lo, hard drive almost full ho rahi hai.",
+      "length": "short",
+      "audio_file": "audio/H1-039.wav"
+    },
+    {
+      "id": "H1-040",
+      "part": 1,
+      "category": "work",
+      "text": "Meeting ka agenda email kar do sab logon ko.",
+      "length": "short",
+      "audio_file": "audio/H1-040.wav"
+    },
+    {
+      "id": "H1-041",
+      "part": 1,
+      "category": "food",
+      "text": "Lunch mein kya order karein, pizza ya biryani?",
+      "length": "short",
+      "audio_file": "audio/H1-041.wav"
+    },
+    {
+      "id": "H1-042",
+      "part": 1,
+      "category": "food",
+      "text": "Chai peeoge ya coffee, canteen mein jaa rahe hain.",
+      "length": "short",
+      "audio_file": "audio/H1-042.wav"
+    },
+    {
+      "id": "H1-043",
+      "part": 1,
+      "category": "food",
+      "text": "Aaj dinner ghar par nahi hoga, bahar khaate hain.",
+      "length": "short",
+      "audio_file": "audio/H1-043.wav"
+    },
+    {
+      "id": "H1-044",
+      "part": 1,
+      "category": "food",
+      "text": "Grocery list mein milk aur bread add kar do.",
+      "length": "short",
+      "audio_file": "audio/H1-044.wav"
+    },
+    {
+      "id": "H1-045",
+      "part": 1,
+      "category": "health",
+      "text": "Gym membership join karna hai, monthly fee kitni hai?",
+      "length": "short",
+      "audio_file": "audio/H1-045.wav"
+    },
+    {
+      "id": "H1-046",
+      "part": 1,
+      "category": "work",
+      "text": "Client call hai ek ghante mein, prepare ho gaye?",
+      "length": "short",
+      "audio_file": "audio/H1-046.wav"
+    },
+    {
+      "id": "H1-047",
+      "part": 1,
+      "category": "work",
+      "text": "Project deadline extend ho sakti hai kya?",
+      "length": "short",
+      "audio_file": "audio/H1-047.wav"
+    },
+    {
+      "id": "H1-048",
+      "part": 1,
+      "category": "work",
+      "text": "Review comments address kiye, please approve karo.",
+      "length": "short",
+      "audio_file": "audio/H1-048.wav"
+    },
+    {
+      "id": "H1-049",
+      "part": 1,
+      "category": "work",
+      "text": "New joiner hai, usse onboarding process explain karo.",
+      "length": "short",
+      "audio_file": "audio/H1-049.wav"
+    },
+    {
+      "id": "H1-050",
+      "part": 1,
+      "category": "work",
+      "text": "Office party ka venue decide ho gaya kya?",
+      "length": "short",
+      "audio_file": "audio/H1-050.wav"
+    },
+    {
+      "id": "H1-051",
+      "part": 2,
+      "category": "technology",
+      "text": "Yeh bug kab se hai, server logs mein check kiya?",
+      "length": "short",
+      "audio_file": "audio/H1-051.wav"
+    },
+    {
+      "id": "H1-052",
+      "part": 2,
+      "category": "technology",
+      "text": "Frontend aur backend integration testing ho gayi kya?",
+      "length": "short",
+      "audio_file": "audio/H1-052.wav"
+    },
+    {
+      "id": "H1-053",
+      "part": 2,
+      "category": "work",
+      "text": "User feedback collect kar rahe hain, form link share karo.",
+      "length": "short",
+      "audio_file": "audio/H1-053.wav"
+    },
+    {
+      "id": "H1-054",
+      "part": 2,
+      "category": "work",
+      "text": "Sprint review kal hai, demo ready hai kya?",
+      "length": "short",
+      "audio_file": "audio/H1-054.wav"
+    },
+    {
+      "id": "H1-055",
+      "part": 2,
+      "category": "technology",
+      "text": "Server down hai, status page check karo please.",
+      "length": "short",
+      "audio_file": "audio/H1-055.wav"
+    },
+    {
+      "id": "H1-056",
+      "part": 2,
+      "category": "technology",
+      "text": "API response slow aa rahi hai, optimization karna padega.",
+      "length": "medium",
+      "audio_file": "audio/H1-056.wav"
+    },
+    {
+      "id": "H1-057",
+      "part": 2,
+      "category": "technology",
+      "text": "Database backup schedule karo, weekly basis par rakho.",
+      "length": "short",
+      "audio_file": "audio/H1-057.wav"
+    },
+    {
+      "id": "H1-058",
+      "part": 2,
+      "category": "work",
+      "text": "Code review pending hai, kal tak complete kar dena.",
+      "length": "short",
+      "audio_file": "audio/H1-058.wav"
+    },
+    {
+      "id": "H1-059",
+      "part": 2,
+      "category": "technology",
+      "text": "New feature mein authentication layer add karna hai.",
+      "length": "short",
+      "audio_file": "audio/H1-059.wav"
+    },
+    {
+      "id": "H1-060",
+      "part": 2,
+      "category": "technology",
+      "text": "Performance test ke results kaisa aa rahe hain?",
+      "length": "short",
+      "audio_file": "audio/H1-060.wav"
+    },
+    {
+      "id": "H1-061",
+      "part": 2,
+      "category": "family",
+      "text": "Dost ne wedding invitation rakha, attend karna padega.",
+      "length": "short",
+      "audio_file": "audio/H1-061.wav"
+    },
+    {
+      "id": "H1-062",
+      "part": 2,
+      "category": "family",
+      "text": "Bhai ka birthday gift online order kiya, delivery track karo.",
+      "length": "medium",
+      "audio_file": "audio/H1-062.wav"
+    },
+    {
+      "id": "H1-063",
+      "part": 2,
+      "category": "conversational",
+      "text": "Ghar ka rent increase ho gaya, naya accommodation dhundhna padega.",
+      "length": "medium",
+      "audio_file": "audio/H1-063.wav"
+    },
+    {
+      "id": "H1-064",
+      "part": 2,
+      "category": "conversational",
+      "text": "Driving license renew karna hai, RTO jaana padega.",
+      "length": "short",
+      "audio_file": "audio/H1-064.wav"
+    },
+    {
+      "id": "H1-065",
+      "part": 2,
+      "category": "conversational",
+      "text": "Voter ID card ke liye apply kiya, status online check karo.",
+      "length": "medium",
+      "audio_file": "audio/H1-065.wav"
+    },
+    {
+      "id": "H1-066",
+      "part": 2,
+      "category": "travel",
+      "text": "Passport validity check karo, travel mein kaam aayega.",
+      "length": "short",
+      "audio_file": "audio/H1-066.wav"
+    },
+    {
+      "id": "H1-067",
+      "part": 2,
+      "category": "money",
+      "text": "Insurance premium time par pay kar dena, lapse mat hone do.",
+      "length": "medium",
+      "audio_file": "audio/H1-067.wav"
+    },
+    {
+      "id": "H1-068",
+      "part": 2,
+      "category": "money",
+      "text": "Fixed deposit mature ho gaya, reinvest karein kya?",
+      "length": "short",
+      "audio_file": "audio/H1-068.wav"
+    },
+    {
+      "id": "H1-069",
+      "part": 2,
+      "category": "money",
+      "text": "Loan EMI due date yaad rakhna, late fee lagti hai.",
+      "length": "medium",
+      "audio_file": "audio/H1-069.wav"
+    },
+    {
+      "id": "H1-070",
+      "part": 2,
+      "category": "money",
+      "text": "Tax filing last date aane wali hai, accountant se mil lo.",
+      "length": "medium",
+      "audio_file": "audio/H1-070.wav"
+    },
+    {
+      "id": "H1-071",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Yaar, seriously yeh movie bahut bakwas thi, waste of time.",
+      "length": "medium",
+      "audio_file": "audio/H1-071.wav"
+    },
+    {
+      "id": "H1-072",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Netflix par koi acchi series recommend karo please.",
+      "length": "short",
+      "audio_file": "audio/H1-072.wav"
+    },
+    {
+      "id": "H1-073",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Game mein next level unlock ho gaya kya?",
+      "length": "short",
+      "audio_file": "audio/H1-073.wav"
+    },
+    {
+      "id": "H1-074",
+      "part": 2,
+      "category": "entertainment",
+      "text": "YouTube tutorial bahut helpful tha, link share karo.",
+      "length": "short",
+      "audio_file": "audio/H1-074.wav"
+    },
+    {
+      "id": "H1-075",
+      "part": 2,
+      "category": "food",
+      "text": "Instagram reel dekh kar recipe try ki, bahut tasty bani.",
+      "length": "medium",
+      "audio_file": "audio/H1-075.wav"
+    },
+    {
+      "id": "H1-076",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Podcast subscribe karo, daily updates milenge.",
+      "length": "short",
+      "audio_file": "audio/H1-076.wav"
+    },
+    {
+      "id": "H1-077",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Spotify playlist share karo, background mein play karunga.",
+      "length": "short",
+      "audio_file": "audio/H1-077.wav"
+    },
+    {
+      "id": "H1-078",
+      "part": 2,
+      "category": "college",
+      "text": "Online course enroll kiya, completion par certificate milega.",
+      "length": "medium",
+      "audio_file": "audio/H1-078.wav"
+    },
+    {
+      "id": "H1-079",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Book club meeting hai Sunday ko, reading complete ki?",
+      "length": "short",
+      "audio_file": "audio/H1-079.wav"
+    },
+    {
+      "id": "H1-080",
+      "part": 2,
+      "category": "conversational",
+      "text": "Photography workshop tha, camera settings ke baare mein bahut seekha.",
+      "length": "medium",
+      "audio_file": "audio/H1-080.wav"
+    },
+    {
+      "id": "H1-081",
+      "part": 2,
+      "category": "conversational",
+      "text": "Weather forecast check kiya? Rain expected hai kya?",
+      "length": "short",
+      "audio_file": "audio/H1-081.wav"
+    },
+    {
+      "id": "H1-082",
+      "part": 2,
+      "category": "health",
+      "text": "Park mein jogging ka plan hai, morning six baje milte hain.",
+      "length": "medium",
+      "audio_file": "audio/H1-082.wav"
+    },
+    {
+      "id": "H1-083",
+      "part": 2,
+      "category": "health",
+      "text": "Yoga class join ki, flexibility improve ho rahi hai.",
+      "length": "short",
+      "audio_file": "audio/H1-083.wav"
+    },
+    {
+      "id": "H1-084",
+      "part": 2,
+      "category": "health",
+      "text": "Swimming pool membership lo, summer mein helpful rahega.",
+      "length": "medium",
+      "audio_file": "audio/H1-084.wav"
+    },
+    {
+      "id": "H1-085",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Cricket match live dekh rahe ho ya score track kar rahe ho?",
+      "length": "medium",
+      "audio_file": "audio/H1-085.wav"
+    },
+    {
+      "id": "H1-086",
+      "part": 2,
+      "category": "entertainment",
+      "text": "Football tournament registration open hai, team banana hai.",
+      "length": "medium",
+      "audio_file": "audio/H1-086.wav"
+    },
+    {
+      "id": "H1-087",
+      "part": 2,
+      "category": "health",
+      "text": "Marathon mein participate kiya, five kilometer run kiya.",
+      "length": "medium",
+      "audio_file": "audio/H1-087.wav"
+    },
+    {
+      "id": "H1-088",
+      "part": 2,
+      "category": "question",
+      "text": "Cycling track kahan hai iss area mein?",
+      "length": "short",
+      "audio_file": "audio/H1-088.wav"
+    },
+    {
+      "id": "H1-089",
+      "part": 2,
+      "category": "scheduling",
+      "text": "Badminton court booking kar do Saturday ke liye.",
+      "length": "short",
+      "audio_file": "audio/H1-089.wav"
+    },
+    {
+      "id": "H1-090",
+      "part": 2,
+      "category": "money",
+      "text": "Ghar par gym equipment chahiye, treadmill kitne ka aata hai?",
+      "length": "medium",
+      "audio_file": "audio/H1-090.wav"
+    },
+    {
+      "id": "H1-091",
+      "part": 2,
+      "category": "family",
+      "text": "College reunion hai next month, plane ticket book karni padegi.",
+      "length": "medium",
+      "audio_file": "audio/H1-091.wav"
+    },
+    {
+      "id": "H1-092",
+      "part": 2,
+      "category": "family",
+      "text": "Pooja mein prasad banana hai, ingredients ki list kya hai?",
+      "length": "medium",
+      "audio_file": "audio/H1-092.wav"
+    },
+    {
+      "id": "H1-093",
+      "part": 2,
+      "category": "family",
+      "text": "Diwali decoration ke liye lights order kiye, design kaisa lagega?",
+      "length": "medium",
+      "audio_file": "audio/H1-093.wav"
+    },
+    {
+      "id": "H1-094",
+      "part": 2,
+      "category": "family",
+      "text": "Holi ke liye ghar wapas aa rahe ho ya hostel mein rahoge?",
+      "length": "medium",
+      "audio_file": "audio/H1-094.wav"
+    },
+    {
+      "id": "H1-095",
+      "part": 2,
+      "category": "family",
+      "text": "Function mein outfit kya pehnooge, traditional ya western?",
+      "length": "medium",
+      "audio_file": "audio/H1-095.wav"
+    },
+    {
+      "id": "H1-096",
+      "part": 2,
+      "category": "scheduling",
+      "text": "Mehendi ceremony hai, salon appointment book ki kya?",
+      "length": "short",
+      "audio_file": "audio/H1-096.wav"
+    },
+    {
+      "id": "H1-097",
+      "part": 2,
+      "category": "money",
+      "text": "Engagement ring select karna hai, pehle budget decide karo.",
+      "length": "medium",
+      "audio_file": "audio/H1-097.wav"
+    },
+    {
+      "id": "H1-098",
+      "part": 2,
+      "category": "family",
+      "text": "House warming party mein kya gift leke aayein?",
+      "length": "short",
+      "audio_file": "audio/H1-098.wav"
+    },
+    {
+      "id": "H1-099",
+      "part": 2,
+      "category": "family",
+      "text": "Uncle ke retirement ka celebration plan karo, surprise rakho.",
+      "length": "medium",
+      "audio_file": "audio/H1-099.wav"
+    },
+    {
+      "id": "H1-100",
+      "part": 2,
+      "category": "code-switch-heavy",
+      "text": "Vaani app ka beta version release ho gaya kya, testing kab shuru karein?",
+      "length": "medium",
+      "audio_file": "audio/H1-100.wav"
+    }
+  ]
+}

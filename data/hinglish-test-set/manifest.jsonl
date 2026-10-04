@@ -1,0 +1,100 @@
+{"id": "H1-001", "audio_filepath": "data/hinglish-test-set/audio/H1-001.wav", "text": "Mujhe kal ka meeting schedule check karna hai.", "category": "conversational", "part": 1, "length": "short"}
+{"id": "H1-002", "audio_filepath": "data/hinglish-test-set/audio/H1-002.wav", "text": "Yaar, aaj traffic bahut zyada tha, office late pahuncha.", "category": "conversational", "part": 1, "length": "medium"}
+{"id": "H1-003", "audio_filepath": "data/hinglish-test-set/audio/H1-003.wav", "text": "Kya tum mere saath lunch ke liye aa sakte ho?", "category": "question", "part": 1, "length": "short"}
+{"id": "H1-004", "audio_filepath": "data/hinglish-test-set/audio/H1-004.wav", "text": "Main abhi busy hoon, thodi der baad call karta hoon.", "category": "conversational", "part": 1, "length": "medium"}
+{"id": "H1-005", "audio_filepath": "data/hinglish-test-set/audio/H1-005.wav", "text": "Aaj ki presentation kaisi gayi, sab theek tha?", "category": "question", "part": 1, "length": "short"}
+{"id": "H1-006", "audio_filepath": "data/hinglish-test-set/audio/H1-006.wav", "text": "Mera laptop restart ho gaya, sab files band ho gayi.", "category": "technology", "part": 1, "length": "medium"}
+{"id": "H1-007", "audio_filepath": "data/hinglish-test-set/audio/H1-007.wav", "text": "Yeh app bahut slow hai, update karna padega.", "category": "technology", "part": 1, "length": "short"}
+{"id": "H1-008", "audio_filepath": "data/hinglish-test-set/audio/H1-008.wav", "text": "Please mera WiFi password share karo na.", "category": "command", "part": 1, "length": "short"}
+{"id": "H1-009", "audio_filepath": "data/hinglish-test-set/audio/H1-009.wav", "text": "Kya tumne Google Drive par file upload kar di?", "category": "technology", "part": 1, "length": "short"}
+{"id": "H1-010", "audio_filepath": "data/hinglish-test-set/audio/H1-010.wav", "text": "Mera phone battery low hai, charger hai kya tumhare paas?", "category": "technology", "part": 1, "length": "medium"}
+{"id": "H1-011", "audio_filepath": "data/hinglish-test-set/audio/H1-011.wav", "text": "Assignment deadline kal hai, abhi tak complete nahi hua.", "category": "college", "part": 1, "length": "medium"}
+{"id": "H1-012", "audio_filepath": "data/hinglish-test-set/audio/H1-012.wav", "text": "Professor ne class cancel kar di, library mein padhte hain.", "category": "college", "part": 1, "length": "medium"}
+{"id": "H1-013", "audio_filepath": "data/hinglish-test-set/audio/H1-013.wav", "text": "Exam mein kitna percentage chahiye passing ke liye?", "category": "college", "part": 1, "length": "short"}
+{"id": "H1-014", "audio_filepath": "data/hinglish-test-set/audio/H1-014.wav", "text": "Notes share karo, main kal ki class miss kar gaya tha.", "category": "college", "part": 1, "length": "medium"}
+{"id": "H1-015", "audio_filepath": "data/hinglish-test-set/audio/H1-015.wav", "text": "Semester ke baad internship ke liye apply karna hai.", "category": "college", "part": 1, "length": "medium"}
+{"id": "H1-016", "audio_filepath": "data/hinglish-test-set/audio/H1-016.wav", "text": "Yeh phone kitne ka hai, EMI available hai kya?", "category": "money", "part": 1, "length": "short"}
+{"id": "H1-017", "audio_filepath": "data/hinglish-test-set/audio/H1-017.wav", "text": "Sale mein discount mil raha hai, abhi order karo.", "category": "money", "part": 1, "length": "short"}
+{"id": "H1-018", "audio_filepath": "data/hinglish-test-set/audio/H1-018.wav", "text": "Amazon par free delivery hai agar order do sau rupaye se zyada ho.", "category": "money", "part": 1, "length": "medium"}
+{"id": "H1-019", "audio_filepath": "data/hinglish-test-set/audio/H1-019.wav", "text": "Paytm se pay karun ya UPI use karun?", "category": "money", "part": 1, "length": "short"}
+{"id": "H1-020", "audio_filepath": "data/hinglish-test-set/audio/H1-020.wav", "text": "Yeh jacket bahut expensive hai, budget ke bahar hai.", "category": "money", "part": 1, "length": "short"}
+{"id": "H1-021", "audio_filepath": "data/hinglish-test-set/audio/H1-021.wav", "text": "Meeting teen baje hai, conference room book kiya kya?", "category": "scheduling", "part": 1, "length": "short"}
+{"id": "H1-022", "audio_filepath": "data/hinglish-test-set/audio/H1-022.wav", "text": "Kal Monday hai, public holiday nahi hai na?", "category": "scheduling", "part": 1, "length": "short"}
+{"id": "H1-023", "audio_filepath": "data/hinglish-test-set/audio/H1-023.wav", "text": "Train saat baje hai, ghar se paanch baje nikalna padega.", "category": "scheduling", "part": 1, "length": "medium"}
+{"id": "H1-024", "audio_filepath": "data/hinglish-test-set/audio/H1-024.wav", "text": "Birthday party Saturday ko plan kar rahe hain, available ho?", "category": "scheduling", "part": 1, "length": "medium"}
+{"id": "H1-025", "audio_filepath": "data/hinglish-test-set/audio/H1-025.wav", "text": "Doctor appointment Friday teen baje book kar do.", "category": "scheduling", "part": 1, "length": "short"}
+{"id": "H1-026", "audio_filepath": "data/hinglish-test-set/audio/H1-026.wav", "text": "Airport se cab book karo, flight six baje land karti hai.", "category": "travel", "part": 1, "length": "medium"}
+{"id": "H1-027", "audio_filepath": "data/hinglish-test-set/audio/H1-027.wav", "text": "Metro station kahan hai, walking distance mein hai kya?", "category": "travel", "part": 1, "length": "short"}
+{"id": "H1-028", "audio_filepath": "data/hinglish-test-set/audio/H1-028.wav", "text": "Iss address par pahunchne mein kitna time lagega?", "category": "travel", "part": 1, "length": "short"}
+{"id": "H1-029", "audio_filepath": "data/hinglish-test-set/audio/H1-029.wav", "text": "Hotel mein room book kiya, check-in four baje hai.", "category": "travel", "part": 1, "length": "short"}
+{"id": "H1-030", "audio_filepath": "data/hinglish-test-set/audio/H1-030.wav", "text": "Delhi se Mumbai ka flight ticket kitne ka hai?", "category": "travel", "part": 1, "length": "short"}
+{"id": "H1-031", "audio_filepath": "data/hinglish-test-set/audio/H1-031.wav", "text": "Yeh kaam kab tak complete ho jayega?", "category": "question", "part": 1, "length": "short"}
+{"id": "H1-032", "audio_filepath": "data/hinglish-test-set/audio/H1-032.wav", "text": "Samajh nahi aaya, thoda aur explain kar sakte ho?", "category": "question", "part": 1, "length": "short"}
+{"id": "H1-033", "audio_filepath": "data/hinglish-test-set/audio/H1-033.wav", "text": "Kya yeh feature already implement ho gaya hai?", "category": "technology", "part": 1, "length": "short"}
+{"id": "H1-034", "audio_filepath": "data/hinglish-test-set/audio/H1-034.wav", "text": "Meeting mein kaun kaun aa raha hai, list share karo.", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-035", "audio_filepath": "data/hinglish-test-set/audio/H1-035.wav", "text": "Report submit karni hai, exact format kya chahiye?", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-036", "audio_filepath": "data/hinglish-test-set/audio/H1-036.wav", "text": "Please presentation ka PDF share kar do abhi.", "category": "command", "part": 1, "length": "short"}
+{"id": "H1-037", "audio_filepath": "data/hinglish-test-set/audio/H1-037.wav", "text": "Message forward kar do, WhatsApp par bhej dena.", "category": "command", "part": 1, "length": "short"}
+{"id": "H1-038", "audio_filepath": "data/hinglish-test-set/audio/H1-038.wav", "text": "System restart karo, issue fix ho jayega.", "category": "technology", "part": 1, "length": "short"}
+{"id": "H1-039", "audio_filepath": "data/hinglish-test-set/audio/H1-039.wav", "text": "Data backup lo, hard drive almost full ho rahi hai.", "category": "technology", "part": 1, "length": "short"}
+{"id": "H1-040", "audio_filepath": "data/hinglish-test-set/audio/H1-040.wav", "text": "Meeting ka agenda email kar do sab logon ko.", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-041", "audio_filepath": "data/hinglish-test-set/audio/H1-041.wav", "text": "Lunch mein kya order karein, pizza ya biryani?", "category": "food", "part": 1, "length": "short"}
+{"id": "H1-042", "audio_filepath": "data/hinglish-test-set/audio/H1-042.wav", "text": "Chai peeoge ya coffee, canteen mein jaa rahe hain.", "category": "food", "part": 1, "length": "short"}
+{"id": "H1-043", "audio_filepath": "data/hinglish-test-set/audio/H1-043.wav", "text": "Aaj dinner ghar par nahi hoga, bahar khaate hain.", "category": "food", "part": 1, "length": "short"}
+{"id": "H1-044", "audio_filepath": "data/hinglish-test-set/audio/H1-044.wav", "text": "Grocery list mein milk aur bread add kar do.", "category": "food", "part": 1, "length": "short"}
+{"id": "H1-045", "audio_filepath": "data/hinglish-test-set/audio/H1-045.wav", "text": "Gym membership join karna hai, monthly fee kitni hai?", "category": "health", "part": 1, "length": "short"}
+{"id": "H1-046", "audio_filepath": "data/hinglish-test-set/audio/H1-046.wav", "text": "Client call hai ek ghante mein, prepare ho gaye?", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-047", "audio_filepath": "data/hinglish-test-set/audio/H1-047.wav", "text": "Project deadline extend ho sakti hai kya?", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-048", "audio_filepath": "data/hinglish-test-set/audio/H1-048.wav", "text": "Review comments address kiye, please approve karo.", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-049", "audio_filepath": "data/hinglish-test-set/audio/H1-049.wav", "text": "New joiner hai, usse onboarding process explain karo.", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-050", "audio_filepath": "data/hinglish-test-set/audio/H1-050.wav", "text": "Office party ka venue decide ho gaya kya?", "category": "work", "part": 1, "length": "short"}
+{"id": "H1-051", "audio_filepath": "data/hinglish-test-set/audio/H1-051.wav", "text": "Yeh bug kab se hai, server logs mein check kiya?", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-052", "audio_filepath": "data/hinglish-test-set/audio/H1-052.wav", "text": "Frontend aur backend integration testing ho gayi kya?", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-053", "audio_filepath": "data/hinglish-test-set/audio/H1-053.wav", "text": "User feedback collect kar rahe hain, form link share karo.", "category": "work", "part": 2, "length": "short"}
+{"id": "H1-054", "audio_filepath": "data/hinglish-test-set/audio/H1-054.wav", "text": "Sprint review kal hai, demo ready hai kya?", "category": "work", "part": 2, "length": "short"}
+{"id": "H1-055", "audio_filepath": "data/hinglish-test-set/audio/H1-055.wav", "text": "Server down hai, status page check karo please.", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-056", "audio_filepath": "data/hinglish-test-set/audio/H1-056.wav", "text": "API response slow aa rahi hai, optimization karna padega.", "category": "technology", "part": 2, "length": "medium"}
+{"id": "H1-057", "audio_filepath": "data/hinglish-test-set/audio/H1-057.wav", "text": "Database backup schedule karo, weekly basis par rakho.", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-058", "audio_filepath": "data/hinglish-test-set/audio/H1-058.wav", "text": "Code review pending hai, kal tak complete kar dena.", "category": "work", "part": 2, "length": "short"}
+{"id": "H1-059", "audio_filepath": "data/hinglish-test-set/audio/H1-059.wav", "text": "New feature mein authentication layer add karna hai.", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-060", "audio_filepath": "data/hinglish-test-set/audio/H1-060.wav", "text": "Performance test ke results kaisa aa rahe hain?", "category": "technology", "part": 2, "length": "short"}
+{"id": "H1-061", "audio_filepath": "data/hinglish-test-set/audio/H1-061.wav", "text": "Dost ne wedding invitation rakha, attend karna padega.", "category": "family", "part": 2, "length": "short"}
+{"id": "H1-062", "audio_filepath": "data/hinglish-test-set/audio/H1-062.wav", "text": "Bhai ka birthday gift online order kiya, delivery track karo.", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-063", "audio_filepath": "data/hinglish-test-set/audio/H1-063.wav", "text": "Ghar ka rent increase ho gaya, naya accommodation dhundhna padega.", "category": "conversational", "part": 2, "length": "medium"}
+{"id": "H1-064", "audio_filepath": "data/hinglish-test-set/audio/H1-064.wav", "text": "Driving license renew karna hai, RTO jaana padega.", "category": "conversational", "part": 2, "length": "short"}
+{"id": "H1-065", "audio_filepath": "data/hinglish-test-set/audio/H1-065.wav", "text": "Voter ID card ke liye apply kiya, status online check karo.", "category": "conversational", "part": 2, "length": "medium"}
+{"id": "H1-066", "audio_filepath": "data/hinglish-test-set/audio/H1-066.wav", "text": "Passport validity check karo, travel mein kaam aayega.", "category": "travel", "part": 2, "length": "short"}
+{"id": "H1-067", "audio_filepath": "data/hinglish-test-set/audio/H1-067.wav", "text": "Insurance premium time par pay kar dena, lapse mat hone do.", "category": "money", "part": 2, "length": "medium"}
+{"id": "H1-068", "audio_filepath": "data/hinglish-test-set/audio/H1-068.wav", "text": "Fixed deposit mature ho gaya, reinvest karein kya?", "category": "money", "part": 2, "length": "short"}
+{"id": "H1-069", "audio_filepath": "data/hinglish-test-set/audio/H1-069.wav", "text": "Loan EMI due date yaad rakhna, late fee lagti hai.", "category": "money", "part": 2, "length": "medium"}
+{"id": "H1-070", "audio_filepath": "data/hinglish-test-set/audio/H1-070.wav", "text": "Tax filing last date aane wali hai, accountant se mil lo.", "category": "money", "part": 2, "length": "medium"}
+{"id": "H1-071", "audio_filepath": "data/hinglish-test-set/audio/H1-071.wav", "text": "Yaar, seriously yeh movie bahut bakwas thi, waste of time.", "category": "entertainment", "part": 2, "length": "medium"}
+{"id": "H1-072", "audio_filepath": "data/hinglish-test-set/audio/H1-072.wav", "text": "Netflix par koi acchi series recommend karo please.", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-073", "audio_filepath": "data/hinglish-test-set/audio/H1-073.wav", "text": "Game mein next level unlock ho gaya kya?", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-074", "audio_filepath": "data/hinglish-test-set/audio/H1-074.wav", "text": "YouTube tutorial bahut helpful tha, link share karo.", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-075", "audio_filepath": "data/hinglish-test-set/audio/H1-075.wav", "text": "Instagram reel dekh kar recipe try ki, bahut tasty bani.", "category": "food", "part": 2, "length": "medium"}
+{"id": "H1-076", "audio_filepath": "data/hinglish-test-set/audio/H1-076.wav", "text": "Podcast subscribe karo, daily updates milenge.", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-077", "audio_filepath": "data/hinglish-test-set/audio/H1-077.wav", "text": "Spotify playlist share karo, background mein play karunga.", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-078", "audio_filepath": "data/hinglish-test-set/audio/H1-078.wav", "text": "Online course enroll kiya, completion par certificate milega.", "category": "college", "part": 2, "length": "medium"}
+{"id": "H1-079", "audio_filepath": "data/hinglish-test-set/audio/H1-079.wav", "text": "Book club meeting hai Sunday ko, reading complete ki?", "category": "entertainment", "part": 2, "length": "short"}
+{"id": "H1-080", "audio_filepath": "data/hinglish-test-set/audio/H1-080.wav", "text": "Photography workshop tha, camera settings ke baare mein bahut seekha.", "category": "conversational", "part": 2, "length": "medium"}
+{"id": "H1-081", "audio_filepath": "data/hinglish-test-set/audio/H1-081.wav", "text": "Weather forecast check kiya? Rain expected hai kya?", "category": "conversational", "part": 2, "length": "short"}
+{"id": "H1-082", "audio_filepath": "data/hinglish-test-set/audio/H1-082.wav", "text": "Park mein jogging ka plan hai, morning six baje milte hain.", "category": "health", "part": 2, "length": "medium"}
+{"id": "H1-083", "audio_filepath": "data/hinglish-test-set/audio/H1-083.wav", "text": "Yoga class join ki, flexibility improve ho rahi hai.", "category": "health", "part": 2, "length": "short"}
+{"id": "H1-084", "audio_filepath": "data/hinglish-test-set/audio/H1-084.wav", "text": "Swimming pool membership lo, summer mein helpful rahega.", "category": "health", "part": 2, "length": "medium"}
+{"id": "H1-085", "audio_filepath": "data/hinglish-test-set/audio/H1-085.wav", "text": "Cricket match live dekh rahe ho ya score track kar rahe ho?", "category": "entertainment", "part": 2, "length": "medium"}
+{"id": "H1-086", "audio_filepath": "data/hinglish-test-set/audio/H1-086.wav", "text": "Football tournament registration open hai, team banana hai.", "category": "entertainment", "part": 2, "length": "medium"}
+{"id": "H1-087", "audio_filepath": "data/hinglish-test-set/audio/H1-087.wav", "text": "Marathon mein participate kiya, five kilometer run kiya.", "category": "health", "part": 2, "length": "medium"}
+{"id": "H1-088", "audio_filepath": "data/hinglish-test-set/audio/H1-088.wav", "text": "Cycling track kahan hai iss area mein?", "category": "question", "part": 2, "length": "short"}
+{"id": "H1-089", "audio_filepath": "data/hinglish-test-set/audio/H1-089.wav", "text": "Badminton court booking kar do Saturday ke liye.", "category": "scheduling", "part": 2, "length": "short"}
+{"id": "H1-090", "audio_filepath": "data/hinglish-test-set/audio/H1-090.wav", "text": "Ghar par gym equipment chahiye, treadmill kitne ka aata hai?", "category": "money", "part": 2, "length": "medium"}
+{"id": "H1-091", "audio_filepath": "data/hinglish-test-set/audio/H1-091.wav", "text": "College reunion hai next month, plane ticket book karni padegi.", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-092", "audio_filepath": "data/hinglish-test-set/audio/H1-092.wav", "text": "Pooja mein prasad banana hai, ingredients ki list kya hai?", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-093", "audio_filepath": "data/hinglish-test-set/audio/H1-093.wav", "text": "Diwali decoration ke liye lights order kiye, design kaisa lagega?", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-094", "audio_filepath": "data/hinglish-test-set/audio/H1-094.wav", "text": "Holi ke liye ghar wapas aa rahe ho ya hostel mein rahoge?", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-095", "audio_filepath": "data/hinglish-test-set/audio/H1-095.wav", "text": "Function mein outfit kya pehnooge, traditional ya western?", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-096", "audio_filepath": "data/hinglish-test-set/audio/H1-096.wav", "text": "Mehendi ceremony hai, salon appointment book ki kya?", "category": "scheduling", "part": 2, "length": "short"}
+{"id": "H1-097", "audio_filepath": "data/hinglish-test-set/audio/H1-097.wav", "text": "Engagement ring select karna hai, pehle budget decide karo.", "category": "money", "part": 2, "length": "medium"}
+{"id": "H1-098", "audio_filepath": "data/hinglish-test-set/audio/H1-098.wav", "text": "House warming party mein kya gift leke aayein?", "category": "family", "part": 2, "length": "short"}
+{"id": "H1-099", "audio_filepath": "data/hinglish-test-set/audio/H1-099.wav", "text": "Uncle ke retirement ka celebration plan karo, surprise rakho.", "category": "family", "part": 2, "length": "medium"}
+{"id": "H1-100", "audio_filepath": "data/hinglish-test-set/audio/H1-100.wav", "text": "Vaani app ka beta version release ho gaya kya, testing kab shuru karein?", "category": "code-switch-heavy", "part": 2, "length": "medium"}
