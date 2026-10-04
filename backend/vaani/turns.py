@@ -10,7 +10,7 @@ there, in order:
   4. ASR (asr/runner.py) is asked for partials while the user speaks and for
      the final when the turn ends — asked only: recognition never runs here;
   5. the final transcript goes to reply.py, which streams the model's answer;
-  6. echo (day 3, development only) sends the turn's frames back.
+  6. echo (echo.py; day 3, development only) sends the turn's frames back.
 
 Everything in on_frame is quick: VAD is ~1 ms, the rest microseconds. The
 slow steps, recognition and the model, run as background tasks, so the frame
@@ -33,12 +33,13 @@ from time import perf_counter
 from vaani.asr import Recognizer
 from vaani.asr.runner import AsrRunner
 from vaani.config import Settings
+from vaani.echo import Echo
 from vaani.endpoint import Endpointer, TurnEnded, ms_to_frames
-from vaani.protocol import TurnState, audio_end, audio_start, turn_state
+from vaani.protocol import TurnState, turn_state
 from vaani.providers.base import LLMProvider
 from vaani.reply import Responder
 from vaani.session import Session
-from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, TURN_ENDED, Telemetry
+from vaani.telemetry import TURN_ENDED, Telemetry
 from vaani.vad import SPEECH_ENDED, SPEECH_STARTED, SpeechEvent, VadStream
 
 log = logging.getLogger("vaani.turns")
@@ -89,9 +90,10 @@ class TurnPipeline:
         self._session = session
         self._telemetry = telemetry
         self._send_json = send_json
-        self._send_bytes = send_bytes
         self._frame_ms = settings.audio.frame_ms
-        self._echo = settings.gateway.echo_enabled
+        self._echo = Echo(
+            settings.gateway.echo_enabled, session, telemetry, send_json, send_bytes
+        )
         # Each stage needs the one before it: no VAD, no endpointing; no
         # endpointing (no utterances), nothing to transcribe; no transcript
         # (or no model), nothing to answer.
@@ -153,7 +155,7 @@ class TurnPipeline:
                 await self._endpoint(data, speech_event)
             else:
                 self._drop_overlap(speech_event)
-        await self._echo_frame(data)
+        await self._echo.frame(data)
 
     async def on_dev_flush(self) -> None:
         """dev.flush: stop the agent's reply if there is one; otherwise flush
@@ -167,7 +169,7 @@ class TurnPipeline:
 
     async def on_session_end(self) -> None:
         """Clean session.end: close the open echo turn before the socket."""
-        await self._send_echo_end()
+        await self._echo.end()
 
     async def close(self) -> None:
         """Session over, cleanly or not. Sends nothing: the socket may be gone."""
@@ -245,9 +247,7 @@ class TurnPipeline:
         self._last_partial_at = 0
         log.info("session %s: turn %s opened", self._session.session_id, turn_id)
         await self.move_to(TurnState.LISTENING)
-        if self._echo:
-            # audio.start must precede the turn's first echoed frame.
-            await self._send_json(audio_start(turn_id))
+        await self._echo.start(turn_id)
 
     async def _end_turn(self, turn: TurnEnded) -> None:
         turn_id = self._session.current_turn_id
@@ -270,7 +270,7 @@ class TurnPipeline:
             turn.frame_count,
             waited,
         )
-        await self._send_echo_end()
+        await self._echo.end()
         self._session.close_turn()
         # A flushed (interrupted) turn gets no transcript: on_dev_flush already
         # abandoned its recognition, and nothing may restart it.
@@ -292,7 +292,7 @@ class TurnPipeline:
             self._session.session_id,
             turn_id,
         )
-        await self._send_echo_end()
+        await self._echo.end()
         self._session.close_turn()
         if self._asr is not None:
             self._asr.abandon_turn(turn_id)
@@ -349,33 +349,3 @@ class TurnPipeline:
         if frames - self._last_partial_at >= self._partial_frames:
             self._last_partial_at = frames
             self._asr.request_partial(turn_id, ep.snapshot())
-
-    # --- Echo (day 3, development only) -----------------------------------
-
-    async def _echo_frame(self, data: bytes) -> None:
-        """Send the frame back if echo is on and a turn is open."""
-        turn_id = self._session.current_turn_id
-        if not self._echo or not self._session.turn_open or turn_id is None:
-            return
-        self._telemetry.record(FRAME_RECEIVED, turn_id)
-        # Late-frame gate. There is NO await between this check and
-        # send_bytes, so nothing can flush the turn in between: if the turn
-        # is flushed, this frame is dropped, never sent.
-        if self._session.is_flushed(turn_id):
-            self._session.late_frames_dropped += 1
-            return
-        await self._send_bytes(data)
-        # Stamped AFTER the send returns, so the gap includes the send itself.
-        self._telemetry.record(ECHO_SENT, turn_id)
-
-    async def _send_echo_end(self) -> None:
-        """audio.end for the open turn, if echo sent it audio. A flushed turn
-        owes no audio.end: the flush already ended it."""
-        turn_id = self._session.current_turn_id
-        if (
-            self._echo
-            and self._session.turn_open
-            and turn_id is not None
-            and not self._session.is_flushed(turn_id)
-        ):
-            await self._send_json(audio_end(turn_id))
