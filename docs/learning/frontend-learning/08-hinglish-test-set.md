@@ -1,4 +1,4 @@
-# 08 — Hinglish Test Set — Part 1
+# 08 — Hinglish Test Set
 
 ## 1. What we built in this branch
 
