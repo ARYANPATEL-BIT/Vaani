@@ -6,14 +6,16 @@ It times, on its own clock:
 
   last voice -> transcript.final    endpointing + ASR
   last voice -> first agent.text    endpointing + ASR + model first token
+  last voice -> first audio frame   ... + first chunk + its synthesis (day 12)
 
 "Last voice" is the last clip frame louder than VOICE_RMS, i.e. roughly when
 the speaker stopped. Both numbers include the loopback socket, which is
-microseconds. The server's own turn_ended -> first agent.text is in its log
-(reply.py: "first token: ... turn_ended->first agent.text N ms").
+microseconds. The server's own turn_ended -> first agent.text and
+turn_ended -> first audio frame are in its log (reply.py: "turn_ended->first
+agent.text N ms"; speaker.py: "turn_ended->first audio N ms").
 
-Run the server first (echo off, so no audio comes back), e.g. on GPU ASR:
-    VAANI_GATEWAY__ECHO_ENABLED=false VAANI_ASR__WHISPER__MODEL=large-v3 \
+Run the server first (echo is off by default since day 12), e.g. on GPU ASR:
+    VAANI_ASR__WHISPER__MODEL=large-v3 \
     VAANI_ASR__WHISPER__DEVICE=cuda VAANI_ASR__WHISPER__COMPUTE_TYPE=float16 \
     uv run --extra gpu uvicorn vaani.app:app
 then:
@@ -54,7 +56,8 @@ def rms(frame: bytes) -> float:
 
 
 async def one_turn(ws, clip: list[bytes], last_voiced: int, inbox: asyncio.Queue):
-    """Speak once; return (ms to final, ms to first text, reply text)."""
+    """Speak once; return ms to final, to first text, to first audio, and
+    the reply text."""
     loop = asyncio.get_running_loop()
     deadline = loop.time()
     script = [SILENT_FRAME] * 25 + clip
@@ -65,7 +68,7 @@ async def one_turn(ws, clip: list[bytes], last_voiced: int, inbox: asyncio.Queue
             voice_end = perf_counter()
         deadline += FRAME_SECONDS
         await asyncio.sleep(max(0, deadline - loop.time()))
-    final_at = first_text_at = None
+    final_at = first_text_at = first_audio_at = None
     reply = ""
     stop_at = loop.time() + REPLY_TIMEOUT_S
     while loop.time() < stop_at:
@@ -79,6 +82,8 @@ async def one_turn(ws, clip: list[bytes], last_voiced: int, inbox: asyncio.Queue
             elif msg["type"] == "agent.text":
                 first_text_at = first_text_at or at
                 reply += msg["delta"]
+            elif msg["type"] == "frame":
+                first_audio_at = first_audio_at or at
             elif msg["type"] == "error":
                 print(f"  error: {msg}")
             elif msg.get("state") == "idle" and final_at is not None:
@@ -87,6 +92,9 @@ async def one_turn(ws, clip: list[bytes], last_voiced: int, inbox: asyncio.Queue
                     None
                     if first_text_at is None
                     else (first_text_at - voice_end) * 1000,
+                    None
+                    if first_audio_at is None
+                    else (first_audio_at - voice_end) * 1000,
                     reply,
                 )
         await asyncio.sleep(max(0, deadline - loop.time()))
@@ -97,7 +105,7 @@ async def main(url: str, wav: Path, turns: int) -> None:
     clip = load_speech_frames(wav)
     last_voiced = max(i for i, f in enumerate(clip) if rms(f) > VOICE_RMS)
     inbox: asyncio.Queue = asyncio.Queue()
-    to_final, to_text = [], []
+    to_final, to_text, to_audio = [], [], []
     async with websockets.connect(url) as ws:
         start = {
             "type": "session.start",
@@ -109,20 +117,27 @@ async def main(url: str, wav: Path, turns: int) -> None:
 
         async def receive() -> None:
             async for message in ws:
-                if isinstance(message, str):  # ignore any audio
+                if isinstance(message, str):
                     await inbox.put((perf_counter(), json.loads(message)))
+                else:  # an audio frame: only its arrival time matters
+                    await inbox.put((perf_counter(), {"type": "frame"}))
 
         receiver = asyncio.create_task(receive())
         for t in range(turns):
             print(f"turn {t + 1}:")
-            final_ms, text_ms, reply = await one_turn(ws, clip, last_voiced, inbox)
+            final_ms, text_ms, audio_ms, reply = await one_turn(
+                ws, clip, last_voiced, inbox
+            )
             print(f"  reply: {reply!r}")
             print(
-                f"  last voice -> final {final_ms:.0f} ms, -> first text {text_ms} ms"
+                f"  last voice -> final {final_ms:.0f} ms, -> first text "
+                f"{text_ms} ms, -> first audio {audio_ms} ms"
             )
             to_final.append(final_ms)
             if text_ms is not None:
                 to_text.append(text_ms)
+            if audio_ms is not None:
+                to_audio.append(audio_ms)
         await ws.send(json.dumps({"type": "session.end"}))
         receiver.cancel()
 
@@ -134,6 +149,11 @@ async def main(url: str, wav: Path, turns: int) -> None:
         print(
             f"  -> first agent.text  p50 {median(to_text):.0f}"
             f"  p95 {p95(to_text):.0f} ms"
+        )
+    if to_audio:
+        print(
+            f"  -> first audio frame p50 {median(to_audio):.0f}"
+            f"  p95 {p95(to_audio):.0f} ms"
         )
 
 
