@@ -161,6 +161,29 @@ the connection stays open. None carries a `turn_id`.
 | `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be surfaced to the user, never silence. Once synthesis exists (day 12) the backend will **speak** an apology instead of only sending text |
 | `INPUT_REJECTED` | The user's turn was blocked by the input guardrail before reaching the model | `turn.state idle`. The message is deliberately vague ("that turn wasn't processed"): the user needs to know nothing happened, not which rule fired |
 
+### 2.6 Telemetry — SHARED PROTOCOL v0.5 (Proposed — Frontend addition for Latency HUD)
+
+Server → client, JSON text frames. Emitted after each turn or as stage spans settle.
+Consumed by the frontend Latency HUD (Week 3, Day 1).
+
+| Type | Payload | When |
+|---|---|---|
+| `telemetry` | `{ "type": "telemetry", "turn_id": "<string or null>", "stages": { "<stage_name>": <duration_ms> }, "total_ms": <number or null> }` | When a turn completes or stage measurements settle. Updates the frontend Latency HUD live |
+
+Payload schema:
+- `type`: Literal `"telemetry"` (also accepts `"telemetry.turn"` or `"telemetry.spans"`).
+- `turn_id`: The turn identifier matching `transcript.final` / `agent.done`.
+- `stages`: Key-value map of stage names to numeric durations in milliseconds (e.g. `vad`, `endpointing`, `asr`, `llm`, `tts`, `playback`). Can also be passed as an array of `{ name, duration_ms }`.
+- `total_ms`: Total end-to-end latency from speech stop to audible response, or `null` if unmeasured.
+
+Stage vocabulary (aligned with `backend/vaani/telemetry.py` constants):
+- `vad`: Voice activity detection frame cost (`vad_decision` span).
+- `endpointing`: Silence threshold wait (`turn_ended` span minus `speech_ended`).
+- `asr`: Speech recognition decode latency (`asr_final` span).
+- `llm`: Language model time-to-first-token (`llm_first_token` span).
+- `tts`: Speech synthesis first audio chunk latency (`tts_first_audio` span).
+- `playback`: Web Audio queue scheduling delay to speaker output (`playback_start` span).
+
 ---
 
 ## 3. Future Contracts (Planned)
@@ -181,5 +204,5 @@ These will be specified as their implementation days arrive:
 | 2026-09-23 | Samyak  | Day 3: fix endpoint to /ws/session, fix session.start payload, document playback format  |
 | 2026-09-24 | Samyak  | Day 4: audio.flush and audio.flush.ack specification for immediate playback silencing   |
 | 2026-10-02 | Aryan   | Day 10: shared protocol v0.3 transcripts; turn = utterance (echo per utterance); proposed ASR_FAILED |
-
 | 2026-10-02 | Aryan   | Day 11: shared protocol v0.4 (turn.state, agent.text, agent.done); ASR_FAILED, LLM_FAILED, INPUT_REJECTED proposed together in §2.5 |
+| 2026-10-05 | Samyak  | Day 15 (W3D1): shared protocol v0.5 telemetry specification for Latency HUD in §2.6     |
