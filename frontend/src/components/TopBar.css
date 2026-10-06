@@ -1,0 +1,85 @@
+/* TopBar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px 16px;
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--c-navy);
+}
+
+/* Live badge */
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: var(--r-full);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.live-pill.live        { background: rgba(34,197,94,0.12); color: #16A34A; }
+.live-pill.error       { background: rgba(239,68,68,0.1);  color: var(--c-red); }
+.live-pill.disconnected{ background: rgba(100,116,139,0.1); color: var(--c-slate); }
+
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.live-pill.live .live-dot { animation: dotPulse 1.8s ease-in-out infinite; }
+
+@keyframes dotPulse {
+  0%,100% { transform: scale(0.9); opacity: 0.7; }
+  50%      { transform: scale(1.25); opacity: 1; }
+}
+
+/* Right controls */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-navy);
+  box-shadow: var(--glass-shadow);
+  cursor: default;
+  user-select: none;
+}
+.model-quota { color: var(--c-slate); font-weight: 400; }
+
+.theme-toggle {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-slate);
+  box-shadow: var(--glass-shadow);
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.theme-toggle:hover { background: rgba(79,70,229,0.08); color: var(--c-indigo); }

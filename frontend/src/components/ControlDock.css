@@ -1,0 +1,126 @@
+/* ControlDock styles */
+.control-dock-wrap {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-dock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  padding: 8px 18px;
+}
+
+.dock-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dock-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #475569;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.dock-action:hover:not(:disabled) {
+  background: rgba(241, 245, 249, 0.8);
+  color: #0f172a;
+}
+
+.dock-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dock-shortcut {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.dock-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(203, 213, 225, 0.6);
+}
+
+.dock-divider.tall {
+  height: 32px;
+}
+
+.mic-btn {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+}
+
+.mic-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.mic-btn.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+.end-session-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(254, 226, 226, 0.8);
+  color: #dc2626;
+  border: 1px solid rgba(254, 202, 202, 0.8);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.end-session-btn:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.end-session-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.end-shortcut {
+  font-size: 0.65rem;
+  color: #ef4444;
+  opacity: 0.8;
+}

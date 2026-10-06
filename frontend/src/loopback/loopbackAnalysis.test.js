@@ -1,3 +1,4 @@
+/* global process */
 /**
  * loopbackAnalysis.test.js — self-contained unit tests for the loopback
  * waveform analysis algorithm.
@@ -34,7 +35,6 @@ import {
   MIN_PEAK_QUALITY,
   MIN_PLAUSIBLE_DELAY_MS,
   MAX_PLAUSIBLE_DELAY_MS,
-  REFERENCE_FREQ_HZ,
   REFERENCE_DURATION_S,
   REFERENCE_AMPLITUDE,
 } from './loopbackAnalysis.js';
@@ -64,7 +64,7 @@ function expectThrows(label, fn) {
   let threw = false;
   try {
     fn();
-  } catch (_) {
+  } catch {
     threw = true;
   }
   results.push({ label, pass: threw });

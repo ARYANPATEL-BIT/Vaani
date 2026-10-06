@@ -8,20 +8,14 @@
  * 4. Connecting the microphone stream into the AudioWorklet pipeline.
  * 5. Managing the WebSocket lifecycle (session.start, session.started, streaming binary frames, session.end).
  * 6. Live telemetry: frames sent count, instantaneous FPS calculation, status indicators.
- * 7. Routing binary server messages (future playback audio) to an optional callback.
- * 8. Clean teardown and resource deallocation on stop or unmount.
- *
- * Week 2, Day 1: accepts a `persona` argument in startCapture, exposes sessionId
- * from the session.started acknowledgement.
- *
- * Protocol note: flush acknowledgement uses type "flush.ack" with fields
- * `turn_id` and `client_ts`, per backend/vaani/protocol.py FlushAck model.
- * The contracts.md changelog entry for Day 4 used "audio.flush.ack" and
- * "timestamp_ms" — those were wrong; the backend never accepted them. Fixed here.
+ * 7. Routing binary server messages to playback queue.
+ * 8. Error handling: microphone denied, connection dropped, provider errors (nothing fails silently).
+ * 9. Clean teardown and resource deallocation on stop or unmount.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { AUDIO_SAMPLE_RATE, AUDIO_FRAME_MS, WS_SESSION_URL } from '../config.js';
+import { formatServerError } from '../turnState/turnContracts.js';
 
 export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false);
@@ -39,6 +33,7 @@ export function useAudioCapture() {
   const muteNodeRef = useRef(null);
   const socketRef = useRef(null);
   const isSessionReadyRef = useRef(false);
+  const isIntentionalStopRef = useRef(false);
 
   // Metrics tracking
   const frameCountRef = useRef(0);
@@ -48,15 +43,20 @@ export function useAudioCapture() {
 
   /**
    * Stop active capture pipeline and release all resources cleanly.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.preserveMicDenied=false] - If true, do not overwrite 'denied' mic status.
    */
-  const stopCapture = useCallback(() => {
+  const stopCapture = useCallback((options = {}) => {
+    isIntentionalStopRef.current = true;
+
     // 1. Clear FPS interval
     if (fpsIntervalRef.current) {
       clearInterval(fpsIntervalRef.current);
       fpsIntervalRef.current = null;
     }
 
-    // 2. Disconnect and stop media stream tracks (turns off browser mic indicator)
+    // 2. Disconnect and stop media stream tracks
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
@@ -97,33 +97,40 @@ export function useAudioCapture() {
 
     isSessionReadyRef.current = false;
     setIsCapturing(false);
-    setMicStatus('idle');
+
+    if (!options.preserveMicDenied) {
+      setMicStatus('idle');
+    }
+
     setWsStatus('disconnected');
     setSessionId(null);
     setFps(0);
   }, []);
 
   /**
+   * Clear active error message.
+   */
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+    if (micStatus === 'denied' || micStatus === 'error') {
+      setMicStatus('idle');
+    }
+  }, [micStatus]);
+
+  /**
    * Start microphone capture and WebSocket streaming.
    *
-   * @param {function(ArrayBuffer): void} [onBinaryMessage] - optional callback
-   *   invoked for every binary WebSocket message received from the server.
-   *   Day 3 passes the playback queue's enqueue() here so audio sent back by
-   *   the server is played automatically.
-   * @param {function(): void} [onFlushCommand] - optional callback
-   *   invoked when the server sends an audio.flush control message.
-   * @param {string} [persona='default'] - persona name sent in session.start.
-   *   The backend accepts any string; only 'default' is currently meaningful.
-   *   (Week 2, Day 1 addition.)
-   * @param {function(object): void} [onServerMessage] - optional callback
-   *   invoked for parsed JSON control messages received over the WebSocket.
+   * @param {function(ArrayBuffer): void} [onBinaryMessage] - callback for playback PCM.
+   * @param {function(): void} [onFlushCommand] - callback for audio.flush.
+   * @param {string} [persona='default'] - persona name for session.start.
+   * @param {function(object): void} [onServerMessage] - callback for JSON messages.
    */
   const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage) => {
-    // Guard against multiple concurrent capture pipelines
     if (isCapturing) {
       return;
     }
 
+    isIntentionalStopRef.current = false;
     setErrorMessage(null);
     setFramesSent(0);
     setFps(0);
@@ -173,13 +180,11 @@ export function useAudioCapture() {
       });
       audioContextRef.current = audioCtx;
 
-      // Resume context if suspended by browser autoplay policy
       if (audioCtx.state === 'suspended') {
         await audioCtx.resume();
       }
 
       // Step C: Load AudioWorklet module
-      // Uses the static module placed in frontend/public/audio-processor.js
       await audioCtx.audioWorklet.addModule('/audio-processor.js');
 
       // Step D: Build Web Audio processing graph
@@ -187,8 +192,6 @@ export function useAudioCapture() {
       const workletNode = new AudioWorkletNode(audioCtx, 'vaani-audio-processor');
       workletNodeRef.current = workletNode;
 
-      // Connect worklet to a muted gain node, then to destination.
-      // This keeps the Web Audio clock rendering frames without playing the mic back to speakers.
       const muteNode = audioCtx.createGain();
       muteNode.gain.value = 0;
       muteNodeRef.current = muteNode;
@@ -198,7 +201,6 @@ export function useAudioCapture() {
       muteNode.connect(audioCtx.destination);
 
       // Step E: Connect WebSocket
-      // Endpoint is /ws/session per backend/vaani/gateway.py and docs/contracts.md.
       setWsStatus('connecting');
       const socket = new WebSocket(WS_SESSION_URL);
       socket.binaryType = 'arraybuffer';
@@ -206,10 +208,6 @@ export function useAudioCapture() {
 
       socket.onopen = () => {
         setWsStatus('connected');
-        // session.start requires the audio params so the backend can validate
-        // our frame format before accepting any binary data (protocol.py §SessionStart).
-        // The persona field is passed through from the caller; the backend stores
-        // it on the Session object for future routing (Week 2+).
         socket.send(
           JSON.stringify({
             type: 'session.start',
@@ -224,19 +222,16 @@ export function useAudioCapture() {
       };
 
       socket.onmessage = (event) => {
-        // Binary messages are audio chunks sent back by the server (playback).
-        // Route them to the caller's callback (e.g. the playback queue's enqueue).
         if (event.data instanceof ArrayBuffer) {
           if (typeof onBinaryMessage === 'function') {
             onBinaryMessage(event.data);
           }
           return;
         }
-        // Text messages are JSON control messages.
+
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'session.started') {
-            // Backend sends 'session.started' (with session_id) per protocol.py.
             isSessionReadyRef.current = true;
             setSessionId(msg.session_id ?? null);
             setWsStatus('ready');
@@ -245,10 +240,6 @@ export function useAudioCapture() {
             if (typeof onFlushCommand === 'function') {
               onFlushCommand();
             }
-            // Send flush.ack immediately after flushing.
-            // Type is "flush.ack" and fields are turn_id + client_ts per
-            // backend/vaani/protocol.py FlushAck model. (contracts.md Day 4
-            // entry had the wrong type and field names — those are now fixed.)
             if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
               try {
                 socketRef.current.send(
@@ -263,10 +254,11 @@ export function useAudioCapture() {
               }
             }
           } else if (msg.type === 'error') {
+            const formatted = formatServerError(msg.code, msg.message);
+            setErrorMessage(formatted);
             console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
           }
 
-          // Forward parsed control / server messages to optional subscriber
           if (typeof onServerMessage === 'function') {
             onServerMessage(msg);
           }
@@ -278,19 +270,25 @@ export function useAudioCapture() {
       socket.onerror = (evt) => {
         console.error('[useAudioCapture] WebSocket error:', evt);
         setWsStatus('error');
-        setErrorMessage('WebSocket connection failed. Ensure Aryan\'s backend is running.');
+        setErrorMessage('WebSocket connection failed. Ensure the Vaani backend server is running on port 8000.');
       };
 
-      socket.onclose = () => {
+      socket.onclose = (evt) => {
+        const wasSessionActive = isSessionReadyRef.current;
         setWsStatus('disconnected');
         isSessionReadyRef.current = false;
+        setIsCapturing(false);
+
+        // If closed unexpectedly while active, report connection dropped
+        if (wasSessionActive && !isIntentionalStopRef.current && !evt.wasClean) {
+          setErrorMessage('Connection dropped: The voice session connection to the backend server was closed unexpectedly.');
+        }
       };
 
       // Step F: Listen for frames from AudioWorklet and stream over WebSocket
       workletNode.port.onmessage = (event) => {
-        const frameBuffer = event.data; // ArrayBuffer (640 bytes)
+        const frameBuffer = event.data;
 
-        // Only stream if WebSocket is open and session is ready
         if (
           socketRef.current &&
           socketRef.current.readyState === WebSocket.OPEN &&
@@ -303,7 +301,7 @@ export function useAudioCapture() {
         }
       };
 
-      // Step G: Start rolling FPS counter (updated once per second)
+      // Step G: Start rolling FPS counter
       fpsIntervalRef.current = setInterval(() => {
         const now = performance.now();
         const elapsedSec = (now - lastFpsTimeRef.current) / 1000;
@@ -319,17 +317,17 @@ export function useAudioCapture() {
     } catch (err) {
       console.error('[useAudioCapture] Failed to start audio capture:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        stopCapture({ preserveMicDenied: true });
         setMicStatus('denied');
         setErrorMessage('Microphone access was denied. Please allow microphone permissions in your browser.');
       } else {
+        stopCapture();
         setMicStatus('error');
         setErrorMessage(err.message || 'Failed to initialize audio capture pipeline.');
       }
-      stopCapture();
     }
   }, [isCapturing, stopCapture]);
 
-  // Clean up on component unmount
   useEffect(() => {
     return () => {
       stopCapture();
@@ -344,6 +342,7 @@ export function useAudioCapture() {
     framesSent,
     fps,
     errorMessage,
+    clearError,
     startCapture,
     stopCapture,
   };
