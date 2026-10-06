@@ -1,0 +1,60 @@
+measure_turn run at 2026-10-06 11:27:57
+commit 5294b7f, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+server: ws://127.0.0.1:8765/ws/session (cuda/large-v3/float16, piper cpu, provider chain from config.toml, port 8765)
+clip: speech_16k_mono.wav, 12 turns
+server: {'type': 'session.started', 'session_id': '1ac854c78db34a1c86821adb6b3e1fe1'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ke liye yeh test successful lag raha hai, bataiye main aapki kya madad kar sakti hoon?'
+  last voice -> final 3098 ms, -> first text 4764 ms, -> first audio 9850 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Sab kuch theek lag raha hai, aapko kuch aur test karna hai kya?'
+  last voice -> final 2986 ms, -> first text 4251 ms, -> first audio 6127 ms
+turn 3:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test bilkul theek chal raha hai, aapko aur kuch help chahiye kya?'
+  last voice -> final 2853 ms, -> first text 4249 ms, -> first audio 6646 ms
+turn 4:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  error: {'type': 'error', 'code': 'LLM_FAILED', 'message': 'the agent could not answer'}
+  reply: ''
+  last voice -> final 2900 ms, -> first text none ms, -> first audio none ms
+turn 5:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successful ho gaya hai, aapko kuch aur poochna hai kya?'
+  last voice -> final 2859 ms, -> first text 4443 ms, -> first audio 6851 ms
+turn 6:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ke liye yeh test fir se badhiya se kaam kar gaya hai, aur kuch janna hai kya?'
+  last voice -> final 3044 ms, -> first text 4687 ms, -> first audio 7195 ms
+turn 7:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ke liye yeh voice test bilkul theek se kaam kar raha hai, aap bataiye aage kya karna hai.'
+  last voice -> final 3020 ms, -> first text 4865 ms, -> first audio 7356 ms
+turn 8:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successfully complete ho gaya hai, aap bataiye main aur kya kar sakti hoon?'
+  last voice -> final 1520 ms, -> first text 4180 ms, -> first audio 4575 ms
+turn 9:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successfully pass ho gaya hai, aur kuch help chahiye kya?'
+  last voice -> final 1889 ms, -> first text 2959 ms, -> first audio 3600 ms
+turn 10:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successfully record ho gaya hai, aur kuch test karna hai kya?'
+  last voice -> final 1699 ms, -> first text 4326 ms, -> first audio 4688 ms
+turn 11:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successfully ho gaya hai, aur kuch help chahiye kya?'
+  last voice -> final 1908 ms, -> first text 4792 ms, -> first audio 4962 ms
+turn 12:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project ka yeh test fir se successfully complete ho gaya hai, aur kuch janna hai kya?'
+  last voice -> final 1620 ms, -> first text 3015 ms, -> first audio 3279 ms
+
+over 12 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 2856  p95 3098 ms
+  -> first agent.text  p50 4326  p95 4865 ms
+  -> first audio frame p50 6127  p95 9850 ms
+wrote measure_turn_20261006-112757.txt

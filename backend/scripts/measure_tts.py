@@ -14,6 +14,9 @@
      whole        the reply in one call (no chunk boundaries at all)
    Written to docs/findings/tts-day12/prosody_<name>.wav, for listening.
 
+Everything printed is also written to docs/findings/tts-day12/
+measure_tts_<timestamp>.txt (run_log.py), one file per run.
+
     uv run python scripts/measure_tts.py
 """
 
@@ -25,11 +28,11 @@ from pathlib import Path
 from statistics import median
 from time import perf_counter
 
+from run_log import OUT, RunLog  # scripts/ is on sys.path when run as a file
+
 from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
 from vaani.tts import build_synthesizer
-
-OUT = Path(__file__).resolve().parent.parent.parent / "docs/findings/tts-day12"
 
 LENGTHS = [
     "Theek hai,",
@@ -60,13 +63,17 @@ def chunks_of(text: str, **cfg) -> list[str]:
 
 
 async def main(repeat: int) -> None:
-    synth = build_synthesizer(get_settings().tts)
+    log = RunLog("measure_tts")
+    tts = get_settings().tts
+    synth = build_synthesizer(tts)
     rate = synth.sample_rate
+    log(f"voice {Path(tts.piper.model_path).name}, {rate} Hz, one synthesis at a time")
+    log()
     cancel = asyncio.Event()
     await synth.synthesize("namaste", cancel)  # warm-up, untimed
 
-    print(f"1. time to first byte (= synthesis time), median of {repeat}")
-    print(f"{'chars':>5} {'audio s':>8} {'p50 ms':>7} {'max ms':>7} {'RTF':>6}")
+    log(f"1. time to first byte (= synthesis time), median of {repeat}")
+    log(f"{'chars':>5} {'audio s':>8} {'p50 ms':>7} {'max ms':>7} {'RTF':>6}")
     for text in LENGTHS:
         times, pcm = [], b""
         for _ in range(repeat):
@@ -77,13 +84,13 @@ async def main(repeat: int) -> None:
         p50 = median(times)
         # Real-time factor: synthesis time / audio length. Under 1 = faster
         # than real time, which is what lets later chunks keep up.
-        print(
+        log(
             f"{len(text):>5} {audio_s:>8.2f} {p50:>7.0f} {max(times):>7.0f} "
             f"{p50 / 1000 / audio_s:>6.3f}"
         )
 
-    print("\n2. prosody: the same reply chunked three ways")
-    OUT.mkdir(parents=True, exist_ok=True)
+    log()
+    log("2. prosody: the same reply chunked three ways")
     for name, chunks in [
         ("aggressive", chunks_of(REPLY, first_min_chars=4)),
         ("conservative", chunks_of(REPLY, first_min_chars=60, first_max_chars=200)),
@@ -98,7 +105,9 @@ async def main(repeat: int) -> None:
             f.setsampwidth(2)
             f.setframerate(rate)
             f.writeframes(first + b"".join(rest))
-        print(f"{name:>12}: first chunk {ttfb:.0f} ms, chunks {chunks}")
+        log(f"{name:>12}: first chunk {ttfb:.0f} ms, chunks {chunks}")
+    log()
+    log(f"wrote {log.path.name} and prosody_*.wav")
 
 
 if __name__ == "__main__":

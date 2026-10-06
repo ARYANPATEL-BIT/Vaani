@@ -18,7 +18,7 @@ could not be opened in this session. The CLAUDE.md wording is used.)
 | ASR: `turn_ended` → `transcript.final`, cuda/large-v3 | **577 ms** (p95 635) | day 10, `scripts/measure_asr.py`, 12 runs | **Preliminary:** 4 clips (1 human, 3 TTS) × 3. The real run waits on Aryan's 10 Hinglish recordings |
 | ASR, cpu/small (committed default; cannot do Hinglish) | 1330 ms (p95 1391) | same | Shown for completeness |
 | LLM: request → first token (Gemini via the chain) | 1291 ms | 06-cancel-failover.md, n=14 | Network, so it varies a lot (1110–1837 ms) |
-| TTS: text → first audio (Piper) | ~100 ms | frontend-learning/05-tts-spike.md | Measured on Apple Silicon, not on our backend |
+| TTS: text → first audio (Piper) | ~100 ms | frontend-learning/05-tts-spike.md | Measured on Apple Silicon, not on our backend. **Superseded on day 12, see below** |
 | Playback, network hops | not measured | — | — |
 
 These are separate p50s added together. They are **not** an end-to-end measurement:
@@ -124,3 +124,71 @@ Two things moved since the day-10 table:
 **Groq was not measured.** `VAANI_GROQ_API_KEY` in `backend/.env` was rejected
 (HTTP 401, Invalid API Key). Whether flipping `provider_order` is a cheap win
 is still unknown until the key is replaced and `measure_llm.py` is re-run.
+
+## Day 12 update: splitting "mic-stop to first audible sample"
+
+Date: 2026-10-06 (day 12). The agent now speaks, so the target's end point
+("first audible sample") exists for the first time. Nobody has measured it.
+It splits into two parts, and only the first can be measured today.
+
+**Sources.** From this section on, every number points to a plain-text run
+file in `docs/findings/tts-day12/`, written by the script on every run
+(`backend/scripts/run_log.py`). Numbers in the sections above (days 10-11)
+come from runs whose raw output was not kept; their sources are named in
+each row.
+
+### Part 1: server side, measurable now
+
+**Last voiced frame -> first audio frame sent.** Timed by
+`scripts/measure_turn.py` on the client's clock over a loopback socket
+(the loopback adds microseconds, so this is the server's time).
+
+Setup: server on cuda/large-v3/float16 (env overrides, port 8765), Piper on CPU,
+provider order from config.toml. Client: 12 turns of the committed fixture
+`tests/fixtures/speech_16k_mono.wav` (English, "Hello, this is a short test of
+voice activity detection for the Vani project."). **Not the day-11 clip**, which
+no longer exists, so these are not directly comparable with day 11.
+
+| Span | n | p50 | p95 | Clock | Source |
+|---|---|---|---|---|---|
+| last voiced frame -> `transcript.final` | 12 | 2856 ms | 3098 ms | client | `measure_turn_20261006-112757.txt` |
+| last voiced frame -> first `agent.text` | 11 | 4326 ms | 4865 ms | client | same |
+| **last voiced frame -> first audio frame** | 11 | **6127 ms** | **9850 ms** | client | same |
+| `turn_ended` -> first `agent.text` | 11 | 3329 ms | 3852 ms | server | `measure_turn_20261006-112757_server.txt` |
+| `turn_ended` -> first audio frame sent | 11 | 5069 ms | 8769 ms | server | same |
+
+p95 over 11 values is the largest value (nearest rank), so it is one turn, not a
+trend. Turn 4 got no reply: Gemini timed out after 10463 ms and the failover
+to Groq was refused (HTTP 401, the same invalid key as day 11). The server file
+has both lines.
+
+**First text -> first audio is not the 36 ms synthesis below.** Per turn
+(server file, first audio minus first text): 162 to 5022 ms, median 1818 ms;
+five turns took 2355-2469 ms. **Not explained yet.** A likely cause, not
+verified: every reply starts "Hello!", which is 6 characters, under
+`first_min_chars` (8), so the first chunk cannot end there and waits for the
+next boundary further into the model's stream.
+
+Against the 1,000 ms target: the server side alone is **6.1x** over at p50,
+before Part 2 is added.
+
+One piece of it, measured on its own: Piper synthesising the first chunk
+"Theek hai," (10 characters, 0.89 s of audio) takes **36 ms p50** (max 38 ms,
+5 runs, Intel CPU, one synthesis at a time).
+Source: `docs/findings/tts-day12/measure_tts_20261006-111202.txt`.
+
+### Part 2: after the server, not measured
+
+**First audio frame sent -> first audible sample:** the network between server
+and browser, the browser's playback queue and audio buffers, and the device's
+output latency. **Not measured, needs the loopback rig** (a microphone
+recording the speaker, so both ends sit on one clock). No number is given for
+this part, and none should be added until the rig exists.
+
+### Known issue that touches this budget
+
+The browser plays the 22050 Hz voice as 16000 Hz
+(`frontend/src/hooks/usePlaybackQueue.js:42`). That does not delay the first
+audible sample, but every chunk plays 1.378x as long as the server estimates,
+so the server returns to `idle` early. Details in
+`docs/learning/backend-learning/12-chunking-tts.md`, section 6.
