@@ -16,6 +16,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from './components/AppLayout.jsx';
 import ConversationPage from './pages/ConversationPage.jsx';
+import LoopbackPage from './pages/LoopbackPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
 const router = createBrowserRouter([
@@ -24,6 +25,8 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <ConversationPage /> },
+      // Week 2 Day 5: loopback measurement rig (speaker → mic round-trip delay)
+      { path: 'loopback', element: <LoopbackPage /> },
       // Future routes:
       // { path: 'enrol',    lazy: () => import('./pages/EnrolPage.jsx') },
       // { path: 'profiles', lazy: () => import('./pages/ProfilesPage.jsx') },
