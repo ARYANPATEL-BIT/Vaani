@@ -47,6 +47,8 @@ ASR_FINAL = "asr_final"
 LLM_FIRST_TOKEN = "llm_first_token"
 TTS_FIRST_AUDIO = "tts_first_audio"
 PLAYBACK_START = "playback_start"
+# Barge-in: the user's speech was judged an interruption (barge_in.py).
+BARGE_IN = "barge_in"
 # Flush round trip: server sent audio.flush -> server received flush.ack.
 FLUSH_SENT = "flush_sent"
 FLUSH_ACKED = "flush_acked"

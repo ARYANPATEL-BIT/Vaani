@@ -125,31 +125,6 @@ def test_speaking_lasts_until_the_audio_has_played() -> None:
     assert abs(waited - 1.2) < 0.25, f"idle came {waited:.2f} s after audio.end"
 
 
-def test_cancel_mid_reply_discards_the_buffer_and_sends_no_more_frames() -> None:
-    # Chunk 1 is spoken; chunk 2 is held mid-synthesis; "Aur " sits in the
-    # chunker's buffer; the model has paused. Then dev.flush.
-    llm = ScriptedLLM(("Theek hai, ", "main kal yaad dila doongi. Aur "), hang_after=2)
-    synth = FakeSynthesizer(gate_from=1)
-    with make_client(llm, synth).websocket_connect("/ws/session") as ws:
-        start(ws)
-        speak(ws)
-        until(ws, is_("frame"))  # chunk 1 is audible
-        assert synth.gated.wait(5)  # chunk 2 is being synthesised
-        ws.send_json({"type": "dev.flush"})
-        before_release = until(ws, is_("cancelling"))
-        synth.gate.set()  # chunk 2's synthesis finishes; its audio is dropped
-        after = until(ws, is_("idle"))
-        assert reacks(ws)  # not one frame after the flush
-
-    flushed_at = trace(before_release).index("audio.flush")
-    assert trace(before_release)[flushed_at:] == ["audio.flush", "cancelling"]
-    assert trace(after) == ["idle"]
-    # The buffered "Aur" was never synthesised, and no audio.end: the flush
-    # ends a cancelled turn.
-    assert synth.texts == ["Theek hai,", "main kal yaad dila doongi."]
-    assert llm.closed.is_set()
-
-
 def test_synthesis_failure_ends_audio_then_reports_tts_failed() -> None:
     llm = ScriptedLLM()  # "Namaste! " + "Main " + "theek hoon."
     synth = FakeSynthesizer(fail_on=1)  # the second chunk fails

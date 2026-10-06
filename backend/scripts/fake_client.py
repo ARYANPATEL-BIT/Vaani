@@ -11,11 +11,9 @@ receiver coroutine alongside the sender: websockets lets us send and receive on
 the same connection at once. The receiver counts the echoed frames and prints
 the audio.start / audio.end control messages that bracket them.
 
-Day 4: with --flush-after SECONDS the client sends the development-only
-dev.flush message at that point in the stream. The server replies audio.flush;
-the receiver answers flush.ack at once (as a browser would after silencing its
-speaker) and from then on DISCARDS any frame for the flushed turn, counting
-them instead of playing them.
+Day 4: the receiver answers every audio.flush with flush.ack at once (as a
+browser would after silencing its speaker) and from then on DISCARDS any frame
+for the flushed turn, counting them instead of playing them.
 
 Day 8: with --speech-s A --silence-s B the client alternates A seconds of
 SPEECH with B seconds of real silence (all-zero frames), repeating, so VAD can
@@ -29,11 +27,20 @@ Day 9: --turn-test sends one fixed script instead: 0.5 s silence, the clip,
 a 0.4 s pause, the clip again, 2 s silence. The server must log exactly ONE
 turn_ended: the short pause is someone thinking, not the end of the turn.
 
+Day 13: --barge-in-after MS is the harness for the real barge-in path. The
+client asks something (silence, the clip), streams silence until the agent's
+reply audio arrives, waits MS more, then talks over it (the clip again). The
+server should send audio.flush, turn.state cancelling, then listening with a
+new turn_id. The client prints its own speech start -> audio.flush time. That
+number is CLIENT-SIDE: it includes VAD's 80 ms and the 200 ms judging, and
+not the browser or the speaker, so it is not PERF-3. Needs the real server
+with a model: the agent must answer before it can be interrupted.
+
 Run the server first:
     uv run uvicorn vaani.app:app
 Then, in another terminal:
     uv run python scripts/fake_client.py
-    uv run python scripts/fake_client.py --flush-after 3
+    uv run python scripts/fake_client.py --barge-in-after 300
     uv run python scripts/fake_client.py --duration 600   # 10-minute soak
     uv run python scripts/fake_client.py --speech-s 3 --silence-s 2
     uv run python scripts/fake_client.py --turn-test
@@ -72,6 +79,8 @@ DEFAULT_SPEECH_WAV = (
     Path(__file__).resolve().parent.parent / "tests/fixtures/speech_16k_mono.wav"
 )
 SILENT_FRAME = b"\x00" * (SAMPLES_PER_FRAME * CHANNELS * 2)
+# --barge-in-after gives up if the agent's reply is not audible by then.
+REPLY_WAIT_S = 30.0
 
 
 def make_frame(start_sample: int) -> bytes:
@@ -114,13 +123,18 @@ def turn_test_frames(speech: list[bytes]) -> list[bytes]:
     The clip's all-zero lead-in and tail are stripped first. Left in, they
     would stretch the 0.4 s pause to about 1.2 s, which SHOULD end the turn.
     """
-    voiced = [i for i, frame in enumerate(speech) if any(frame)]
-    clip = speech[voiced[0] : voiced[-1] + 1]
+    clip = voiced(speech)
 
     def silence(seconds: float) -> list[bytes]:
         return [SILENT_FRAME] * round(seconds / FRAME_SECONDS)
 
     return silence(0.5) + clip + silence(0.4) + clip + silence(2.0)
+
+
+def voiced(speech: list[bytes]) -> list[bytes]:
+    """The clip without its all-zero lead-in and tail."""
+    kept = [i for i, frame in enumerate(speech) if any(frame)]
+    return speech[kept[0] : kept[-1] + 1]
 
 
 def alternating_frame(
@@ -137,7 +151,7 @@ def alternating_frame(
     return SILENT_FRAME, False
 
 
-async def receive_echo(ws) -> None:
+async def receive_echo(ws, reply_audio: asyncio.Event, log: list) -> None:
     """Read echoed audio and control messages until the server closes the socket.
 
     `async for message in ws` yields each incoming message; websockets hands us
@@ -147,6 +161,8 @@ async def receive_echo(ws) -> None:
 
     Like the browser, we track which turn each frame belongs to (the latest
     audio.start) and drop frames for any turn we have been told to flush.
+    `reply_audio` is set by the first audio frame; every control message is
+    appended to `log` as (perf_counter, message).
     """
     frames = 0
     discarded = 0
@@ -155,13 +171,16 @@ async def receive_echo(ws) -> None:
     try:
         async for message in ws:
             if isinstance(message, bytes):
+                reply_audio.set()
                 if current_turn in flushed_turns:
                     discarded += 1  # late frame for a flushed turn: never play
                 else:
                     frames += 1
                 continue
             msg = json.loads(message)
-            print("server:", msg)
+            log.append((time.perf_counter(), msg))
+            # ascii(): agent.text is Devanagari; the console gets escapes only.
+            print("server:", ascii(msg))
             if msg["type"] == "audio.start":
                 current_turn = msg["turn_id"]
             elif msg["type"] == "audio.flush":
@@ -180,16 +199,53 @@ async def receive_echo(ws) -> None:
     print(f"received {frames} echoed frames, discarded {discarded} late frames")
 
 
+async def barge_in_run(
+    ws, clip: list[bytes], after_ms: float, reply_audio: asyncio.Event
+) -> float | None:
+    """--barge-in-after: ask, wait for the spoken reply, then talk over it.
+
+    Returns the perf_counter time the barge-in speech started, or None if no
+    reply audio came within REPLY_WAIT_S.
+    """
+    loop = asyncio.get_running_loop()
+    deadline = loop.time()
+
+    async def send(frame: bytes) -> None:
+        # Real-time pace against an absolute deadline, as in main.
+        nonlocal deadline
+        await ws.send(frame)
+        deadline += FRAME_SECONDS
+        await asyncio.sleep(max(0, deadline - loop.time()))
+
+    for frame in [SILENT_FRAME] * round(0.5 / FRAME_SECONDS) + clip:
+        await send(frame)
+    waited = 0.0
+    while not reply_audio.is_set():  # silence, as a listening user would
+        if waited > REPLY_WAIT_S:
+            print(f"client: no reply audio within {REPLY_WAIT_S:.0f} s")
+            return None
+        await send(SILENT_FRAME)
+        waited += FRAME_SECONDS
+    for _ in range(round(after_ms / FRAME_MS)):
+        await send(SILENT_FRAME)
+    print(f"client: barge-in speech {after_ms:.0f} ms into the reply")
+    started = time.perf_counter()
+    for frame in clip + [SILENT_FRAME] * round(2.0 / FRAME_SECONDS):
+        await send(frame)
+    return started
+
+
 async def main(
     url: str,
     duration_s: float,
-    flush_after: float | None,
+    barge_in_after_ms: float | None,
     pattern: tuple[float, float] | None,
     speech_wav: Path,
     turn_test: bool,
-) -> None:
-    # Which frame index to send dev.flush before; None means never flush.
-    flush_at = None if flush_after is None else int(flush_after / FRAME_SECONDS)
+) -> list:
+    """Run one session; return every control message as (perf_counter, msg)."""
+    reply_audio = asyncio.Event()
+    log: list = []
     async with websockets.connect(url) as ws:
         await ws.send(
             json.dumps(
@@ -208,7 +264,22 @@ async def main(
         print("server:", ack)
 
         # Start reading echoes now, concurrently with the send loop below.
-        receiver = asyncio.create_task(receive_echo(ws))
+        receiver = asyncio.create_task(receive_echo(ws, reply_audio, log))
+
+        if barge_in_after_ms is not None:
+            clip = voiced(load_speech_frames(speech_wav))
+            started = await barge_in_run(ws, clip, barge_in_after_ms, reply_audio)
+            await ws.send(json.dumps({"type": "session.end"}))
+            await receiver
+            flushes = [t for t, m in log if m["type"] == "audio.flush"]
+            if started is not None and flushes and flushes[-1] > started:
+                print(
+                    "client-side, not PERF-3: barge-in speech start -> "
+                    f"audio.flush received {(flushes[-1] - started) * 1000:.0f} ms"
+                )
+            else:
+                print("client: no audio.flush after the barge-in speech")
+            return log
 
         total_frames = int(duration_s / FRAME_SECONDS)  # 500 for 10 s
         script = None
@@ -224,10 +295,6 @@ async def main(
         loop = asyncio.get_running_loop()
         next_deadline = loop.time()
         for n in range(total_frames):
-            if n == flush_at:
-                # DEV-ONLY message: stands in for barge-in until VAD exists.
-                await ws.send(json.dumps({"type": "dev.flush"}))
-                print(f"client: sent dev.flush at {flush_after}s")
             if script is not None:
                 frame = script[n]
             elif pattern is None:
@@ -252,6 +319,7 @@ async def main(
 
         # Wait for the receiver to drain audio.end and the close before exiting.
         await receiver
+    return log
 
 
 if __name__ == "__main__":
@@ -269,10 +337,10 @@ if __name__ == "__main__":
         help="seconds to stream (ignored by --turn-test)",
     )
     parser.add_argument(
-        "--flush-after",
+        "--barge-in-after",
         type=float,
-        metavar="SECONDS",
-        help="send dev.flush this many seconds into the stream",
+        metavar="MS",
+        help="ask, then talk over the agent's reply this many ms into it",
     )
     parser.add_argument(
         "--speech-s",
@@ -305,7 +373,7 @@ if __name__ == "__main__":
         main(
             args.url,
             args.duration,
-            args.flush_after,
+            args.barge_in_after,
             pattern,
             args.speech_wav,
             args.turn_test,

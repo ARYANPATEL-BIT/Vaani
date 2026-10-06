@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.6. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.7. The same shapes are mirrored on the frontend.
 Version numbers come from docs/contracts.md, the source of truth; the
 history below repeats its version table, and only the PR that changes
 contracts.md bumps the version.
@@ -30,7 +30,7 @@ v0.2 also adds FLUSH: the server sends audio.flush to silence a turn at once,
 and the browser replies flush.ack as soon as its audio has stopped. A flushed
 turn gets no audio.end — the flush IS its ending. Frames the browser receives
 for a flushed turn_id must be discarded, not played. dev.flush (dev only)
-asks the server to flush.
+asked the server to flush; v0.7 removed it.
 
 v0.3 adds TRANSCRIPTS: transcript.partial (zero or more while the user is
 still speaking; each REPLACES the previous partial for that turn_id) and
@@ -57,6 +57,14 @@ matching audio.end (22050 for the Piper voice, 16000 for echo). turn.state
 `speaking` now means the agent's AUDIO has started, not its text, so
 agent.text deltas arrive while the state is still `thinking`. A reply whose
 synthesis fails gets audio.end (if audio had started), TTS_FAILED, then idle.
+
+v0.7 is BARGE-IN, and adds no message. Speech while the agent is thinking or
+speaking stops it: audio.flush for the agent's turn FIRST, then turn.state
+cancelling, then turn.state listening with a NEW turn_id. Because of that,
+audio.flush can now come during thinking (no audio.start before it), after
+agent.done, or after audio.end (the audio was sent but is still playing), and
+the flush.ack for it arrives when a newer turn is already current: the server
+accepts it. dev.flush is removed: an unknown type now.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
@@ -100,7 +108,7 @@ class TurnState(StrEnum):
     LISTENING = "listening"  # the user is speaking
     THINKING = "thinking"  # turn over; transcribing and waiting for the model
     SPEAKING = "speaking"  # the reply's audio is being sent and played
-    CANCELLING = "cancelling"  # reply being stopped
+    CANCELLING = "cancelling"  # reply being stopped by a barge-in
 
 
 # --- Client -> server -------------------------------------------------------
@@ -144,17 +152,6 @@ class FlushAck(BaseModel):
     client_ts: float
 
 
-class DevFlush(BaseModel):
-    """DEV-ONLY — REMOVE WHEN BARGE-IN LANDS (week 3).
-
-    Asks the server to flush the current turn, so the flush path can be
-    exercised before anything real (VAD / barge-in) triggers it. Not part of
-    the product protocol; no production client should ever send it.
-    """
-
-    type: Literal["dev.flush"]
-
-
 # --- Server -> client -------------------------------------------------------
 
 
@@ -194,7 +191,8 @@ class AudioEnd(BaseModel):
 class AudioFlush(BaseModel):
     """Tells the browser to silence a turn immediately: stop all scheduled
     audio, drop every queued frame for that turn, fade out within 10 ms, and
-    reply with flush.ack. Replaces audio.end for that turn."""
+    reply with flush.ack. Replaces audio.end for that turn, or follows it if
+    the turn's audio was all sent but is still playing (v0.7)."""
 
     type: Literal["audio.flush"] = "audio.flush"
     turn_id: str

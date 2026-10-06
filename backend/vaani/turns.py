@@ -18,11 +18,12 @@ slow steps, recognition and the model, run as background tasks, so the frame
 loop never waits for them.
 
 The TURN STATE MACHINE (day 11, turn_state.py) is what the agent is doing,
-as one value. Every change goes through its `move_to`, here and in reply.py.
+as one value. Every change goes through its `move_to`.
 
-The system is HALF-DUPLEX today: while the agent is thinking, speaking or
-cancelling, user speech is detected but dropped (`_drop_overlap`), not
-endpointed. Week-3 barge-in replaces that one method.
+BARGE-IN (day 13): while the agent is thinking or speaking, frames go to
+barge_in.py. Speech it judges an interruption stops the reply and opens the
+user's next turn (`_barge_in`). Words of a turn cut before any of its reply
+was heard are CARRIED: the next reply answers them with the new turn.
 """
 
 import logging
@@ -31,6 +32,7 @@ from time import perf_counter
 
 from vaani.asr import Recognizer
 from vaani.asr.runner import AsrRunner
+from vaani.barge_in import BargeIn, join_speech, stop_reply
 from vaani.config import Settings
 from vaani.echo import Echo
 from vaani.endpoint import Endpointer, TurnEnded
@@ -41,7 +43,7 @@ from vaani.session import Session
 from vaani.telemetry import TURN_ENDED, Telemetry
 from vaani.tts import Synthesizer
 from vaani.turn_state import TurnStateMachine
-from vaani.vad import SPEECH_ENDED, SPEECH_STARTED, SpeechEvent, VadStream
+from vaani.vad import SpeechEvent, VadStream
 
 log = logging.getLogger("vaani.turns")
 
@@ -116,11 +118,15 @@ class TurnPipeline:
             if self._asr is not None and chain is not None
             else None
         )
+        self._barge = BargeIn(settings.barge_in, settings.vad, self._frame_ms)
         # perf_counter of the last turn_ended, for the first-token log line.
         self._ended_at = 0.0
-        # speech_started of user speech being dropped (agent busy), until
-        # its speech_ended.
-        self._overlap: SpeechEvent | None = None
+        # Turns whose final transcript has been asked for and not yet come.
+        self._awaiting_final: set[str] = set()
+        # Words of turns a barge-in cut before the user heard any reply.
+        self._carried = ""
+        # The turn after a cut was too short: answer carried words on arrival.
+        self._answer_carried = False
 
     async def on_frame(self, data: bytes) -> None:
         """Process one valid frame. Must be called for every frame, in order."""
@@ -141,29 +147,16 @@ class TurnPipeline:
                 )
         if self._endpointer is not None:
             # THE ROUTING SEAM: who gets the user's speech right now.
-            if (
-                self._machine.state in (TurnState.IDLE, TurnState.LISTENING)
-                and self._overlap is None
-            ):
-                await self._endpoint(data, speech_event)
+            if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
+                await self._watch(data, speech_event)
             else:
-                self._drop_overlap(speech_event)
+                if self._barge.judging:
+                    # The reply ended while speech begun over it was being
+                    # judged: it is the user's next turn, first frames included.
+                    for frame, event in self._barge.take():
+                        await self._endpoint(frame, event)
+                await self._endpoint(data, speech_event)
         await self._echo.frame(data)
-
-    async def on_dev_flush(self) -> None:
-        """dev.flush: stop the agent's reply if there is one; otherwise flush
-        the user's open turn (day 4) and abandon its recognition."""
-        if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
-            await self._cancel_reply()
-            return
-        if not self._session.turn_open:
-            log.info(
-                "session %s: dev flush ignored, no turn open", self._session.session_id
-            )
-            return
-        flushed = await self._session.flush(self._send_json, self._telemetry)
-        if flushed is not None and self._asr is not None:
-            self._asr.abandon_turn(flushed)
 
     async def on_session_end(self) -> None:
         """Clean session.end: close the open echo turn before the socket."""
@@ -174,7 +167,7 @@ class TurnPipeline:
         if self._responder is not None:
             self._responder.cancel()
             try:
-                await self._responder.wait()  # its HTTP stream is closed after
+                await self._responder.wait()  # every reply's HTTP stream closed
             except Exception:
                 # Typically a send on the socket that has just closed.
                 log.exception("session %s: reply ended badly", self._session.session_id)
@@ -204,32 +197,40 @@ class TurnPipeline:
         ):
             await self._open_turn()
         turn_id = self._session.current_turn_id
-        if (
-            self._asr is not None
-            and turn_id is not None
-            and not self._session.is_flushed(turn_id)
-        ):
+        if self._asr is not None and turn_id is not None:
             self._asr.maybe_request_partial(turn_id, ep)
 
-    def _drop_overlap(self, speech_event: SpeechEvent | None) -> None:
-        """Agent busy, no barge-in yet: drop the user's speech, and log it.
+    async def _watch(self, data: bytes, speech_event: SpeechEvent | None) -> None:
+        """Agent busy: is the user's speech an interruption? (barge_in.py)"""
+        assert self._vad is not None and self._endpointer is not None
+        if self._barge.push(data, speech_event, self._vad.probability):
+            await self._barge_in()
+        elif not self._barge.judging:
+            # No speech, or a noise that stopped short. The endpointer still
+            # gets every frame, as silence: its pre-roll stays the latest audio.
+            for frame, _ in self._barge.take():
+                self._endpointer.push(frame, None)
 
-        Week 3 replaces this body with barge-in. The logs count how often
-        users talk over the agent. Once a drop starts, the whole utterance is
-        dropped, even if the agent goes idle first: half an utterance must
-        not become a turn.
-        """
-        if speech_event is None:
-            return
-        sid = self._session.session_id
-        if speech_event.kind == SPEECH_STARTED:
-            self._overlap = speech_event
-            state = self._machine.state
-            log.info("session %s: speech dropped while %s (half-duplex)", sid, state)
-        elif speech_event.kind == SPEECH_ENDED and self._overlap is not None:
-            ms = (speech_event.frame_index - self._overlap.frame_index) * self._frame_ms
-            log.info("session %s: dropped speech lasted %d ms", sid, ms)
-            self._overlap = None
+    async def _barge_in(self) -> None:
+        """The user is talking over the agent: stop it, then open their turn."""
+        assert self._responder is not None and self._barge.started is not None
+        # 1-3 (barge_in.py): silence first, then stream, synthesis, history.
+        carried = await stop_reply(
+            self._responder,
+            self._session,
+            self._telemetry,
+            self._send_json,
+            self._barge.started,
+            self._machine.state,
+        )
+        self._carried = join_speech(self._carried, carried)
+        self._answer_carried = False  # the new turn answers carried words
+        # 4. Close the agent's turn; the new turn_id comes from this speech.
+        await self._machine.move_to(TurnState.CANCELLING)
+        await self._open_turn()
+        # 5. The speech so far, pre-roll included, as if endpointed live.
+        for frame, event in self._barge.take():
+            await self._endpoint(frame, event)
 
     # --- Turn lifecycle ----------------------------------------------------
 
@@ -262,17 +263,15 @@ class TurnPipeline:
         )
         await self._echo.end()
         self._session.close_turn()
-        # A flushed (interrupted) turn gets no transcript: on_dev_flush already
-        # abandoned its recognition, and nothing may restart it.
-        if self._asr is None or self._session.is_flushed(turn_id):
-            await self._machine.move_to(TurnState.IDLE)
-            return
         # Thinking only if a model will answer. Without one the transcript is
         # still sent, but the agent itself is idle.
-        await self._machine.move_to(
-            TurnState.THINKING if self._responder is not None else TurnState.IDLE
-        )
-        self._asr.request_final(turn_id, turn.audio, turn.duration_ms, turn.at)
+        if self._asr is None or self._responder is None:
+            await self._machine.move_to(TurnState.IDLE)
+        else:
+            await self._machine.move_to(TurnState.THINKING)
+            self._awaiting_final.add(turn_id)
+        if self._asr is not None:
+            self._asr.request_final(turn_id, turn.audio, turn.duration_ms, turn.at)
 
     async def _discard_turn(self) -> None:
         turn_id = self._session.current_turn_id
@@ -286,7 +285,16 @@ class TurnPipeline:
         self._session.close_turn()
         if self._asr is not None:
             self._asr.abandon_turn(turn_id)
-        await self._machine.move_to(TurnState.IDLE)
+        if not self._carried and not self._awaiting_final:
+            await self._machine.move_to(TurnState.IDLE)
+            return
+        # Too short to be a turn (a "hmm"), but it cut words off that were
+        # never answered: answer them, now or when their transcript comes.
+        await self._machine.move_to(TurnState.THINKING)
+        self._ended_at = perf_counter()
+        self._answer_carried = bool(self._awaiting_final)
+        if not self._answer_carried:
+            await self._reply(turn_id)
 
     # --- Reply lifecycle ---------------------------------------------------
 
@@ -295,30 +303,21 @@ class TurnPipeline:
         runner already sent ASR_FAILED). Must return quickly."""
         if self._responder is None:
             return  # no model: the turn already went idle
-        if text is None or not text.strip():
-            # Failed, or heard nothing to answer.
+        self._awaiting_final.discard(turn_id)
+        if turn_id != self._session.current_turn_id:
+            # A turn a barge-in cut while it was still being transcribed.
+            self._carried = join_speech(self._carried, text)
+            if self._answer_carried and not self._awaiting_final:
+                await self._reply(self._session.current_turn_id)
+            return
+        await self._reply(turn_id, text)
+
+    async def _reply(self, turn_id: str, text: str | None = None) -> None:
+        """Answer `text`, after any carried words. The state is `thinking`."""
+        assert self._responder is not None  # thinking needs one
+        text = join_speech(self._carried, text)
+        self._carried, self._answer_carried = "", False
+        if not text:  # failed, or nothing to answer
             await self._machine.move_to(TurnState.IDLE)
             return
         self._responder.start(turn_id, text, self._ended_at)
-
-    async def _cancel_reply(self) -> None:
-        """Thinking or speaking -> cancelling -> idle."""
-        started = perf_counter()
-        turn_id = self._session.current_turn_id
-        assert self._responder is not None  # thinking/speaking need one
-        # Token FIRST, before any await: the reply checks it before every
-        # send, so from here on nothing more is sent for this turn.
-        self._responder.cancel()
-        # Still transcribing? Then no transcript, and so no reply, will come.
-        if self._asr is not None and turn_id is not None:
-            self._asr.abandon_turn(turn_id)
-        # Silence what the browser has queued. Day 13 settles the order of
-        # these steps; today the requirement is that audio.flush is sent.
-        await self._session.flush(self._send_json, self._telemetry)
-        await self._machine.move_to(TurnState.CANCELLING)
-        await self._responder.wait()  # returns once the HTTP stream is closed
-        ms = (perf_counter() - started) * 1000
-        log.info("session %s: reply cancelled in %.1f ms", self._session.session_id, ms)
-        # Idle, not listening: dev.flush has no speech behind it, and a turn
-        # id is created by speech starting, and by nothing else.
-        await self._machine.move_to(TurnState.IDLE)

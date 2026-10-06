@@ -1,0 +1,16 @@
+server: {'type': 'session.started', 'session_id': '5a61b3e0caab42adb71d641fef6116c8'}
+server: {'type': 'turn.state', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'state': 'listening'}
+server: {'type': 'turn.state', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'state': 'thinking'}
+server: {'type': 'transcript.final', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'text': 'Hello, this is a short test of voice activity detection for the Vani project.', 'duration_ms': 4720, 'language': 'hi'}
+server: {'type': 'agent.text', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'delta': '\u0928\u092e\u0938\u094d\u0924\u0947,'}
+server: {'type': 'agent.text', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'delta': ' \u092e\u0948\u0902 \u0935\u093e\u0923\u0940 \u0939\u0942\u0901\u0964 \u0906\u092a\u0915\u0940 \u0906\u0935\u093e\u091c\u093c \u092c\u0939\u0941\u0924 \u0938\u094d\u092a\u0937\u094d\u091f \u0938\u0941\u0928\u093e\u0908 \u0926\u0947 \u0930\u0939\u0940 \u0939\u0948\u0964'}
+server: {'type': 'turn.state', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'state': 'speaking'}
+server: {'type': 'audio.start', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'sample_rate': 22050}
+client: barge-in speech 300 ms into the reply
+server: {'type': 'audio.flush', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f'}
+client: sent flush.ack
+server: {'type': 'turn.state', 'turn_id': '1537cd3f76364a8b83a27c86373ba18f', 'state': 'cancelling'}
+server: {'type': 'turn.state', 'turn_id': '23d4254899ce403fac1fd744888fa502', 'state': 'listening'}
+server: {'type': 'turn.state', 'turn_id': '23d4254899ce403fac1fd744888fa502', 'state': 'thinking'}
+received 92 echoed frames, discarded 0 late frames
+client-side, not PERF-3: barge-in speech start -> audio.flush received 288 ms

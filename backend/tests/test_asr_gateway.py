@@ -93,35 +93,6 @@ def test_partials_share_the_finals_turn_id() -> None:
     assert {m["turn_id"] for m in transcripts} == {msgs[-1]["turn_id"]}
 
 
-def test_flush_mid_inference_emits_nothing_for_that_turn() -> None:
-    """dev.flush (today's stand-in for barge-in) while a partial is decoding:
-    neither that partial nor the turn's final is ever sent."""
-    rec = FakeRecognizer(gated=True)
-    client = make_client(rec, partial_interval_ms=400)
-    try:
-        with client.websocket_connect("/ws/session") as ws:
-            ws.send_json(START)
-            ws.receive_json()
-            frames = utterance()
-            sent = 0
-            while not rec.started.is_set():  # until a partial is decoding
-                ws.send_bytes(frames[sent])
-                sent += 1
-                time.sleep(0.002)
-            ws.send_json({"type": "dev.flush"})
-            assert ws.receive_json()["state"] == "listening"  # sent at turn open
-            assert ws.receive_json()["type"] == "audio.flush"
-            rec.gate.set()
-            for frame in frames[sent:]:
-                ws.send_bytes(frame)
-            time.sleep(0.2)  # time for a (wrong) transcript to be sent
-            rest = drain(ws)
-    finally:
-        rec.gate.set()
-
-    assert [m for m in rest if m["type"].startswith("transcript")] == []
-
-
 def test_disconnect_mid_inference_emits_nothing(caplog) -> None:
     rec = FakeRecognizer(gated=True)
     try:

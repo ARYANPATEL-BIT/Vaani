@@ -7,7 +7,8 @@ connection, owned by the coroutine handling that socket. Nothing here is shared
 between connections, so no locking is needed.
 
 Flush lives here because "may this turn still send audio?" is session state:
-every place that sends a frame for a turn must ask the session first.
+every place that sends a frame for a turn must ask the session first. Since
+day 13 the only thing that flushes is a barge-in (turns.py).
 """
 
 import logging
@@ -52,9 +53,9 @@ class Session:
     turn_open: bool = False
     # Frames that arrived for a flushed turn and were therefore not sent.
     late_frames_dropped: int = 0
-    # The conversation so far, oldest first: user and assistant messages of
-    # COMPLETED exchanges only, re-sent to the model every turn. reply.py
-    # appends to it and trims it to [llm].history_turns exchanges.
+    # The conversation so far, oldest first: user and assistant messages,
+    # re-sent to the model every turn. An assistant message is what the user
+    # HEARD: the whole reply once played, or the part before a barge-in.
     history: list[Message] = field(default_factory=list)
     # Every turn ever flushed in this session. A turn in here must never have
     # another audio frame sent for it.
@@ -84,6 +85,14 @@ class Session:
     def close_turn(self) -> None:
         """The current turn has ended (or was discarded as too short)."""
         self.turn_open = False
+
+    def remember(self, user: str, assistant: str, keep_turns: int) -> None:
+        """Append one exchange, then keep only the newest `keep_turns`."""
+        self.history.append(Message(role="user", content=user))
+        self.history.append(Message(role="assistant", content=assistant))
+        # Two messages per exchange. max(0, ...) so keep_turns = 0 keeps
+        # nothing (a bare `history[:-0]` would mean "keep everything").
+        del self.history[: max(0, len(self.history) - 2 * keep_turns)]
 
     def is_flushed(self, turn_id: str) -> bool:
         """True if `turn_id` was flushed. Callers MUST check this immediately
@@ -128,12 +137,16 @@ class Session:
     def handle_flush_ack(self, ack: FlushAck, telemetry: Telemetry) -> float | None:
         """Record a flush.ack and return the round trip in ms.
 
-        An ack for a turn that is not current, was never flushed, or was already
-        acknowledged is logged and ignored (returns None). It is not an error:
-        a slow or duplicated ack is normal network behaviour, not a bad client.
+        An ack for a turn that was never flushed, or was already acknowledged,
+        is logged and ignored (returns None). It is not an error: a slow or
+        duplicated ack is normal network behaviour, not a bad client.
+
+        The turn need NOT be the current one (day 13): a barge-in flushes the
+        agent's turn and opens the user's next turn at once, so the ack for
+        the flushed turn always arrives after a newer turn is current.
         """
         turn_id = ack.turn_id
-        if turn_id != self.current_turn_id or turn_id not in self._awaiting_ack:
+        if turn_id not in self._awaiting_ack:
             log.warning(
                 "session %s: ignoring flush.ack for turn %s (not awaiting an ack)",
                 self.session_id,

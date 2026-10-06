@@ -68,12 +68,14 @@ def test_round_trip_measured_on_server_clock(monkeypatch) -> None:
     assert session.handle_flush_ack(ack, tele) == pytest.approx(4.0)
 
 
-def test_ack_for_stale_turn_is_ignored() -> None:
-    """An ack for a flushed turn that is no longer current returns None."""
+def test_ack_for_an_older_flushed_turn_is_recorded() -> None:
+    """Day 13: a barge-in flushes the agent's turn and opens the user's next
+    one at once, so the ack always arrives when a newer turn is current."""
     session, old_turn = _session_with_turn()
     tele = Telemetry("s1")
     asyncio.run(session.flush(RecordingSend(session), tele))
     session.open_turn()  # a newer turn is now current
     ack = FlushAck(type="flush.ack", turn_id=old_turn, client_ts=1.0)
 
-    assert session.handle_flush_ack(ack, tele) is None
+    assert session.handle_flush_ack(ack, tele) is not None
+    assert session.handle_flush_ack(ack, tele) is None  # a second copy is not
