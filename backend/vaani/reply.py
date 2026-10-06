@@ -151,6 +151,11 @@ class Responder:
                 self._move_to,
             )
         requested_at = perf_counter()
+        # Each delta until the first chunk is cut: (ms after turn_ended, its
+        # text). Tells "waiting for tokens" apart from "waiting on synthesis"
+        # in the debug log.
+        arrivals: list[tuple[float, str]] = []
+        first_cut = False
         try:
             async with aclosing(self._chain.stream(messages, cancel)) as chunks:
                 async for chunk in chunks:
@@ -159,14 +164,32 @@ class Responder:
                     if not parts:
                         self._first_token(turn_id, requested_at, ended_at)
                     parts.append(chunk.text)
+                    if not first_cut:
+                        arrivals.append(
+                            ((perf_counter() - ended_at) * 1000, chunk.text)
+                        )
                     await self._send(agent_text(turn_id, chunk.text))
                     if speaker is not None:
+                        pieces = chunker.push(chunk.text)
+                        if pieces and not first_cut:
+                            first_cut = True
+                            self._log_first_cut(
+                                turn_id,
+                                ended_at,
+                                arrivals,
+                                pieces[0],
+                                chunker.first_rule,
+                            )
                         # Synthesis runs inside this loop: while it does, the
                         # next tokens wait unread in the HTTP stream. Nothing
                         # is lost, and the speech is never waiting on text.
-                        for piece in chunker.push(chunk.text):
+                        for piece in pieces:
                             await speaker.say(piece)
             if speaker is not None and (last := chunker.flush()):
+                if not first_cut:  # the whole reply arrived without a cut
+                    self._log_first_cut(
+                        turn_id, ended_at, arrivals, last, chunker.first_rule
+                    )
                 await speaker.say(last)
         except (ProviderError, SpendCapExceededError) as exc:
             if cancel.is_set():
@@ -229,6 +252,27 @@ class Responder:
             turn_id,
             (span.at - requested_at) * 1000,
             (span.at - ended_at) * 1000,
+        )
+
+    def _log_first_cut(
+        self,
+        turn_id: str,
+        ended_at: float,
+        arrivals: list[tuple[float, str]],
+        chunk: str,
+        rule: str | None,
+    ) -> None:
+        # Debug: off in normal runs, switched on for latency tuning. %a
+        # escapes non-ASCII, so Devanagari never reaches the console raw.
+        log.debug(
+            "session %s: turn %s first chunk %a cut %.0f ms after turn_ended "
+            "by rule %r; deltas (ms, chars, text): %a",
+            self._session.session_id,
+            turn_id,
+            chunk,
+            (perf_counter() - ended_at) * 1000,
+            rule,
+            [(round(at), len(text), text) for at, text in arrivals],
         )
 
     def _remember(self, transcript: str, reply: str) -> None:

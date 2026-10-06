@@ -1,0 +1,59 @@
+measure_turn run at 2026-10-06 11:47:07
+commit a54fd43, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+server: ws://127.0.0.1:8765/ws/session (BEFORE fix/reply-script: cuda/large-v3/float16, piper cpu, gemini only (VAANI_LLM__PROVIDER_ORDER), old persona, old chunker, port 8765)
+clip: speech_16k_mono.wav, 12 turns
+server: {'type': 'session.started', 'session_id': '7a49292aaf4c495f87ce1827b615f88d'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Vani project test successful lag raha hai. Main aapki kya madad kar sakti hoon?'
+  last voice -> final 1764 ms, -> first text 3224 ms, -> first audio 3544 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi badhiya se kaam kar raha hai. Kuch aur try karna hai kya?'
+  last voice -> final 1719 ms, -> first text 3109 ms, -> first audio 4306 ms
+turn 3:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi bilkul theek se kaam kar gaya hai. Aur kuch janna hai kya?'
+  last voice -> final 1595 ms, -> first text 4474 ms, -> first audio 4881 ms
+turn 4:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi successfully complete ho gaya hai. Main aapki aur kaise help kar sakti hoon?'
+  last voice -> final 1780 ms, -> first text 3136 ms, -> first audio 3481 ms
+turn 5:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi successfully ho gaya hai. Aapko mujhse kuch aur baat karni hai kya?'
+  last voice -> final 1699 ms, -> first text 3337 ms, -> first audio 3476 ms
+turn 6:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Kuch aur poochna hai kya?'
+  last voice -> final 1627 ms, -> first text 3777 ms, -> first audio 3915 ms
+turn 7:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi successfully run ho gaya hai. Main aapki aur kya help kar sakti hoon?'
+  last voice -> final 1712 ms, -> first text 5449 ms, -> first audio 6862 ms
+turn 8:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test ekdum thik se kaam kar gaya hai. Kuch aur help chahiye kya?'
+  last voice -> final 1643 ms, -> first text 3350 ms, -> first audio 3697 ms
+turn 9:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi successfully complete ho gaya hai. Aur kuch help chahiye kya?'
+  last voice -> final 1694 ms, -> first text 3504 ms, -> first audio 5154 ms
+turn 10:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Aapko aur kuch help chahiye kya?'
+  last voice -> final 1731 ms, -> first text 4162 ms, -> first audio 4671 ms
+turn 11:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi successfully complete ho gaya hai. Sab kuch theek lag raha hai.'
+  last voice -> final 1935 ms, -> first text 4908 ms, -> first audio 5164 ms
+turn 12:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Main aapki aur kya help kar sakti hoon?'
+  last voice -> final 1733 ms, -> first text 2922 ms, -> first audio 3350 ms
+
+over 12 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 1716  p95 1935 ms
+  -> first agent.text  p50 3427  p95 5449 ms
+  -> first audio frame p50 4110  p95 6862 ms
+wrote measure_turn_20261006-114707.txt

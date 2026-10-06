@@ -1,0 +1,49 @@
+Voice: hi_IN-priyamvada-medium.onnx, espeak voice 'hi', 22050 Hz
+
+=== A: Theek hai, main kal subah 8 baje yaad dila doongi aur traffic ka update bhi de doongi.
+audio 6.87 s (timing: see measure_tts.py)
+espeak raw:  (en)θˈiːk hˈaɪ(hi) | (en)mˈeɪn kˈal sˈʌbə(hi) ˈaːʈʰ (en)bˈeɪdʒ jˈɑːd dˈiːlə dˈuːŋɡiʲ ˈɔː tɹˈafɪk kˈɑːɹ ˈʌpdeɪt bˈaɪ də dˈuːŋɡi(hi)
+English-rule stretches (3): ['θˈiːk hˈaɪ', 'mˈeɪn kˈal sˈʌbə', 'bˈeɪdʒ jˈɑːd dˈiːlə dˈuːŋɡiʲ ˈɔː tɹˈafɪk kˈɑːɹ ˈʌpdeɪt bˈaɪ də dˈuːŋɡi']
+piper phonemes: θˈiːk hˈaɪ, mˈeɪn kˈal sˈʌbə ˈaːʈʰ bˈeɪdʒ jˈɑːd dˈiːlə dˈuːŋɡiʲ ˈɔː tɹˈafɪk kˈɑːɹ ˈʌpdeɪt bˈaɪ də dˈuːŋɡi.
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): गीक हाइट में काल सब आठ बेद याद दीर दूँगी और ताफिक का अपदित बैद दूँगी।
+
+=== B: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और traffic का update भी दे दूँगी।
+audio 6.56 s (timing: see measure_tts.py)
+espeak raw:  ʈʰˈiːk hɛː | mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː jˈaːd dˈɪlaː dˈũnɡi ɔːɾ (en)tɹˈafɪk(hi) kaː (en)ˈʌpdeɪt(hi) bʰˈi dˈeː dˈũnɡi
+English-rule stretches (2): ['tɹˈafɪk', 'ˈʌpdeɪt']
+piper phonemes: ʈʰˈiːk hɛː, mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː jˈaːd dˈɪlaː dˈũnɡi ɔːɾ tɹˈafɪk kaː ˈʌpdeɪt bʰˈi dˈeː dˈũnɡi
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): ठीक है मैं कल सुभा 8 बजे याद दिला दूँगी और ताफिक का अपदित भी दे दूँगी।
+
+=== C: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी।
+audio 6.57 s (timing: see measure_tts.py)
+espeak raw:  ʈʰˈiːk hɛː | mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː jˈaːd dˈɪlaː dˈũnɡi ɔːɾ ʈɾˈɛːfɪk kaː ˌʌpɖˈeːʈ bʰˈi dˈeː dˈũnɡi
+English-rule stretches (0): []
+piper phonemes: ʈʰˈiːk hɛː, mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː jˈaːd dˈɪlaː dˈũnɡi ɔːɾ ʈɾˈɛːfɪk kaː ˌʌpɖˈeːʈ bʰˈi dˈeː dˈũnɡi
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): ठीक है, मैं कल सुभा 8 बजे याद दिला दूँगी और ट्रैफिक का अपडेट भी दे दूँगी.
+
+=== R1: ज़रूर, मैं कल सुबह 8 बजे आपके डेंटिस्ट अपॉइंटमेंट के लिए आपको याद दिला दूँगी।
+audio 7.30 s (timing: see measure_tts.py)
+espeak raw:  zəɾˈuːɾ | mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː ˌaːpkˌeː ɖẽːʈˈɪsʈ ˌʌpɔˌĩʈmˈẽːʈ keː lˈɪʲeː ˌaːpkˌoː jˈaːd dˈɪlaː dˈũnɡi
+English-rule stretches (0): []
+piper phonemes: zəɾˈuːɾ, mɛ̃ kˈʌl sˈʊbəh ˈaːʈʰ bˈʌɟeː ˌaːpkˌeː ɖẽːʈˈɪsʈ ˌʌpɔˌĩʈmˈẽːʈ keː lˈɪʲeː ˌaːpkˌoː jˈaːd dˈɪlaː dˈũnɡi
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): जरूर मैं कल सुभा आठ बजे आपके डेंटिस्ट अपन्टमेंट के लिए आपको याद दला दूँगी।
+
+=== R2: अभी मैप्स के हिसाब से एक्सप्रेसवे वाला रूट सबसे फ़ास्ट है, क्योंकि वहाँ ट्रैफ़िक कम है। आप वही रास्ता ले सकते हैं।
+audio 8.70 s (timing: see measure_tts.py)
+espeak raw:  ˈʌbʰi mˈɛːps keː hɪsˈaːb seː ˈeːksəpɾˌeːsʋˌeː ʋˈaːlaː ɾˈuːʈ sˈʌbsˌeː fˈaːsʈ hɛː | kːjˈõkɪ ʋˈʌhã ʈɾˈɛːfɪk kˈʌm hɛː | ˌaːp ʋˈʌhi ɾˈaːstaː lˈeː sˈʌktˌeː hɛ̃
+English-rule stretches (0): []
+piper phonemes: ˈʌbʰi mˈɛːps keː hɪsˈaːb seː ˈeːksəpɾˌeːsʋˌeː ʋˈaːlaː ɾˈuːʈ sˈʌbsˌeː fˈaːsʈ hɛː, kːjˈõkɪ ʋˈʌhã ʈɾˈɛːfɪk kˈʌm hɛːˌaːp ʋˈʌhi ɾˈaːstaː lˈeː sˈʌktˌeː hɛ̃
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): अभी मैप्स के हिसाब से एक्स्प्रेस्वे वाला रूट सबसे फास्ट है क्योंकि वहां ट्रैफिक कम है आप वही रास्ता ले सकते हैं
+
+=== R3: पायथन में लिस्ट म्यूटेबल होती है यानी इसे बदला जा सकता है, जबकि ट्यूबल इम्म्यूटेबल होता है और इसे बदला नहीं जा सकता है।
+audio 9.40 s (timing: see measure_tts.py)
+espeak raw:  pˈaːjətʰˌən mẽː lˈɪsʈ mjuːʈˈeːbəl hˈoːti hɛː jˈaːniʲ ˈɪseː bˈʌdlˌaː ɟˈaː sˈʌktˌaː hɛː | ɟˈʌbkˌɪ ʈʈjˈuːbəl ˌɪmmjuːʈˈeːbəl hˈoːtaː hɛː ɔːɾ ˈɪseː bˈʌdlˌaː nˈʌhĩ ɟˈaː sˈʌktˌaː hɛː
+English-rule stretches (0): []
+piper phonemes: pˈaːjətʰˌən mẽː lˈɪsʈ mjuːʈˈeːbəl hˈoːti hɛː jˈaːniʲ ˈɪseː bˈʌdlˌaː ɟˈaː sˈʌktˌaː hɛː, ɟˈʌbkˌɪ ʈʈjˈuːbəl ˌɪmmjuːʈˈeːbəl hˈoːtaː hɛː ɔːɾ ˈɪseː bˈʌdlˌaː nˈʌhĩ ɟˈaː sˈʌktˌaː hɛː
+no id in voice (dropped): none
+whisper large-v3 (floor, not a pass): Python में list mutable होती है, यानि इसे बदला जा सकता है, जबकि tubal immutable होता है और इसे बदला नहीं जा सकता है.

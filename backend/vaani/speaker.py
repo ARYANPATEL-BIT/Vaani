@@ -76,7 +76,20 @@ class Speaker:
         """Synthesise one chunk and send its frames. Raises TtsError."""
         if self._cancel.is_set():
             return  # do not start a synthesis nobody will hear
+        began = perf_counter()
         pcm = await self._synth.synthesize(text, self._cancel)
+        if not self._started:
+            # Debug: when the first chunk's synthesis ran, on the same
+            # turn_ended clock as reply.py's first-cut line.
+            log.debug(
+                "session %s: turn %s first chunk synthesis %.0f -> %.0f ms "
+                "after turn_ended (%d chars)",
+                self._telemetry.session_id,
+                self._turn_id,
+                (began - self._ended_at) * 1000,
+                (perf_counter() - self._ended_at) * 1000,
+                len(text),
+            )
         if not pcm or self._cancel.is_set():
             return  # cancelled, or nothing sayable (e.g. only punctuation)
         if not self._started:

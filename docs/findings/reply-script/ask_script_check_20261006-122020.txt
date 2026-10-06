@@ -1,0 +1,24 @@
+ask.py script check run at 2026-10-06 12:20:20
+commit a54fd43 + uncommitted fix/reply-script changes; personas tutor and support; VAANI_LLM__PROVIDER_ORDER=["gemini"]
+replies (real UTF-8 text, in run order): ask_script_check_20261006-122020.tsv
+
+=== 1 (tutor): photosynthesis kya hota hai, simple words mein samjhao
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1553 ms, total: 2299 ms
+script: 192 Devanagari, 0 Latin letters, other: none
+=== 2 (tutor): mujhe fractions bilkul samajh nahi aate, help karo
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1585 ms, total: 3497 ms
+script: 147 Devanagari, 0 Latin letters, other: none
+=== 3 (support): mera refund abhi tak account mein nahi aaya
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1686 ms, total: 2079 ms
+script: 68 Devanagari, 0 Latin letters, other: none
+=== 4 (support): app mein login nahi ho raha, OTP hi nahi aa raha
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1706 ms, total: 1804 ms
+script: 72 Devanagari, 0 Latin letters, other: none

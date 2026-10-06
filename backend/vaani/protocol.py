@@ -5,15 +5,21 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.5. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.6. The same shapes are mirrored on the frontend.
+Version numbers come from docs/contracts.md, the source of truth; the
+history below repeats its version table, and only the PR that changes
+contracts.md bumps the version.
 
 Two kinds of traffic flow over the socket, in BOTH directions:
   * Audio frames are raw BINARY messages (mono 16-bit little-endian PCM).
     They carry no JSON and are NOT modelled here. Browser-to-server audio is
     16 kHz, validated by length. Server-to-browser audio is at the rate its
-    audio.start declares (v0.5).
+    audio.start declares (v0.6).
   * Control messages are JSON TEXT messages, each with a "type" field. Those
     are the models below.
+
+v0.1 is the initial protocol: session.start, session.started, session.end,
+error, and 640-byte 16 kHz mic frames.
 
 v0.2 adds server-to-browser audio: the server may now send audio frames back,
 bracketed by audio.start / audio.end control messages that carry a turn_id.
@@ -23,22 +29,28 @@ frame the browser receives belongs to the most recent audio.start.
 v0.2 also adds FLUSH: the server sends audio.flush to silence a turn at once,
 and the browser replies flush.ack as soon as its audio has stopped. A flushed
 turn gets no audio.end — the flush IS its ending. Frames the browser receives
-for a flushed turn_id must be discarded, not played.
+for a flushed turn_id must be discarded, not played. dev.flush (dev only)
+asks the server to flush.
 
 v0.3 adds TRANSCRIPTS: transcript.partial (zero or more while the user is
 still speaking; each REPLACES the previous partial for that turn_id) and
 transcript.final (once per turn, after endpointing; replaces the partial). A
 final may arrive with no partial before it, and may differ from the last
 partial. A turn is one user utterance: its turn_id is created when speech
-starts, so partials, the final, and any echo audio share it.
+starts, so partials, the final, and any echo audio share it. ASR_FAILED is
+proposed.
 
 v0.4 adds the AGENT'S SIDE: turn.state (sent on every state change of the
 turn state machine in turns.py), agent.text (one streamed fragment of the
 reply; APPEND these, unlike transcript.partial which replaces) and agent.done
 (the full reply). A failed turn gets an error and then turn.state idle, never
-agent.done; a cancelled turn gets no agent.done either.
+agent.done; a cancelled turn gets no agent.done either. Adds LLM_FAILED and
+INPUT_REJECTED.
 
-v0.5 makes the agent AUDIBLE: its reply is synthesised and sent as audio
+v0.5 adds TELEMETRY for the frontend's Latency HUD (contracts.md 2.6). The
+backend does not send it yet, so there is NO model for it in this file.
+
+v0.6 makes the agent AUDIBLE: its reply is synthesised and sent as audio
 frames between audio.start and audio.end, the same route the echo used.
 audio.start now carries `sample_rate`: the rate of every frame until the
 matching audio.end (22050 for the Piper voice, 16000 for echo). turn.state

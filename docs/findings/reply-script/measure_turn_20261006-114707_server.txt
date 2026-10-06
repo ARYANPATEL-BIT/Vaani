@@ -1,0 +1,58 @@
+Server log lines for measure_turn_20261006-114707.txt (same run, port 8765).
+BEFORE fix/reply-script: old persona, old chunker, debug first-chunk logging added.
+Started with VAANI_ASR__WHISPER__MODEL=large-v3 VAANI_ASR__WHISPER__DEVICE=cuda
+VAANI_ASR__WHISPER__COMPUTE_TYPE=float16 VAANI_LLM__PROVIDER_ORDER=["gemini"],
+vaani.reply and vaani.speaker at DEBUG, everything else from config.toml.
+Filtered to model loads, timing lines, warnings and errors; nothing else changed.
+
+INFO: vaani.vad: VAD model loaded in 39.7 ms
+INFO: vaani.asr: whisper large-v3 on cuda/float16 loaded and warmed up in 7.4 s (2 threads)
+INFO: vaani.tts: piper hi_IN-priyamvada-medium.onnx (22050 Hz) loaded and warmed up in 11.42 s
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 7bfe206aca694f72b6847ced16bedb9a first token: 1459 ms after request, turn_ended->first agent.text 2234 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 7bfe206aca694f72b6847ced16bedb9a first chunk cut 2398 ms after turn_ended; deltas arrived at [2234, 2398] ms; chunk 'Hello! Vani project test successful lag raha hai.'; received so far 'Hello! Vani project test successful lag raha hai. Main aapki kya madad kar sak'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 7bfe206aca694f72b6847ced16bedb9a first chunk synthesis 2398 -> 2547 ms after turn_ended (49 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 7bfe206aca694f72b6847ced16bedb9a first audio frame sent, turn_ended->first audio 2548 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 7adf1d8b52cf40c8869b569201374283 first token: 1389 ms after request, turn_ended->first agent.text 2111 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 7adf1d8b52cf40c8869b569201374283 first chunk cut 3181 ms after turn_ended; deltas arrived at [2111, 3181] ms; chunk 'Hello! Ye test bhi badhiya se kaam kar raha hai.'; received so far 'Hello! Ye test bhi badhiya se kaam kar raha hai. Kuch aur try karna hai'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 7adf1d8b52cf40c8869b569201374283 first chunk synthesis 3181 -> 3302 ms after turn_ended (48 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 7adf1d8b52cf40c8869b569201374283 first audio frame sent, turn_ended->first audio 3302 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn da7bb8a421bb4e6aae62143febab72bb first token: 2879 ms after request, turn_ended->first agent.text 3474 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn da7bb8a421bb4e6aae62143febab72bb first chunk cut 3736 ms after turn_ended; deltas arrived at [3475, 3736] ms; chunk 'Hello! Ye test bhi bilkul theek se kaam kar gaya hai.'; received so far 'Hello! Ye test bhi bilkul theek se kaam kar gaya hai. Aur kuch j'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn da7bb8a421bb4e6aae62143febab72bb first chunk synthesis 3736 -> 3875 ms after turn_ended (53 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn da7bb8a421bb4e6aae62143febab72bb first audio frame sent, turn_ended->first audio 3875 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 16fdae45b00d4d80a2892eeb41631253 first token: 1355 ms after request, turn_ended->first agent.text 2135 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 16fdae45b00d4d80a2892eeb41631253 first chunk cut 2349 ms after turn_ended; deltas arrived at [2135, 2349] ms; chunk 'Hello! Ye test bhi successfully complete ho gaya hai.'; received so far 'Hello! Ye test bhi successfully complete ho gaya hai. Main aapki aur kaise help kar sakti hoon?'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 16fdae45b00d4d80a2892eeb41631253 first chunk synthesis 2349 -> 2473 ms after turn_ended (53 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 16fdae45b00d4d80a2892eeb41631253 first audio frame sent, turn_ended->first audio 2474 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 49efc8ddebec476e92410dbb5c162681 first token: 1638 ms after request, turn_ended->first agent.text 2338 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 49efc8ddebec476e92410dbb5c162681 first chunk cut 2357 ms after turn_ended; deltas arrived at [2339, 2357] ms; chunk 'Hello! Ye test bhi successfully ho gaya hai.'; received so far 'Hello! Ye test bhi successfully ho gaya hai. Aapko mujhse kuch aur baat karni hai kya'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 49efc8ddebec476e92410dbb5c162681 first chunk synthesis 2358 -> 2471 ms after turn_ended (44 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 49efc8ddebec476e92410dbb5c162681 first audio frame sent, turn_ended->first audio 2472 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn f39eb988141e4ac69cfad875ce749ad3 first token: 2150 ms after request, turn_ended->first agent.text 2775 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn f39eb988141e4ac69cfad875ce749ad3 first chunk cut 2776 ms after turn_ended; deltas arrived at [2775, 2776] ms; chunk 'Hello! Ye test bhi badhiya se kaam kar gaya hai.'; received so far 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Kuch aur poochna hai kya?'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn f39eb988141e4ac69cfad875ce749ad3 first chunk synthesis 2776 -> 2907 ms after turn_ended (48 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn f39eb988141e4ac69cfad875ce749ad3 first audio frame sent, turn_ended->first audio 2907 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 4a68abe7c77f49b5991afba7fea85fc1 first token: 3737 ms after request, turn_ended->first agent.text 4449 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 4a68abe7c77f49b5991afba7fea85fc1 first chunk cut 5740 ms after turn_ended; deltas arrived at [4449, 5739] ms; chunk 'Hello! Ye test bhi successfully run ho gaya hai.'; received so far 'Hello! Ye test bhi successfully run ho gaya hai. Main aapki aur kya help kar'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 4a68abe7c77f49b5991afba7fea85fc1 first chunk synthesis 5740 -> 5856 ms after turn_ended (48 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 4a68abe7c77f49b5991afba7fea85fc1 first audio frame sent, turn_ended->first audio 5856 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn d8a84db4774c4cc49ea0dfdd5c885842 first token: 1707 ms after request, turn_ended->first agent.text 2357 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn d8a84db4774c4cc49ea0dfdd5c885842 first chunk cut 2575 ms after turn_ended; deltas arrived at [2357, 2574] ms; chunk 'Hello! Ye test ekdum thik se kaam kar gaya hai.'; received so far 'Hello! Ye test ekdum thik se kaam kar gaya hai. Kuch aur help chahiye'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn d8a84db4774c4cc49ea0dfdd5c885842 first chunk synthesis 2575 -> 2696 ms after turn_ended (47 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn d8a84db4774c4cc49ea0dfdd5c885842 first audio frame sent, turn_ended->first audio 2696 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 921957a0ed204453b77ca69a46f40bbc first token: 1809 ms after request, turn_ended->first agent.text 2506 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 921957a0ed204453b77ca69a46f40bbc first chunk cut 4024 ms after turn_ended; deltas arrived at [2506, 4023] ms; chunk 'Hello! Ye test bhi successfully complete ho gaya hai.'; received so far 'Hello! Ye test bhi successfully complete ho gaya hai. Aur kuch help chahiye kya?'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 921957a0ed204453b77ca69a46f40bbc first chunk synthesis 4024 -> 4149 ms after turn_ended (53 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 921957a0ed204453b77ca69a46f40bbc first audio frame sent, turn_ended->first audio 4149 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn e398a4860f8f457da2cace7ded17a1f5 first token: 2430 ms after request, turn_ended->first agent.text 3162 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn e398a4860f8f457da2cace7ded17a1f5 first chunk cut 3543 ms after turn_ended; deltas arrived at [3162, 3543] ms; chunk 'Hello! Ye test bhi badhiya se kaam kar gaya hai.'; received so far 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Aapko aur kuch help'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn e398a4860f8f457da2cace7ded17a1f5 first chunk synthesis 3543 -> 3665 ms after turn_ended (48 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn e398a4860f8f457da2cace7ded17a1f5 first audio frame sent, turn_ended->first audio 3665 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn c28c0bed719847888a9324aa80f51140 first token: 2973 ms after request, turn_ended->first agent.text 3908 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn c28c0bed719847888a9324aa80f51140 first chunk cut 4038 ms after turn_ended; deltas arrived at [3909, 4038] ms; chunk 'Hello! Ye test bhi successfully complete ho gaya hai.'; received so far 'Hello! Ye test bhi successfully complete ho gaya hai. Sab kuch theek lag raha hai.'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn c28c0bed719847888a9324aa80f51140 first chunk synthesis 4038 -> 4157 ms after turn_ended (53 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn c28c0bed719847888a9324aa80f51140 first audio frame sent, turn_ended->first audio 4158 ms
+INFO: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 22f631eba5734669bc49346bfb571607 first token: 1189 ms after request, turn_ended->first agent.text 1923 ms
+DEBUG: vaani.reply: session 7a49292aaf4c495f87ce1827b615f88d: turn 22f631eba5734669bc49346bfb571607 first chunk cut 2221 ms after turn_ended; deltas arrived at [1923, 2221] ms; chunk 'Hello! Ye test bhi badhiya se kaam kar gaya hai.'; received so far 'Hello! Ye test bhi badhiya se kaam kar gaya hai. Main aapki aur kya'
+DEBUG: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 22f631eba5734669bc49346bfb571607 first chunk synthesis 2221 -> 2344 ms after turn_ended (48 chars)
+INFO: vaani.speaker: session 7a49292aaf4c495f87ce1827b615f88d: turn 22f631eba5734669bc49346bfb571607 first audio frame sent, turn_ended->first audio 2345 ms

@@ -13,6 +13,9 @@ Nothing that makes a network call goes in the endpointing hot path.
 Secrets come from the environment. Never in source, committed config, logs, or client-delivered code.
 Config over constants. No hardcoded model IDs, thresholds, endpoints, or paths.
 Spend caps are checked before any paid call is dispatched.
+Never commit, push or open a PR. The human commits. Leave all changes uncommitted and report them.
+Encoding: files are UTF-8 without BOM. Never print non-ASCII to the console.
+docs/contracts.md is the source of truth for protocol version numbers. Only the PR that changes contracts.md bumps the version.
 The learning document requirement
 
 Every piece of work produces or updates a learning document, written by you, not by me. Code without one is not complete.
