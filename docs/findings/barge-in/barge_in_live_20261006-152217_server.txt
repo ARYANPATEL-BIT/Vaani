@@ -1,0 +1,52 @@
+INFO: vaani.vad: VAD model loaded in 37.4 ms
+INFO: vaani.asr: whisper large-v3 on cuda/float16 loaded and warmed up in 11.7 s (2 threads)
+INFO: vaani.tts: piper hi_IN-priyamvada-medium.onnx (22050 Hz) loaded and warmed up in 11.48 s
+INFO:     Started server process [6704]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:57982 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49976 - "WebSocket /ws/session" [accepted]
+INFO:     connection open
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_started at frame 34 (0.70s into audio)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: turn 1537cd3f76364a8b83a27c86373ba18f opened
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: idle -> listening
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.112ms p95=1.957ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_ended at frame 61 (1.24s into audio)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_started at frame 73 (1.48s into audio)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.056ms p95=1.801ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 51 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.063ms p95=1.643ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 49 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.274ms p95=1.835ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 51 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.257ms p95=1.868ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_ended at frame 269 (5.40s into audio)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.273ms p95=1.868ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: turn_ended turn 1537cd3f76364a8b83a27c86373ba18f frames 34-269, 4720 ms, 251 frames buffered (waited 705 ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: listening -> thinking
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 49 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.131ms p95=1.828ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.123ms p95=1.530ms)
+INFO: vaani.asr: session 5a61b3e0caab42adb71d641fef6116c8: transcript.final turn 1537cd3f76364a8b83a27c86373ba18f (turn_ended->final 2027 ms, decode 2024 ms): 'Hello, this is a short test of voice activity detection for the Vani project.'
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.137ms p95=1.602ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 51 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.259ms p95=1.750ms)
+INFO: vaani.reply: session 5a61b3e0caab42adb71d641fef6116c8: turn 1537cd3f76364a8b83a27c86373ba18f first token: 1945 ms after request, turn_ended->first agent.text 3976 ms
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 49 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.249ms p95=1.808ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: thinking -> speaking
+INFO: vaani.speaker: session 5a61b3e0caab42adb71d641fef6116c8: turn 1537cd3f76364a8b83a27c86373ba18f first audio frame sent, turn_ended->first audio 5268 ms
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_started at frame 594 (11.90s into audio)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.256ms p95=1.873ms)
+INFO: vaani.session: session 5a61b3e0caab42adb71d641fef6116c8: flush sent for turn 1537cd3f76364a8b83a27c86373ba18f
+INFO: vaani.barge_in: session 5a61b3e0caab42adb71d641fef6116c8: barge-in on turn 1537cd3f76364a8b83a27c86373ba18f while speaking, 7 chars heard. SERVER-SIDE only, not PERF-3: speech_started -> audio.flush sent 129.6 ms (judging 128.7 ms, stopping 0.9 ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speaking -> cancelling
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: turn 23d4254899ce403fac1fd744888fa502 opened
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: cancelling -> listening
+INFO: vaani.session: session 5a61b3e0caab42adb71d641fef6116c8: flush acked for turn 1537cd3f76364a8b83a27c86373ba18f, round trip 6.043 ms (client_ts=20056318.9)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_ended at frame 623 (12.48s into audio)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_started at frame 634 (12.70s into audio)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.234ms p95=1.563ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 51 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.185ms p95=1.535ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.136ms p95=1.631ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.134ms p95=1.695ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: speech_ended at frame 831 (16.64s into audio)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 49 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.248ms p95=1.747ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: turn_ended turn 23d4254899ce403fac1fd744888fa502 frames 594-831, 4760 ms, 253 frames buffered (waited 691 ms)
+INFO: vaani.turns: session 5a61b3e0caab42adb71d641fef6116c8: listening -> thinking
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.150ms p95=1.732ms)
+INFO: vaani.gateway: session 5a61b3e0caab42adb71d641fef6116c8 closed: 922 frames total, 0 late frames dropped

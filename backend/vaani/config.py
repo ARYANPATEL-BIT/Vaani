@@ -93,6 +93,18 @@ class EndpointSettings(BaseModel):
     max_utterance_ms: int = 30000
 
 
+class BargeInSettings(BaseModel):
+    """Interrupting the agent, under [barge_in] in config.toml.
+
+    Starting values; tuned on day 14. Defaults mirror the TOML.
+    """
+
+    # Speech needed, counted from its onset, before it stops the agent.
+    min_speech_ms: int = 200
+    # Speech probability a frame needs to count toward min_speech_ms.
+    threshold: float = 0.5
+
+
 class WhisperSettings(BaseModel):
     """faster-whisper parameters, under [asr.whisper] in config.toml.
 
@@ -274,6 +286,7 @@ class Settings(BaseSettings):
     gateway: GatewaySettings = GatewaySettings()
     vad: VadSettings
     endpoint: EndpointSettings = EndpointSettings()
+    barge_in: BargeInSettings = BargeInSettings()
     asr: AsrSettings
     llm: LLMSettings
     tts: TtsSettings

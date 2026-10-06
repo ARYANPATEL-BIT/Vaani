@@ -10,19 +10,18 @@ which in order:
      and feeding it to the chunker (chunker.py). Each chunk the chunker
      cuts is spoken AT ONCE by speaker.py, while the model is still
      generating: waiting for the whole reply would add seconds;
-  4. sends agent.done, records the exchange in history, waits for the
-     audio to finish playing (speaker.finish), moves to `idle`.
+  4. sends agent.done, waits for the audio to finish playing
+     (speaker.finish), and only THEN records the exchange in history (day
+     13: a barge-in records what the user heard instead); idle.
 
-Day 12: `speaking` is entered by speaker.py on the first AUDIO frame, not
-here on the first text. With [tts] disabled the reply is text only and the
-state goes thinking -> idle.
+`speaking` is entered by speaker.py on the first AUDIO frame (day 12). With
+[tts] disabled the reply is text only: thinking -> idle.
 
-Cancellation: each reply gets its OWN asyncio.Event as its token. turns.py
-calls `cancel()` (dev.flush today, barge-in in week 3), which sets it. The
-chain then closes its HTTP stream and ends quietly, and `_answer` sends
-nothing more: every send below is directly preceded by a `cancel.is_set()`
-check, with no `await` in between. The canceller owns the state from then on
-(cancelling -> idle), so `_answer` never moves it again.
+Cancellation: each reply gets its OWN asyncio.Event as its token. A barge-in
+(turns.py) calls `cancel()`, which sets it. The chain then closes its HTTP
+stream and `_answer` sends nothing more: every send below is directly
+preceded by a `cancel.is_set()` check, with no `await` in between, and the
+state is then the canceller's to move, never `_answer`'s.
 
 Failure is never silence: any provider error sends LLM_FAILED and then idle;
 a synthesis error stops the reply and sends TTS_FAILED. agent.text already
@@ -39,7 +38,7 @@ from vaani.chunker import ClauseChunker
 from vaani.config import Settings
 from vaani.persona import assemble, looks_like_injection
 from vaani.protocol import ErrorCode, TurnState, agent_done, agent_text, error
-from vaani.providers.base import LLMProvider, Message, ProviderError
+from vaani.providers.base import LLMProvider, ProviderError
 from vaani.session import Session
 from vaani.speaker import Speaker
 from vaani.spend import SpendCapExceededError
@@ -88,18 +87,39 @@ class Responder:
         self._send = send_json
         self._send_bytes = send_bytes
         self._move_to = move_to
-        # The reply in flight and its token. A fresh Event per reply: a set
-        # Event would have to be cleared for the next turn, and a slow stream
-        # from the previous turn would then read "not cancelled" and carry on.
-        self._task: asyncio.Task | None = None
+        # The latest reply's token. A fresh Event per reply: a set Event would
+        # have to be cleared for the next turn, and a slow stream from the
+        # previous turn would then read "not cancelled" and carry on.
         self._cancel: asyncio.Event | None = None
+        # Reply tasks not yet ended: a barge-in does not wait for a cut one.
+        self._tasks: set[asyncio.Task] = set()
+        # The latest reply's turn, transcript and speaker (None: text only).
+        # Read by a barge-in (barge_in.stop_reply) to work out what was heard.
+        self.turn_id: str | None = None
+        self.transcript = ""
+        self.speaker: Speaker | None = None
 
     def start(self, turn_id: str, transcript: str, ended_at: float) -> None:
         """Begin replying in the background. Returns at once."""
         self._cancel = asyncio.Event()
-        self._task = asyncio.create_task(
-            self._answer(turn_id, transcript, self._cancel, ended_at)
+        self.turn_id, self.transcript, self.speaker = turn_id, transcript, None
+        if self._synth is not None:
+            self.speaker = Speaker(
+                self._synth,
+                self._frame_ms,
+                turn_id,
+                self._cancel,
+                ended_at,
+                self._telemetry,
+                self._send,
+                self._send_bytes,
+                self._move_to,
+            )
+        task = asyncio.create_task(
+            self._answer(turn_id, transcript, self._cancel, ended_at, self.speaker)
         )
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
     def cancel(self) -> None:
         """Set the current reply's token. From this line on it sends nothing.
@@ -110,13 +130,21 @@ class Responder:
         if self._cancel is not None:
             self._cancel.set()
 
+    def remember(self, transcript: str, said: str) -> None:
+        """Record one exchange in history: `said` is what the user heard."""
+        self._session.remember(transcript, said, self._history_turns)
+
     async def wait(self) -> None:
-        """Wait for the reply task to end (after cancel: its stream is closed)."""
-        if self._task is not None:
-            await self._task
+        """Wait for every reply task to end (after cancel: streams closed)."""
+        await asyncio.gather(*self._tasks)
 
     async def _answer(
-        self, turn_id: str, transcript: str, cancel: asyncio.Event, ended_at: float
+        self,
+        turn_id: str,
+        transcript: str,
+        cancel: asyncio.Event,
+        ended_at: float,
+        speaker: Speaker | None,  # None: [tts] disabled, the reply is text only
     ) -> None:
         """Reply to one transcript. `ended_at` is the turn_ended perf_counter."""
         sid = self._session.session_id
@@ -137,23 +165,9 @@ class Responder:
         # (and its HTTP connection) is closed at once, not at garbage collection.
         parts: list[str] = []
         chunker = ClauseChunker(self._chunker_cfg)
-        speaker = None
-        if self._synth is not None:
-            speaker = Speaker(
-                self._synth,
-                self._frame_ms,
-                turn_id,
-                cancel,
-                ended_at,
-                self._telemetry,
-                self._send,
-                self._send_bytes,
-                self._move_to,
-            )
         requested_at = perf_counter()
-        # Each delta until the first chunk is cut: (ms after turn_ended, its
-        # text). Tells "waiting for tokens" apart from "waiting on synthesis"
-        # in the debug log.
+        # Each delta until the first chunk is cut: (ms after turn_ended, text).
+        # Tells "waiting for tokens" from "waiting on synthesis" in debug logs.
         arrivals: list[tuple[float, str]] = []
         first_cut = False
         try:
@@ -219,15 +233,16 @@ class Responder:
             await self._error_then_idle(ErrorCode.LLM_FAILED, FAILED_MESSAGE, cancel)
             return
 
-        # 4. Complete. Remember the exchange BEFORE the await, so a flush
-        # landing during the send cannot leave a sent reply out of history.
+        # 4. Complete.
         reply = "".join(parts)
-        self._remember(transcript, reply)
         await self._send(agent_done(turn_id, reply))
         if speaker is not None and not cancel.is_set():
             await speaker.finish()  # audio.end, then wait until it has played
         if cancel.is_set():
-            return
+            return  # cut while playing: the barge-in recorded what was heard
+        # Played in full. No await between the check above and the state
+        # change, so a barge-in sees either this reply or `idle`, never both.
+        self.remember(transcript, reply)
         await self._move_to(TurnState.IDLE)
 
     async def _error_then_idle(
@@ -236,8 +251,7 @@ class Responder:
         """The protocol's failure ending: error, then turn.state idle.
 
         Callers have just checked `cancel`. It is checked again after the
-        send's await: if a flush landed meanwhile, the canceller now owns the
-        state and will move it to idle itself.
+        send's await: if a barge-in landed meanwhile, it now owns the state.
         """
         await self._send(error(code, message))
         if not cancel.is_set():
@@ -274,12 +288,3 @@ class Responder:
             rule,
             [(round(at), len(text), text) for at, text in arrivals],
         )
-
-    def _remember(self, transcript: str, reply: str) -> None:
-        """Append the exchange, then keep only the newest history_turns."""
-        history = self._session.history
-        history.append(Message(role="user", content=transcript))
-        history.append(Message(role="assistant", content=reply))
-        # Two messages per exchange. max(0, ...) so history_turns = 0 keeps
-        # nothing (a bare `history[:-0]` would mean "keep everything").
-        del history[: max(0, len(history) - 2 * self._history_turns)]

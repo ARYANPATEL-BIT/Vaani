@@ -18,7 +18,7 @@ interrupted agent would keep talking over the user.
 | `backend/vaani/session.py` | Now owns turn state: `open_turn`, `is_flushed`, `flush`, `handle_flush_ack`. |
 | `backend/vaani/gateway.py` | Late-frame guard before `send_bytes`; handles `dev.flush` and `flush.ack`; no `audio.end` for a flushed turn. |
 | `backend/vaani/telemetry.py` | `FLUSH_SENT` / `FLUSH_ACKED` span names; clock switched to `perf_counter` (see §4). |
-| `backend/scripts/fake_client.py` | `--flush-after SECONDS`; replies `flush.ack`; discards late frames. |
+| `backend/scripts/fake_client.py` | `--flush-after SECONDS` (removed on day 13 with `dev.flush`; `--barge-in-after MS` replaced it, see `13-barge-in.md`); replies `flush.ack`; discards late frames. |
 | `backend/tests/test_flush.py` | New. Flush through the real socket: frames stop, ack recorded, bad acks ignored. |
 | `backend/tests/test_session.py` | New. Mark-before-send order; round trip measured on the server clock. |
 
@@ -117,7 +117,8 @@ of the per-second rolling stats):
 | `is_flushed()` alone (`timeit`) | ≈ 50 ns per call (≈ 20 ns of that is call overhead) | — |
 
 The guard costs tens of nanoseconds; the run-to-run spread is ~60,000 ns. No
-measurable regression. Flush round trip over 5 runs of `--flush-after 3`:
+measurable regression. Flush round trip over 5 runs of `--flush-after 3` (a flag
+removed on day 13):
 0.359–0.905 ms, median 0.529 ms. (Before `flush_sent` moved ahead of the send
 it was 0.220–0.353 ms, median 0.288 ms. The difference is the send itself,
 now counted — the pessimistic reading described in Step 1.)

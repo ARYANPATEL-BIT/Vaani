@@ -6,8 +6,8 @@ decided here: `_LEGAL` lists every allowed move, and `TurnStateMachine.move_to`
 is the only way to change state. It raises on anything else and tells the
 browser about every change with turn.state.
 
-turns.py moves the state as turns open and end; reply.py moves it as the
-agent answers. Both go through the same `move_to`.
+turns.py moves the state as turns open, end and are barged in on; reply.py
+and speaker.py move it as the agent answers. All go through `move_to`.
 """
 
 import logging
@@ -26,13 +26,15 @@ _LEGAL: dict[TurnState, set[TurnState]] = {
     TurnState.IDLE: {TurnState.LISTENING},  # speech started: a turn opens
     # Turn over -> thinking. Too short, flushed, or no model -> idle.
     TurnState.LISTENING: {TurnState.THINKING, TurnState.IDLE},
-    # First reply text -> speaking; failed or nothing to say -> idle.
+    # First audio -> speaking; failed or nothing to say -> idle;
+    # barge-in -> cancelling.
     TurnState.THINKING: {TurnState.SPEAKING, TurnState.IDLE, TurnState.CANCELLING},
-    # Reply done or failed -> idle; dev.flush -> cancelling.
+    # Reply played or failed -> idle; barge-in -> cancelling.
     TurnState.SPEAKING: {TurnState.IDLE, TurnState.CANCELLING},
-    # dev.flush (no speech caused it) -> idle. Week-3 barge-in (the user's
-    # speech caused it and already opened the new turn) -> listening.
-    TurnState.CANCELLING: {TurnState.IDLE, TurnState.LISTENING},
+    # Only a barge-in cancels, and the user's speech that caused it opens
+    # their new turn straight away (day 13). There is no cancelling -> idle:
+    # it went with dev.flush, the one cancel that had no speech behind it.
+    TurnState.CANCELLING: {TurnState.LISTENING},
 }
 
 

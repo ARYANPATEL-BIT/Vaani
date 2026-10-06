@@ -5,7 +5,6 @@ fixture, with a fake recogniser (tests/fake_asr.py) and a scripted language
 model (ScriptedLLM below), so no model download and no network.
 """
 
-import logging
 import threading
 from itertools import product
 
@@ -120,14 +119,13 @@ LEGAL = {
     ("thinking", "cancelling"),
     ("speaking", "idle"),
     ("speaking", "cancelling"),
-    ("cancelling", "idle"),
     ("cancelling", "listening"),
 }
 
 
 @pytest.mark.parametrize(("current", "new"), list(product(TurnState, TurnState)))
 def test_every_legal_move_works_and_every_other_raises(current, new) -> None:
-    # All 25 pairs: the 10 above must pass, the other 15 must raise.
+    # All 25 pairs: the 9 above must pass, the other 16 must raise.
     if (current, new) in LEGAL:
         check_transition(current, new)
     else:
@@ -293,57 +291,21 @@ def test_provider_exhaustion_sends_error_and_returns_to_idle() -> None:
     assert rest == []  # in particular, no agent.done
 
 
-# --- Cancellation -------------------------------------------------------------
+# --- Barge-in (real VAD on the speech fixture) ------------------------------
+# Scripted-VAD barge-in tests, exact to the frame, are in test_barge_in.py.
 
 
-def test_dev_flush_while_thinking_cancels_the_stream() -> None:
+def test_speech_while_thinking_barges_in_and_closes_the_stream() -> None:
     llm = ScriptedLLM(hang_after=0)  # requested, but no first token yet
     with make_client(llm).websocket_connect("/ws/session") as ws:
         start(ws)
         speak(ws)
-        assert trace(receive_until(ws, lambda m: m["type"] == "transcript.final")) == [
-            "listening",
-            "thinking",
-            "transcript.final",
-        ]
+        first = receive_until(ws, lambda m: m["type"] == "transcript.final")
         assert llm.started.wait(5)
-        ws.send_json({"type": "dev.flush"})
-        after = until_idle(ws)
-        assert reacks(ws)  # no agent.text or agent.done slipped out
+        speak(ws)  # the user talks over the (thinking) agent
+        cut = receive_until(ws, lambda m: m.get("state") == "listening")
 
-    # audio.flush is sent on every reply cancel, audio or not (day 12).
-    assert trace(after) == ["audio.flush", "cancelling", "idle"]
+    assert trace(cut) == ["audio.flush", "cancelling", "listening"]
+    assert cut[0]["turn_id"] == first[0]["turn_id"]
+    assert cut[-1]["turn_id"] != first[0]["turn_id"]
     assert llm.closed.is_set()  # the stream was closed, not left running
-
-
-def test_dev_flush_mid_answer_stops_the_stream() -> None:
-    llm = ScriptedLLM(hang_after=1)  # one delta out, then the model pauses
-    with make_client(llm).websocket_connect("/ws/session") as ws:
-        start(ws)
-        speak(ws)
-        before = receive_until(ws, lambda m: m["type"] == "agent.text")
-        ws.send_json({"type": "dev.flush"})
-        after = until_idle(ws)
-        assert reacks(ws)
-
-    assert trace(before)[-2:] == ["transcript.final", "agent.text"]
-    assert trace(after) == ["audio.flush", "cancelling", "idle"]
-    assert llm.closed.is_set()
-
-
-def test_speech_while_thinking_is_dropped_and_logged(caplog) -> None:
-    llm = ScriptedLLM(hang_after=0)
-    with caplog.at_level(logging.INFO, logger="vaani.turns"):
-        with make_client(llm).websocket_connect("/ws/session") as ws:
-            start(ws)
-            speak(ws)
-            receive_until(ws, lambda m: m["type"] == "transcript.final")
-            speak(ws)  # the user talks over the (thinking) agent
-            ws.send_json({"type": "dev.flush"})
-            after = until_idle(ws)
-
-    # The second utterance opened no turn: no "listening" before the cancel.
-    assert trace(after) == ["audio.flush", "cancelling", "idle"]
-    logged = [r.getMessage() for r in caplog.records]
-    assert any("speech dropped while thinking" in m for m in logged)
-    assert any("dropped speech lasted" in m for m in logged)

@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.6.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.7.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -47,6 +47,7 @@ Only the PR that changes this file bumps the version.
 | v0.4 | Agent turn (`turn.state`, `agent.text`, `agent.done`); `LLM_FAILED`, `INPUT_REJECTED` | 2.5 |
 | v0.5 | `telemetry` for the Latency HUD (frontend proposal; the backend does not send it yet) | 2.6 |
 | v0.6 | `audio.start` carries `sample_rate`; `speaking` starts with the first audio frame; `TTS_FAILED` | 2.2, 2.3, 2.5 |
+| v0.7 | Barge-in. No new message. `dev.flush` removed; `audio.flush` can come during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` may name a turn that is no longer current; `cancelling` → `listening` with a new `turn_id` | 2.3, 2.5, 2.7 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -106,8 +107,10 @@ Control messages use JSON text frames (not binary).
 |------------------|-----------------------------------------------------------|--------------------------------------------------|
 | `session.start`  | `{ "type": "session.start", "persona": "default", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects                         |
 | `session.end`    | `{ "type": "session.end" }`                               | User ends conversation                           |
-| `flush.ack`      | `{ "type": "flush.ack", "turn_id": "<string>", "client_ts": <number> }` | As soon as the flushed turn's audio has stopped. `client_ts` is the browser's `performance.now()`; the server logs it but never subtracts it from its own clock |
-| `dev.flush`      | `{ "type": "dev.flush" }`                                 | **Dev only**, removed when barge-in lands (week 3): asks the server to flush the current turn |
+| `flush.ack`      | `{ "type": "flush.ack", "turn_id": "<string>", "client_ts": <number> }` | As soon as the flushed turn's audio has stopped. `client_ts` is the browser's `performance.now()`; the server logs it but never subtracts it from its own clock. v0.7: by then a newer turn is usually current (a barge-in opens one at once); ack the flushed `turn_id` anyway |
+
+`dev.flush` was removed in v0.7: barge-in replaced it. It now gets
+`UNKNOWN_MESSAGE_TYPE`.
 
 `persona` must be one of `default`, `tutor`, `support` (config.toml
 `[personas]`); anything else gets `BAD_MESSAGE`. `audio` must be exactly
@@ -121,7 +124,7 @@ Control messages use JSON text frames (not binary).
 | `error`          | `{ "type": "error", "code": "<code>", "message": "..." }` | A problem report. Non-fatal: the connection stays open. Codes below |
 | `audio.start`    | `{ "type": "audio.start", "turn_id": "<string>", "sample_rate": <number> }` | Before a turn's first audio frame. Every frame until the matching `audio.end` belongs to `turn_id` and is at `sample_rate` (v0.6) |
 | `audio.end`      | `{ "type": "audio.end", "turn_id": "<string>" }`      | After a turn's last audio frame   |
-| `audio.flush`    | `{ "type": "audio.flush", "turn_id": "<string>" }`    | Silence that turn at once: stop scheduled audio, drop its queued frames, fade out within 10 ms, reply `flush.ack`. Replaces `audio.end` for that turn; frames that still arrive for it must be discarded |
+| `audio.flush`    | `{ "type": "audio.flush", "turn_id": "<string>" }`    | Silence that turn at once: stop scheduled audio, drop its queued frames, fade out within 10 ms, reply `flush.ack`. Replaces `audio.end` for that turn; frames that still arrive for it must be discarded. v0.7: sent on barge-in (§2.7), and may come with no `audio.start` before it (cut while `thinking`), after `agent.done`, or after `audio.end` (all audio sent, still playing): stop playback in every case |
 
 #### Error codes
 
@@ -182,8 +185,9 @@ agreed **together**.
 One normal turn traces `listening → thinking → speaking → idle`. The
 `turn_id` is the user utterance's id, so the transcript and the reply share it.
 A failed turn gets `error` then `turn.state idle`, and **no** `agent.done`. A
-cancelled turn (`dev.flush` today) traces `cancelling → idle`, and also gets
-no `agent.done`.
+barged-in turn (v0.7, §2.7) traces `cancelling`, then `listening` with a
+**new** `turn_id`. It gets no `agent.done`, unless the cut landed after
+`agent.done` was already sent (the reply was complete but still playing).
 
 Backend notes:
 - **v0.6:** `speaking` starts when the reply's first **audio frame** is sent,
@@ -196,8 +200,9 @@ Backend notes:
   (the persona asks for it; the Hindi voice cannot read Latin-script
   Hinglish). The user's `transcript.final` stays in whatever script the
   recogniser produced, usually Latin.
-- The backend is **half-duplex**: speech while the agent is thinking or
-  speaking is dropped (logged server-side), so no `listening` appears then.
+- **v0.7:** the backend is no longer half-duplex: speech while the agent is
+  thinking or speaking is a barge-in (§2.7). `cancelling` is always
+  followed by `listening`; `cancelling → idle` no longer exists.
 - `ASR_FAILED`, `LLM_FAILED`, `INPUT_REJECTED` and `TTS_FAILED` are in the
   error-code table in §2.3, with every other code.
 
@@ -228,13 +233,60 @@ Backend note (2026-10-06): the backend does **not** send `telemetry` yet.
 `backend/vaani/protocol.py` has no model for it; the span names above exist
 in `backend/vaani/telemetry.py` but are only logged server-side.
 
+### 2.7 Barge-in — SHARED PROTOCOL v0.7 (Proposed — pending Samyak)
+
+No new message. While `turn.state` is `thinking` or `speaking`, the server
+judges the user's speech; once it reaches `[barge_in].min_speech_ms` (200 ms
+from onset, config.toml) it is an interruption. The browser then receives,
+in this order:
+
+1. `audio.flush` for the agent's turn. **First**, because the user judges the
+   interruption by when the speaker goes quiet. Stop playback, ack.
+2. `turn.state cancelling` (agent's `turn_id`).
+3. `turn.state listening` with a **new** `turn_id`: the user's interrupting
+   speech is that turn, from its first sound.
+
+No frame for the agent's turn is sent after `audio.flush`. What the browser
+must handle that v0.6 never produced:
+
+- `audio.flush` with no `audio.start` before it (cut while `thinking`).
+- `agent.done`, then `audio.flush` (the reply was complete, still playing).
+- `audio.end`, then `audio.flush` for the same turn (all audio sent, still
+  playing): stop it anyway.
+- The `flush.ack` names a turn that is no longer current. Send it anyway; the
+  server accepts it.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant T as Server (turns.py / barge_in.py)
+    participant P as Provider chain
+    participant S as Synthesis
+    U->>B: speaks over the agent
+    B->>T: mic frames
+    Note over T: VAD speech_started, then 200 ms of speech judged
+    T->>B: 1. audio.flush (agent turn)
+    B->>U: playback stops (10 ms fade)
+    Note over T,S: same instant: the reply's cancel token is set
+    T--xP: 2. stream closed (race against cancel.wait())
+    T--xS: 3. synthesis in flight discarded, no more frames
+    T->>B: 4. turn.state cancelling, then listening (new turn_id)
+    Note over T: 5. the speech so far, pre-roll included, opens the new turn
+    Note over T: history keeps only what the user heard
+    B->>T: flush.ack (agent turn)
+```
+
+The spec's diagram ("Sequence -- Conversation turn with barge-in", complete
+documentation PDF, p. 23) draws "Stop playback" last, after "Cancel stream"
+and "Flush queue". This diagram supersedes it; the PDF has not been edited.
+
 ---
 
 ## 3. Future Contracts (Planned)
 
 These will be specified as their implementation days arrive:
 
-- **Barge-in signalling** — Week 3
 - **Voice enrolment API** — Week 4
 
 ---
@@ -250,4 +302,5 @@ These will be specified as their implementation days arrive:
 | 2026-10-02 | Aryan   | Day 10: shared protocol v0.3 transcripts; turn = utterance (echo per utterance); proposed ASR_FAILED |
 | 2026-10-02 | Aryan   | Day 11: shared protocol v0.4 (turn.state, agent.text, agent.done); ASR_FAILED, LLM_FAILED, INPUT_REJECTED proposed together in §2.5 |
 | 2026-10-05 | Samyak  | Day 15 (W3D1): shared protocol v0.5 telemetry specification for Latency HUD in §2.6     |
+| 2026-10-06 | Aryan   | Shared protocol v0.7 (day 13, barge-in): no new message; `dev.flush` removed; `audio.flush` first on barge-in and possible during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` for a turn no longer current is accepted; `cancelling → listening` with a new `turn_id`, `cancelling → idle` removed; §2.7 with the corrected barge-in sequence diagram |
 | 2026-10-06 | Aryan   | Shared protocol v0.6: `audio.start.sample_rate` (§2.2 rate no longer fixed at 16000); `speaking` = first audio; `TTS_FAILED`; version table in §2; §2.3 brought in line with protocol.py (`flush.ack` shape, `audio.start`/`audio.end`/`audio.flush` with `turn_id`, `dev.flush`, all error codes); §2.5 stale day-11 notes replaced; §2.6 notes the backend does not send telemetry |

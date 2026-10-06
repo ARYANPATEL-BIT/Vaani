@@ -83,6 +83,25 @@ preroll_ms = 300
 # warning is logged, so memory per session stays bounded (30 s is ~1 MB).
 max_utterance_ms = 30000
 
+[barge_in]
+# Barge-in: the user talks while the agent is thinking or speaking, and the
+# agent stops. Runs on the same VAD events as endpointing.
+#
+# Speech needed, counted from its onset, before it stops the agent. VAD's own
+# 80 ms (start_frames) count toward it. Long enough that a click or a short
+# cough does not stop a reply; short because the whole budget from the user's
+# first sound to silence at the speaker is 300 ms (PERF-3), and network,
+# browser fade and the output device still come after this. A "hmm" of
+# 300 ms or more WILL stop the agent. Starting value; tuned on day 14.
+min_speech_ms = 200
+
+# Speech probability (0 to 1) a frame needs to count toward min_speech_ms.
+# Separate from [vad].threshold so it can be raised on its own if the
+# browser's echo cancellation leaks the agent's voice back into the mic
+# (residual echo usually scores lower). The same 0.5 for now: no echo
+# measurement exists yet. Tuned on day 14.
+threshold = 0.5
+
 [asr]
 # Speech recognition: turns each finished utterance into text. Needs
 # [endpoint] (and so [vad]) enabled: no utterances, nothing to transcribe.

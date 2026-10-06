@@ -11,19 +11,17 @@ What happens to a valid audio frame after validation (VAD, endpointing,
 turns, speech recognition, the day-3 echo) lives in turns.py: this file hands
 each frame to the session's TurnPipeline and stays a dispatcher.
 
-Day 4 FLUSH: a dev.flush control message (development only) makes the session
-flush the current turn, and the browser's flush.ack closes the round trip. A
-flushed turn also has its speech recognition abandoned, so no transcript is
-ever sent for it (the stand-in for week-3 barge-in).
+Day 4 FLUSH: the server tells the browser to silence a turn (audio.flush);
+the browser's flush.ack, handled here, closes the round trip.
+
+Day 11: session.start's persona must be a key of config.toml's [personas].
 
 Day 12: the agent's reply is spoken; its audio leaves through the same
 send_bytes as the echo did (speaker.py, called from reply.py).
 
-Day 11: a dev.flush while the agent is thinking or speaking cancels its
-reply instead (TurnPipeline.on_dev_flush decides which). session.start's
-persona must be a key of config.toml's [personas].
-
-What this file does NOT do yet: barge-in.
+Day 13: barge-in. It is decided frame by frame inside TurnPipeline.on_frame
+(turns.py, barge_in.py), so nothing here changes except that the dev-only
+dev.flush message, its stand-in since day 4, is gone (protocol v0.7).
 """
 
 import asyncio
@@ -235,13 +233,6 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 )
                 continue
 
-            if mtype == "dev.flush":
-                # DEV-ONLY — remove together with DevFlush in protocol.py when
-                # barge-in lands. Stands in for barge-in until it exists.
-                if pipeline is not None:
-                    await pipeline.on_dev_flush()
-                continue
-
             if mtype == "flush.ack":
                 try:
                     ack = FlushAck.model_validate(payload)
@@ -250,7 +241,8 @@ async def session_endpoint(websocket: WebSocket) -> None:
                         error(ErrorCode.BAD_MESSAGE, "malformed flush.ack")
                     )
                     continue
-                # Unknown / stale acks are logged and ignored inside the session.
+                # Acks for turns never flushed, or acked twice, are logged and
+                # ignored inside the session.
                 session.handle_flush_ack(ack, telemetry)
                 continue
 

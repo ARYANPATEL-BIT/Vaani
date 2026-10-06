@@ -6,7 +6,7 @@ messages, the `speaking` state and the tts_first_audio span.
 
 The audio uses the route the day-3 echo built: audio.start (now carrying
 the voice's sample rate), binary frames, audio.end, and audio.flush on a
-cancel (sent by turns.py). There is no second audio channel.
+barge-in (sent by barge_in.py). There is no second audio channel.
 
 `speaking` starts when the first FRAME is sent, not when the first text
 arrives: the state means "the user can hear the agent". And it lasts until
@@ -17,6 +17,9 @@ idle while the browser still has seconds of reply queued.
 
 Cancellation: the reply's token is checked immediately before every send,
 with no await in between, so after a cancel not one more frame goes out.
+
+Day 13: each chunk's play-out window is kept in `spoken`, so a barge-in can
+work out how much of the reply the user had heard (barge_in.heard_text).
 """
 
 import asyncio
@@ -24,6 +27,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from time import perf_counter
+from typing import NamedTuple
 
 from vaani.protocol import TurnState, audio_end, audio_start
 from vaani.telemetry import TTS_FIRST_AUDIO, Telemetry
@@ -36,6 +40,14 @@ SendBytes = Callable[[bytes], Awaitable[None]]
 MoveTo = Callable[[TurnState], Awaitable[None]]
 
 BYTES_PER_SAMPLE = 2  # 16-bit PCM
+
+
+class Spoken(NamedTuple):
+    """One chunk sent, and when the browser should play it (server clock)."""
+
+    text: str
+    start: float
+    end: float
 
 
 class Speaker:
@@ -71,6 +83,9 @@ class Speaker:
         # It mirrors the browser's own queue: a chunk starts when the previous
         # one ends, or now if the queue has run dry.
         self._playout_end = 0.0
+        # Every chunk sent, with its play-out window: what a barge-in cut
+        # had been heard (barge_in.heard_text).
+        self.spoken: list[Spoken] = []
 
     async def say(self, text: str) -> None:
         """Synthesise one chunk and send its frames. Raises TtsError."""
@@ -96,6 +111,11 @@ class Speaker:
             await self._start()
             if self._cancel.is_set():
                 return  # a flush landed during those sends
+        # Play-out window BEFORE the frames go: a cut part-way through the
+        # sends must still know this chunk was playing.
+        start = max(perf_counter(), self._playout_end)
+        self._playout_end = start + len(pcm) / BYTES_PER_SAMPLE / self._rate
+        self.spoken.append(Spoken(text, start, self._playout_end))
         for i in range(0, len(pcm), self._frame_bytes):
             # The gate: no await between this check and the send.
             if self._cancel.is_set():
@@ -104,8 +124,6 @@ class Speaker:
             if not self._sent_audio:
                 self._sent_audio = True
                 self._first_audio()
-        seconds = len(pcm) / BYTES_PER_SAMPLE / self._rate
-        self._playout_end = max(perf_counter(), self._playout_end) + seconds
 
     async def end_audio(self) -> None:
         """audio.end, if this reply sent any audio. A cancelled reply owes

@@ -31,7 +31,7 @@ def assemble(
 ) -> list[Message]:
     """The full request: persona system prompt, past exchanges, this turn.
 
-    `history` is already capped (reply.py trims it after each turn), so this
+    `history` is already capped (Session.remember trims it), so this
     is a plain concatenation. The model is stateless: it remembers the
     conversation only because we re-send it here, every turn.
     """
