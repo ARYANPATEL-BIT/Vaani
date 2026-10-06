@@ -34,7 +34,6 @@ import { useState, useRef, useCallback } from 'react';
 import {
   makeReference,
   detectDelay,
-  REFERENCE_DURATION_S,
   SILENCE_TAIL_S,
   RECORD_DURATION_S,
 } from './loopbackAnalysis.js';
@@ -182,7 +181,6 @@ export function useLoopbackMeasurement() {
       // -----------------------------------------------------------------------
       const bufferSize = 4096;
       // ScriptProcessorNode is on the AudioContext prototype
-      // eslint-disable-next-line no-undef
       const scriptProcessor = ctx.createScriptProcessor(bufferSize, 1, 1);
       const micSource = ctx.createMediaStreamSource(stream);
 

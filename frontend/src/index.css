@@ -1,55 +1,90 @@
-/*
- * Global styles for Vaani.
- *
- * Defines CSS custom properties (design tokens) and base element resets.
- * All component-level styles live in their own CSS files alongside
- * their components.
+/**
+ * Global design tokens and base reset for the Vaani dashboard UI.
+ * Target: full-viewport 3-column layout with glassmorphism + pastel mesh.
  */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,600&display=swap');
+
+/* ── CSS custom properties ──────────────────────────────────────────── */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
+  /* Palette */
+  --c-indigo:    #4F46E5;
+  --c-indigo-d:  #3730A3;
+  --c-violet:    #8B5CF6;
+  --c-blue:      #60A5FA;
+  --c-green:     #22C55E;
+  --c-red:       #EF4444;
+  --c-navy:      #0F172A;
+  --c-slate:     #64748B;
+  --c-muted:     #94A3B8;
+  --c-lavender:  #EDE9FE;
+  --c-bg-warm:   #FBF3EC;
+  --c-bg-cool:   #E9E3FA;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Glassmorphism surfaces */
+  --glass-bg:        rgba(255,255,255,0.68);
+  --glass-border:    rgba(255,255,255,0.85);
+  --glass-shadow:    0 4px 32px rgba(79,70,229,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --glass-blur:      blur(20px);
 
-  font: 16px/1.5 var(--sans);
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  /* Spacing scale */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* Radii */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-full: 9999px;
+
+  /* Typography */
+  --font-ui:     'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif:  'Fraunces', Georgia, serif;
+
+  /* Sidebar */
+  --sidebar-w: 205px;
+  --sidebar-w-collapsed: 60px;
+
+  /* Right panel */
+  --rpanel-w: 320px;
+
+  /* Transition */
+  --t-fast: 0.15s ease;
+  --t-med:  0.25s ease;
+
+  /* Background */
+  --bg-page: linear-gradient(135deg, #FBF3EC 0%, #EFE9FA 55%, #E0EDFF 100%);
+
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--c-navy);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-  }
+/* Dark mode overrides */
+[data-theme="dark"] {
+  --glass-bg:        rgba(15,23,42,0.72);
+  --glass-border:    rgba(255,255,255,0.08);
+  --glass-shadow:    0 4px 32px rgba(0,0,0,0.3);
+  --c-navy:          #F8FAFC;
+  --c-slate:         #94A3B8;
+  --c-muted:         #64748B;
+  --bg-page:         linear-gradient(135deg, #0F0E1A 0%, #14102A 55%, #0D1828 100%);
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* ── Reset ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  margin: 0;
+  background: var(--bg-page);
+  min-height: 100vh;
+  color: var(--c-navy);
+  font-family: var(--font-ui);
+  overflow: hidden; /* single viewport — transcript scrolls internally */
 }
 
-h1, h2, h3 {
-  font-family: var(--heading);
-  color: var(--text-h);
+[data-theme="dark"] body {
+  color: #F8FAFC;
 }
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+a { text-decoration: none; color: inherit; }

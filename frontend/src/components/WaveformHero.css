@@ -1,0 +1,149 @@
+/* WaveformHero */
+.waveform-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 0 24px 12px;
+}
+
+/* SVG area */
+.waveform-svg-area {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+}
+
+.wave-svg {
+  width: 100%;
+  max-width: 700px;
+  height: 140px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+/* Animated wave paths via CSS keyframes on stroke-dashoffset */
+.wave-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wave-1 {
+  d: path("M0,70 C80,40 160,100 240,70 C320,40 400,100 480,70 C560,40 640,100 720,70 L800,70");
+  animation: wave1Flow 3s ease-in-out infinite alternate;
+}
+.wave-2 {
+  d: path("M0,70 C100,55 200,85 300,70 C400,55 500,90 600,70 C680,55 740,85 800,70");
+  animation: wave2Flow 4s ease-in-out infinite alternate;
+  animation-delay: -1.2s;
+}
+.wave-3 {
+  d: path("M0,70 C60,85 140,55 220,70 C300,85 380,50 460,70 C540,85 620,55 700,70 L800,70");
+  animation: wave3Flow 5s ease-in-out infinite alternate;
+  animation-delay: -0.7s;
+}
+
+/* Idle: calm, flat, low amplitude */
+.state-idle .wave-1 { animation-duration: 6s; opacity: 0.45; }
+.state-idle .wave-2 { animation-duration: 8s; opacity: 0.3; }
+.state-idle .wave-3 { opacity: 0.2; }
+
+/* Listening: medium, blue-dominant */
+.state-listening .wave-1 { animation-duration: 2.5s; opacity: 0.85; }
+.state-listening .wave-2 { animation-duration: 3.5s; opacity: 0.7; }
+
+/* Thinking: swirling, purple-dominant */
+.state-thinking .wave-1 { animation-duration: 2s; }
+.state-thinking .wave-2 { animation-duration: 2.8s; }
+.state-thinking .wave-3 { animation-duration: 1.8s; }
+
+/* Speaking: energetic, full amplitude */
+.state-speaking .wave-1 { animation-duration: 1.5s; }
+.state-speaking .wave-2 { animation-duration: 2s; }
+.state-speaking .wave-3 { animation-duration: 1.2s; }
+
+@keyframes wave1Flow {
+  0%   { d: path("M0,70 C80,30 180,110 260,70 C340,30 440,110 520,70 C600,30 700,110 800,70"); }
+  50%  { d: path("M0,70 C90,50 190,90 280,70 C370,50 450,90 540,70 C620,50 720,90 800,70"); }
+  100% { d: path("M0,70 C70,45 170,95 250,70 C330,45 420,95 510,70 C590,45 680,95 800,70"); }
+}
+@keyframes wave2Flow {
+  0%   { d: path("M0,70 C100,55 200,85 300,68 C400,51 500,88 600,68 C700,51 760,85 800,70"); }
+  100% { d: path("M0,70 C110,60 210,80 310,72 C410,63 510,82 610,72 C710,63 760,80 800,70"); }
+}
+@keyframes wave3Flow {
+  0%   { d: path("M0,70 C60,80 140,60 220,70 C300,80 380,58 460,70 C540,82 620,62 700,70 L800,70"); }
+  100% { d: path("M0,70 C70,62 150,78 230,68 C310,58 390,80 470,68 C550,56 630,78 710,68 L800,70"); }
+}
+
+/* Glow version uses same animation */
+.wave-glow { opacity: 0.45; }
+
+/* ── Equalizer bars (left / right edges) ──────── */
+.eq-bars {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 60px;
+}
+
+.eq-left  { left: 0;   }
+.eq-right { right: 0;  }
+
+.eq-bar {
+  width: 3px;
+  height: var(--base-h, 8px);
+  border-radius: 2px;
+  background: linear-gradient(to top, rgba(139,92,246,0.6), rgba(96,165,250,0.4));
+  transition: height var(--t-fast);
+}
+
+/* Animate bars in active states */
+.state-listening .eq-bar,
+.state-thinking  .eq-bar,
+.state-speaking  .eq-bar {
+  animation: eqBounce 1.2s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+}
+
+/* Fade eq bars toward the outside */
+.eq-left .eq-bar:nth-last-child(-n+6)  { opacity: 0.3; }
+.eq-left .eq-bar:nth-last-child(-n+10) { opacity: 0.6; }
+.eq-right .eq-bar:nth-child(-n+6)  { opacity: 0.3; }
+.eq-right .eq-bar:nth-child(-n+10) { opacity: 0.6; }
+
+@keyframes eqBounce {
+  0%   { height: var(--base-h, 4px); }
+  100% { height: calc(var(--base-h, 4px) * 3.5); }
+}
+
+/* ── Labels ──────────────────────────────────── */
+.waveform-labels {
+  text-align: center;
+  margin-top: -4px;
+}
+
+.state-heading {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--c-navy);
+  margin-bottom: 4px;
+  line-height: 1.15;
+}
+
+.state-subtitle {
+  font-size: 14px;
+  color: var(--c-slate);
+  margin: 0;
+}

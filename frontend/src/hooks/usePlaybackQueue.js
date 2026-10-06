@@ -34,12 +34,12 @@ import { AUDIO_SAMPLE_RATE } from '../config.js';
  * @param {ArrayBuffer} buffer - raw Int16LE PCM bytes
  * @returns {AudioBuffer}
  */
-function pcm16ToAudioBuffer(audioCtx, buffer) {
+function pcm16ToAudioBuffer(audioCtx, buffer, sampleRate = AUDIO_SAMPLE_RATE) {
   const int16 = new Int16Array(buffer);
   const sampleCount = int16.length;
 
-  // One channel (mono), sampleCount frames, at the project's fixed sample rate.
-  const audioBuffer = audioCtx.createBuffer(1, sampleCount, AUDIO_SAMPLE_RATE);
+  // One channel (mono), sampleCount frames, at the declared sample rate.
+  const audioBuffer = audioCtx.createBuffer(1, sampleCount, sampleRate);
   const channelData = audioBuffer.getChannelData(0);
 
   // Scale Int16 [-32768, 32767] → Float32 [-1.0, 1.0].
@@ -56,6 +56,9 @@ export function usePlaybackQueue() {
   // on cleanup. One context for the whole session avoids repeated
   // create/destroy cycles and the browser's autoplay resume requirement.
   const audioCtxRef = useRef(null);
+
+  // The sample rate for incoming audio frames (declared in audio.start, default 16 kHz).
+  const currentSampleRateRef = useRef(AUDIO_SAMPLE_RATE);
 
   // The audio clock time at which the NEXT chunk should start playing.
   // Advances by each chunk's duration after scheduling it.
@@ -113,7 +116,7 @@ export function usePlaybackQueue() {
       return;
     }
 
-    const audioBuffer = pcm16ToAudioBuffer(ctx, arrayBuffer);
+    const audioBuffer = pcm16ToAudioBuffer(ctx, arrayBuffer, currentSampleRateRef.current);
 
     // Clamp: if we are behind real time (first chunk, or a gap in server audio),
     // start immediately rather than scheduling in the past (which would be silent).
@@ -187,10 +190,20 @@ export function usePlaybackQueue() {
     nextStartTimeRef.current = 0;
   }, []);
 
+  /**
+   * Update the sample rate for incoming audio frames.
+   * Called when an audio.start message arrives with a sample_rate field.
+   */
+  const setPlaybackSampleRate = useCallback((rate) => {
+    if (typeof rate === 'number' && rate > 0) {
+      currentSampleRateRef.current = rate;
+    }
+  }, []);
+
   // Release resources when the component using this hook unmounts.
   useEffect(() => {
     return cleanup;
   }, [cleanup]);
 
-  return { enqueue, flushPlayback, cleanup };
+  return { enqueue, flushPlayback, cleanup, setPlaybackSampleRate };
 }

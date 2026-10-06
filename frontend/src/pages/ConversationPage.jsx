@@ -1,345 +1,391 @@
 /**
- * ConversationPage — main voice conversation interface.
+ * ConversationPage — Voice conversation screen for Vaani.
  *
- * Week 1, Day 2: microphone capture → WebSocket streaming (16 kHz Int16LE PCM).
- * Week 1, Day 3: incoming server audio → playback queue → gapless speaker output.
- * Week 1, Day 4: audio.flush / flush.ack for immediate playback silencing.
- * Week 2, Day 1: explicit Connect / Disconnect actions, session status badge,
- *   persona selector. The session state machine is driven by wsStatus values
- *   from useAudioCapture, which directly reflect the WebSocket / protocol events
- *   defined in docs/contracts.md §2.3 and backend/vaani/protocol.py.
- *
- * Persona note: the backend protocol.py SessionStart model accepts any string
- * for `persona`; only "default" is currently meaningful in the backend.
- * The selector lists only the value the backend will act on without error.
- * Additional personas will be added here as the backend implements them.
+ * Implements Week 3 Day 2 functionality:
+ * - Turn states in the UI (idle, listening, thinking, speaking, cancelling/interrupted)
+ * - Agent reply streaming progressively as text
+ * - Interrupted turns clearly marked (preserving streamed text + visual indicator)
+ * - Error states with clear messages and recovery actions:
+ *     1. Microphone denied
+ *     2. Connection dropped
+ *     3. Provider failure
+ * - Preserves existing visual direction (warm cream canvas, central VoiceOrb,
+ *   real personas, collapsible latency HUD, bottom controls).
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAudioCapture } from '../hooks/useAudioCapture.js';
 import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
 import { useTranscript } from '../hooks/useTranscript.js';
+import { useTurnState } from '../hooks/useTurnState.js';
 import { useLatencyTelemetry } from '../hooks/useLatencyTelemetry.js';
+import { VoiceOrb } from '../components/VoiceOrb/VoiceOrb.jsx';
 import { TranscriptView } from '../components/TranscriptView.jsx';
 import { LatencyHud } from '../components/LatencyHud.jsx';
 import './ConversationPage.css';
 
 /**
- * Valid persona values known to the backend at this protocol revision.
- * Source: backend/vaani/protocol.py SessionStart (persona: str = "default").
- * Only "default" is meaningful; additional values are listed as a
- * forward-declaration for the UI, not claimed to be implemented by the backend.
+ * Real personas implemented in backend/config.toml [personas].
  */
-const PERSONA_OPTIONS = [
-  { value: 'default', label: 'Default' },
+const PERSONAS = [
+  { id: 'default', label: 'Default', desc: 'Friendly voice assistant' },
+  { id: 'tutor', label: 'Tutor', desc: 'Patient explanations & checks' },
+  { id: 'support', label: 'Support', desc: 'Concise & practical help' },
 ];
 
 export default function ConversationPage() {
-  // --- Persona selector state (Week 2, Day 1) ---
-  // selectedPersona is held here because it must survive connect/disconnect
-  // cycles: the user should be able to pick a persona before connecting and
-  // keep their choice after disconnecting.
   const [selectedPersona, setSelectedPersona] = useState('default');
+  const [showTelemetry, setShowTelemetry] = useState(false);
 
-  // Playback queue: enqueue() accepts an ArrayBuffer and plays it gaplessly.
-  const { enqueue, flushPlayback } = usePlaybackQueue();
+  // Playback queue: gapless PCM scheduling + dynamic sample rate handling
+  const { enqueue, flushPlayback, setPlaybackSampleRate } = usePlaybackQueue();
 
-  // Transcript state: manages live active partial and immutable finalized speech turns
+  // Backend turn state mirror (idle, listening, thinking, speaking, cancelling)
+  const {
+    turnState,
+    processTurnMessage,
+    resetTurnState,
+  } = useTurnState();
+
+  // Transcript state: manages user turns, streaming agent replies, and interrupted turns
   const {
     finalTranscriptEntries,
     currentPartialTranscript,
+    currentAgentPartial,
     updatePartial,
     finalizeTurn,
+    appendAgentDelta,
+    finalizeAgentTurn,
+    interruptAgentTurn,
     clearActivePartial,
     resetTranscript,
   } = useTranscript();
 
-  // Latency telemetry state: manages live per-stage timings from server messages (Week 3, Day 1)
+  // Real pipeline latency telemetry
   const {
     telemetryData,
     processServerMessage: processTelemetryMessage,
     resetTelemetry,
   } = useLatencyTelemetry();
 
+  // Audio capture pipeline & WebSocket session lifecycle
   const {
     isCapturing,
     micStatus,
     wsStatus,
     sessionId,
-    framesSent,
-    fps,
     errorMessage,
+    clearError,
     startCapture,
     stopCapture,
   } = useAudioCapture();
 
-  // ---- Session state helpers -----------------------------------------------
-  //
-  // wsStatus values and their meanings (from useAudioCapture / contracts.md):
-  //   'disconnected' — no WebSocket, no session.
-  //   'connecting'   — WebSocket TCP handshake in progress.
-  //   'connected'    — WebSocket open; session.start sent; awaiting session.started.
-  //   'ready'        — session.started received; session fully active.
-  //   'error'        — WebSocket or protocol error.
-
   const isTransitioning = wsStatus === 'connecting' || wsStatus === 'connected';
-  const hasError = wsStatus === 'error';
+  const isConnected = wsStatus === 'ready';
 
   /**
-   * Map wsStatus to a human-readable label and CSS class for the status badge.
-   * Only statuses that useAudioCapture actually sets are handled here.
-   */
-  const getSessionStatusDisplay = () => {
-    switch (wsStatus) {
-      case 'connecting':
-        return { label: 'Connecting…', className: 'status-warning' };
-      case 'connected':
-        return { label: 'Starting session…', className: 'status-warning' };
-      case 'ready':
-        return { label: 'Session active', className: 'status-active' };
-      case 'error':
-        return { label: 'Connection error', className: 'status-error' };
-      default:
-        return { label: 'Disconnected', className: 'status-idle' };
-    }
-  };
-
-  const getMicStatusDisplay = () => {
-    switch (micStatus) {
-      case 'requesting':
-        return { label: 'Requesting permission…', className: 'status-warning' };
-      case 'active':
-        return { label: 'Capturing (16 kHz mono)', className: 'status-active' };
-      case 'denied':
-        return { label: 'Permission denied', className: 'status-error' };
-      case 'error':
-        return { label: 'Error', className: 'status-error' };
-      default:
-        return { label: 'Idle', className: 'status-idle' };
-    }
-  };
-
-  const session = getSessionStatusDisplay();
-  const mic = getMicStatusDisplay();
-
-  // ---- Handlers ------------------------------------------------------------
-
-  /**
-   * Route incoming JSON control messages from the WebSocket.
-   * Dispatches speech transcripts to useTranscript, and telemetry frames
-   * to useLatencyTelemetry.
+   * Central server message router.
+   * Dispatches protocol events to audio, transcript, turn state, and telemetry.
    */
   const handleServerMessage = useCallback((msg) => {
     if (!msg || typeof msg !== 'object') return;
 
+    // Dynamic sample rate for Piper TTS (declared in audio.start)
+    if (msg.type === 'audio.start' && msg.sample_rate) {
+      setPlaybackSampleRate(msg.sample_rate);
+    }
+
+    // User speech transcripts
     if (msg.type === 'transcript.partial') {
       updatePartial(msg.text);
     } else if (msg.type === 'transcript.final') {
       finalizeTurn(msg.text);
     }
 
+    // Backend turn state transitions
+    if (msg.type === 'turn.state') {
+      processTurnMessage(msg);
+      if (msg.state === 'cancelling') {
+        interruptAgentTurn('Interrupted');
+      }
+    }
+
+    // Streaming agent replies
+    if (msg.type === 'agent.text') {
+      processTurnMessage(msg);
+      appendAgentDelta(msg.delta);
+    } else if (msg.type === 'agent.done') {
+      processTurnMessage(msg);
+      finalizeAgentTurn(msg.text);
+    }
+
+    // Audio flush command (cancellation)
+    if (msg.type === 'audio.flush') {
+      interruptAgentTurn('Flushed');
+    }
+
+    // Server error report (provider failure, safety guardrail, recognizer, etc.)
+    if (msg.type === 'error') {
+      clearActivePartial();
+    }
+
+    // Pipeline telemetry
     processTelemetryMessage(msg);
-  }, [updatePartial, finalizeTurn, processTelemetryMessage]);
+  }, [
+    setPlaybackSampleRate,
+    updatePartial,
+    finalizeTurn,
+    processTurnMessage,
+    appendAgentDelta,
+    finalizeAgentTurn,
+    interruptAgentTurn,
+    clearActivePartial,
+    processTelemetryMessage,
+  ]);
 
   /**
-   * Connect: start audio capture and open the WebSocket session.
-   * Resets transcript and telemetry so stale turns from a previous session do not carry over.
-   * The persona chosen in the selector is passed to useAudioCapture which
-   * includes it in the session.start control message per contracts.md §2.3.
-   * Guard: if already capturing, this is a no-op (useAudioCapture also guards).
+   * Connect: start microphone capture and WebSocket session.
    */
-  const handleConnect = () => {
+  const handleConnect = useCallback(() => {
     if (isCapturing) return;
     resetTranscript();
     resetTelemetry();
+    resetTurnState();
     startCapture(enqueue, flushPlayback, selectedPersona, handleServerMessage);
-  };
+  }, [
+    isCapturing,
+    resetTranscript,
+    resetTelemetry,
+    resetTurnState,
+    startCapture,
+    enqueue,
+    flushPlayback,
+    selectedPersona,
+    handleServerMessage,
+  ]);
 
   /**
-   * Disconnect: send session.end, close WebSocket, release audio resources.
-   * Clears any active in-flight partial transcript so it does not linger.
-   * Finalized transcript entries remain visible until a new session starts.
-   * stopCapture() performs all cleanup per useAudioCapture's teardown sequence.
+   * Disconnect: cleanly end session and release microphone.
    */
-  const handleDisconnect = () => {
+  const handleDisconnect = useCallback(() => {
     clearActivePartial();
+    resetTurnState();
     stopCapture();
-  };
+  }, [clearActivePartial, resetTurnState, stopCapture]);
 
-  // Clear in-flight active partial whenever the session ends or errors
+  // Reset active partials when disconnected or error occurs
   useEffect(() => {
     if (wsStatus === 'disconnected' || wsStatus === 'error') {
       clearActivePartial();
+      resetTurnState();
     }
-  }, [wsStatus, clearActivePartial]);
+  }, [wsStatus, clearActivePartial, resetTurnState]);
 
-  /**
-   * Persona change: only allowed when disconnected to avoid mid-session
-   * persona switching (the backend associates a persona with a session at
-   * session.start time; it cannot be changed while the session is live).
-   */
-  const handlePersonaChange = (e) => {
-    if (!isCapturing) {
-      setSelectedPersona(e.target.value);
-    }
-  };
+  const isMicDenied = micStatus === 'denied';
+  const isConnectionDropped = Boolean(
+    errorMessage && errorMessage.toLowerCase().includes('connection')
+  );
 
   return (
-    <main className="conversation-page">
-      <div className="header-section">
-        <h1>Vaani</h1>
-        <p className="subtitle">Real-time voice conversation</p>
-      </div>
+    <div className="conversation-container">
+      {/* Top Bar: Title & Session Info */}
+      <header className="conversation-header">
+        <div className="header-brand">
+          <h1 className="header-title">Vaani</h1>
+          <span className="header-subtitle">Real-time Hindi & English voice assistant</span>
+        </div>
 
-      {/* Error banner — shown for connection / protocol errors */}
+        <div className="header-actions">
+          {/* Persona selector (disabled while session is active) */}
+          <div className="persona-picker" title={isCapturing ? 'Persona is fixed for active session' : 'Choose persona'}>
+            <span className="persona-picker-label">Persona:</span>
+            <div className="persona-options">
+              {PERSONAS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`persona-chip ${selectedPersona === p.id ? 'active' : ''}`}
+                  onClick={() => !isCapturing && setSelectedPersona(p.id)}
+                  disabled={isCapturing}
+                  title={p.desc}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Session Status Pill */}
+          <div className={`session-pill status-${wsStatus}`}>
+            <span className="status-indicator" />
+            <span className="status-text">
+              {wsStatus === 'ready'
+                ? 'Connected'
+                : wsStatus === 'connecting' || wsStatus === 'connected'
+                ? 'Connecting…'
+                : wsStatus === 'error'
+                ? 'Error'
+                : 'Disconnected'}
+            </span>
+            {sessionId && (
+              <span className="session-id-tag" title={sessionId}>
+                {sessionId.slice(0, 6)}
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Comprehensive Failure & Error Notification Screens */}
       {errorMessage && (
-        <div className="error-banner" role="alert">
-          <span className="error-icon">⚠️</span>
-          <span>{errorMessage}</span>
+        <div
+          className={`error-banner ${
+            isMicDenied
+              ? 'error-mic-denied'
+              : isConnectionDropped
+              ? 'error-connection-dropped'
+              : 'error-provider'
+          }`}
+          role="alert"
+        >
+          <div className="error-icon-wrap" aria-hidden="true">
+            <svg className="error-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div className="error-content">
+            <div className="error-title-row">
+              <strong className="error-title">
+                {isMicDenied
+                  ? 'Microphone Permission Denied'
+                  : isConnectionDropped
+                  ? 'Connection Dropped'
+                  : 'Service Error'}
+              </strong>
+            </div>
+            <p className="error-text">{errorMessage}</p>
+          </div>
+          <div className="error-actions">
+            {isMicDenied && (
+              <button
+                type="button"
+                className="error-action-btn"
+                onClick={handleConnect}
+              >
+                Try Again
+              </button>
+            )}
+            {isConnectionDropped && !isCapturing && (
+              <button
+                type="button"
+                className="error-action-btn"
+                onClick={handleConnect}
+              >
+                Reconnect
+              </button>
+            )}
+            <button
+              type="button"
+              className="error-dismiss-btn"
+              onClick={clearError}
+              aria-label="Dismiss error notification"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
-      {/* ---- Session status badge (Week 2, Day 1) ---- */}
-      <div className="session-status-row" aria-label="Session status">
-        <span className={`session-status-badge ${session.className}`}>
-          <span className="status-dot" />
-          {session.label}
-        </span>
-        {sessionId && (
-          <span className="session-id-display" title="Session ID">
-            ID: {sessionId.slice(0, 8)}…
-          </span>
-        )}
-      </div>
+      {/* Main Conversation Experience */}
+      <div className="conversation-stage">
+        {/* Central Voice Orb Presence */}
+        <section className="orb-section">
+          <VoiceOrb
+            turnState={turnState}
+            isConnected={isConnected}
+            isTransitioning={isTransitioning}
+            errorMessage={errorMessage}
+            onClick={!isConnected ? handleConnect : undefined}
+          />
+        </section>
 
-      {/* ---- Persona selector (Week 2, Day 1) ---- */}
-      {/*
-        The selector is always visible so the user can see and choose their
-        persona before connecting. It is disabled while a session is active
-        because the backend binds the persona at session.start time.
-      */}
-      <div className="persona-section">
-        <label htmlFor="persona-select" className="persona-label">
-          Persona
-        </label>
-        <select
-          id="persona-select"
-          className="persona-select"
-          value={selectedPersona}
-          onChange={handlePersonaChange}
-          disabled={isCapturing}
-          aria-describedby="persona-hint"
-        >
-          {PERSONA_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <p id="persona-hint" className="persona-hint">
-          {isCapturing
-            ? 'Persona cannot be changed while a session is active.'
-            : 'Choose a persona before connecting.'}
-        </p>
-      </div>
+        {/* Real Conversation Transcript Stream */}
+        <section className="transcript-wrapper">
+          <TranscriptView
+            finalTranscriptEntries={finalTranscriptEntries}
+            currentPartialTranscript={currentPartialTranscript}
+            currentAgentPartial={currentAgentPartial}
+            isCapturing={isCapturing}
+            turnState={turnState}
+          />
+        </section>
 
-      {/* ---- Connect / Disconnect controls (Week 2, Day 1) ---- */}
-      <div className="controls-section">
-        {!isCapturing ? (
+        {/* Collapsible Pipeline Telemetry */}
+        <section className="telemetry-collapsible">
           <button
             type="button"
-            className="action-btn start-btn"
-            onClick={handleConnect}
-            id="connect-btn"
-            disabled={isTransitioning}
-            aria-label="Connect and start voice session"
+            className="telemetry-toggle-btn"
+            onClick={() => setShowTelemetry((prev) => !prev)}
+            aria-expanded={showTelemetry}
           >
-            Connect
+            <span className="telemetry-toggle-icon">⚡</span>
+            <span>{showTelemetry ? 'Hide Pipeline Latency' : 'View Pipeline Latency Telemetry'}</span>
+            {telemetryData?.totalMs && (
+              <span className="telemetry-total-pill">{Math.round(telemetryData.totalMs)} ms</span>
+            )}
           </button>
-        ) : (
-          <button
-            type="button"
-            className="action-btn stop-btn"
-            onClick={handleDisconnect}
-            id="disconnect-btn"
-            aria-label="Disconnect and end voice session"
-          >
-            {hasError ? 'Close' : 'Disconnect'}
-          </button>
-        )}
+
+          {showTelemetry && (
+            <div className="telemetry-drawer">
+              <LatencyHud
+                telemetryData={telemetryData}
+                wsStatus={wsStatus}
+                isCapturing={isCapturing}
+              />
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* ---- Live Transcript section (Week 2, Day 2) ---- */}
-      <TranscriptView
-        finalTranscriptEntries={finalTranscriptEntries}
-        currentPartialTranscript={currentPartialTranscript}
-        isCapturing={isCapturing}
-      />
-
-      {/* ---- Latency HUD (Week 3, Day 1) ---- */}
-      <LatencyHud
-        telemetryData={telemetryData}
-        wsStatus={wsStatus}
-        isCapturing={isCapturing}
-      />
-
-      {/* ---- Diagnostics panel (Week 1 preserved) ---- */}
-      <section className="status-panel" aria-label="Audio pipeline status">
-        <h2 className="status-panel-title">Audio Pipeline Diagnostics</h2>
-
-        <div className="status-row">
-          <span className="status-label">Session</span>
-          <span className={`status-value ${session.className}`}>
-            <span className="status-dot" />
-            {session.label}
-          </span>
+      {/* Floating Bottom Control Bar */}
+      <div className="bottom-bar-container">
+        <div className="floating-controls-bar">
+          {!isCapturing ? (
+            <button
+              type="button"
+              id="connect-btn"
+              className="control-btn primary-connect-btn"
+              onClick={handleConnect}
+              disabled={isTransitioning}
+              aria-label="Connect and start voice session"
+            >
+              <div className="btn-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 01-3-3V4.5a3 3 0 116 0v7.5a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <span className="btn-label">
+                {isTransitioning ? 'Connecting…' : 'Start Conversation'}
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              id="disconnect-btn"
+              className="control-btn disconnect-btn"
+              onClick={handleDisconnect}
+              aria-label="End conversation session"
+            >
+              <div className="btn-icon-wrapper disconnect-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <span className="btn-label">End Conversation</span>
+            </button>
+          )}
         </div>
-
-        <div className="status-row">
-          <span className="status-label">Microphone</span>
-          <span className={`status-value ${mic.className}`}>
-            <span className="status-dot" />
-            {mic.label}
-          </span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">Persona</span>
-          <span className="status-value metrics-value">
-            {isCapturing ? selectedPersona : '—'}
-          </span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">Audio Format</span>
-          <span className="status-value">16 kHz / 20 ms / 640 B Int16</span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">Frames Sent</span>
-          <span className="status-value metrics-value">{framesSent.toLocaleString()}</span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">Frame Rate</span>
-          <span className="status-value metrics-value">
-            {fps} fps <span className="target-fps">(target ~50)</span>
-          </span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">Playback</span>
-          <span className={`status-value ${wsStatus === 'ready' ? 'status-active' : 'status-idle'}`}>
-            <span className="status-dot" />
-            {wsStatus === 'ready' ? 'Playback ready' : 'Waiting for session'}
-          </span>
-        </div>
-      </section>
-
-      <p className="hint">
-        Audio is processed on a dedicated AudioWorklet thread and streamed as 20 ms binary frames.
-        Incoming server audio is scheduled gaplessly via the Web Audio clock.
-      </p>
-    </main>
+      </div>
+    </div>
   );
 }
