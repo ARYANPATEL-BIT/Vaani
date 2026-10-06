@@ -19,6 +19,7 @@ from vaani.gateway import router as gateway_router
 from vaani.providers.base import LLMProvider
 from vaani.providers.chain import build_chain
 from vaani.spend import RequestCap
+from vaani.tts import Synthesizer, build_synthesizer
 from vaani.vad import load_model
 
 
@@ -45,6 +46,7 @@ def create_app(
     settings: Settings | None = None,
     recognizer: Recognizer | None = None,
     llm: LLMProvider | None = None,
+    synthesizer: Synthesizer | None = None,
 ) -> FastAPI:
     """Build and return a configured FastAPI application.
 
@@ -55,8 +57,8 @@ def create_app(
     pass an explicit Settings object to, for example, shrink the gateway's
     frame-log interval without touching the environment.
 
-    `recognizer` and `llm` are for tests only: a stand-in speech recogniser
-    and language model used instead of the real ones named in settings.
+    `recognizer`, `llm` and `synthesizer` are for tests only: stand-ins used
+    instead of the real ones named in settings.
     """
     settings = settings or get_settings()
     _configure_logging()
@@ -89,6 +91,14 @@ def create_app(
     elif settings.llm.enabled:
         cap = RequestCap(settings.llm.max_requests_per_process)
         app.state.llm = build_chain(settings, cap)
+
+    # The voice, loaded (and warmed up) once at startup and shared, like
+    # Whisper. A missing or wrong voice file raises: the server refuses to
+    # start rather than reply in silence.
+    if synthesizer is not None:
+        app.state.synthesizer = synthesizer
+    elif settings.tts.enabled:
+        app.state.synthesizer = build_synthesizer(settings.tts)
 
     @app.get("/health")
     def health() -> dict[str, str]:

@@ -10,9 +10,13 @@ marked @pytest.mark.slow; gateway tests inject a fake recogniser instead.
 The language model is off for the same reason, and because CI has no API
 keys: build_chain refuses to start without them. Tests that need a model
 inject a scripted one (tests/test_turn_llm.py).
+
+Speech synthesis is off too: gateway tests inject a fake synthesiser
+(tests/fake_tts.py). tests/test_tts_piper.py builds the real voice directly.
 """
 
 import os
 
 os.environ["VAANI_ASR__ENABLED"] = "false"
 os.environ["VAANI_LLM__ENABLED"] = "false"
+os.environ["VAANI_TTS__ENABLED"] = "false"

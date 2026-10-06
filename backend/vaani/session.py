@@ -95,10 +95,15 @@ class Session:
 
         Returns the flushed turn_id, or None if there was nothing to flush (no
         turn yet, or this turn was already flushed — flushing is idempotent).
+
+        It flushes whether or not the user's turn is still open: the agent's
+        reply carries the same turn_id after the user's turn has closed.
+        Whether there is anything to flush is the state machine's call
+        (turns.py), not this method's.
         """
         turn_id = self.current_turn_id
-        if turn_id is None or not self.turn_open:
-            log.info("session %s: dev flush ignored, no turn open", self.session_id)
+        if turn_id is None:
+            log.info("session %s: flush ignored, no turn yet", self.session_id)
             return None
         if turn_id in self._flushed_turns:
             log.info("session %s: turn %s already flushed", self.session_id, turn_id)

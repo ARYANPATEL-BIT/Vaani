@@ -5,12 +5,13 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.4. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.5. The same shapes are mirrored on the frontend.
 
 Two kinds of traffic flow over the socket, in BOTH directions:
-  * Audio frames are raw BINARY messages (16 kHz mono 16-bit PCM). They carry
-    no JSON and are NOT modelled here — they are just bytes validated by length.
-    Server-to-browser audio has the same format as client-to-server audio.
+  * Audio frames are raw BINARY messages (mono 16-bit little-endian PCM).
+    They carry no JSON and are NOT modelled here. Browser-to-server audio is
+    16 kHz, validated by length. Server-to-browser audio is at the rate its
+    audio.start declares (v0.5).
   * Control messages are JSON TEXT messages, each with a "type" field. Those
     are the models below.
 
@@ -36,6 +37,14 @@ turn state machine in turns.py), agent.text (one streamed fragment of the
 reply; APPEND these, unlike transcript.partial which replaces) and agent.done
 (the full reply). A failed turn gets an error and then turn.state idle, never
 agent.done; a cancelled turn gets no agent.done either.
+
+v0.5 makes the agent AUDIBLE: its reply is synthesised and sent as audio
+frames between audio.start and audio.end, the same route the echo used.
+audio.start now carries `sample_rate`: the rate of every frame until the
+matching audio.end (22050 for the Piper voice, 16000 for echo). turn.state
+`speaking` now means the agent's AUDIO has started, not its text, so
+agent.text deltas arrive while the state is still `thinking`. A reply whose
+synthesis fails gets audio.end (if audio had started), TTS_FAILED, then idle.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
@@ -64,6 +73,7 @@ class ErrorCode(StrEnum):
     ASR_FAILED = "ASR_FAILED"  # a turn's final transcript could not be produced
     LLM_FAILED = "LLM_FAILED"  # the agent could not answer
     INPUT_REJECTED = "INPUT_REJECTED"  # the turn was blocked before the model
+    TTS_FAILED = "TTS_FAILED"  # the reply could not be spoken
 
 
 class TurnState(StrEnum):
@@ -77,7 +87,7 @@ class TurnState(StrEnum):
     IDLE = "idle"  # nothing in progress; turn_id is null
     LISTENING = "listening"  # the user is speaking
     THINKING = "thinking"  # turn over; transcribing and waiting for the model
-    SPEAKING = "speaking"  # reply streaming (until day 12: as text only)
+    SPEAKING = "speaking"  # the reply's audio is being sent and played
     CANCELLING = "cancelling"  # reply being stopped
 
 
@@ -154,10 +164,12 @@ class ErrorMessage(BaseModel):
 class AudioStart(BaseModel):
     """Marks the start of a turn's audio. Sent before that turn's first audio
     frame. Every frame the browser then receives belongs to this turn until the
-    matching audio.end (or the socket closes)."""
+    matching audio.end (or the socket closes), and is `sample_rate` samples
+    per second."""
 
     type: Literal["audio.start"] = "audio.start"
     turn_id: str
+    sample_rate: int
 
 
 class AudioEnd(BaseModel):
@@ -242,9 +254,9 @@ def error(code: ErrorCode, message: str) -> dict:
     return ErrorMessage(code=code, message=message).model_dump(mode="json")
 
 
-def audio_start(turn_id: str) -> dict:
+def audio_start(turn_id: str, sample_rate: int) -> dict:
     """Build the audio.start payload for `websocket.send_json`."""
-    return AudioStart(turn_id=turn_id).model_dump(mode="json")
+    return AudioStart(turn_id=turn_id, sample_rate=sample_rate).model_dump(mode="json")
 
 
 def audio_end(turn_id: str) -> dict:

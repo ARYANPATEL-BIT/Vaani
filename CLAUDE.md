@@ -5,7 +5,7 @@ Vaani — a real-time, interruptible voice agent with a studio that turns writte
 Stack: FastAPI gateway with WebSockets, React frontend, PostgreSQL, Silero VAD, faster-whisper, Piper, hosted LLM providers behind an adapter, ElevenLabs and XTTS for cloning, HeyGen and fal for avatar video, ffmpeg for assembly.
 
 Non-negotiable constraints
-No GPU anywhere. If a component needs one, it is out of scope.
+CPU by default. The committed config runs everything on CPU: ASR is cpu / int8 / small. GPU runs (e.g. cuda / float16 / large-v3) come only from local overrides in the gitignored backend/.env, never from committed config. VAD always stays on CPU.
 No vendor SDK is imported outside providers/, voice/synth/, or render/avatar/. Vendors are configuration values, never code dependencies.
 Latency is the primary quality bar. Any change to the conversation path carries a measured before/after. Target: P50 under 1,000 ms, mic-stop to first audible sample.
 Cancellation is first-class. Every provider call, tool call, and long-running operation takes a cancellation token and aborts the underlying HTTP stream cleanly.
@@ -16,6 +16,8 @@ Spend caps are checked before any paid call is dispatched.
 The learning document requirement
 
 Every piece of work produces or updates a learning document, written by you, not by me. Code without one is not complete.
+
+Every pull request ships a learning document in docs/learning/ that meets docs/learning/STANDARD.md. A PR without one is not ready to merge.
 
 The purpose is teaching. I am learning this stack while building it, so the document is written for someone who did not write the code and does not already know the techniques involved. Explain the concepts, not just the decisions. If the code uses a WebSocket, a cancellation token, a state machine, or an async generator, explain what that is and why it is the right tool here — briefly, in plain language, before explaining what our code does with it.
 

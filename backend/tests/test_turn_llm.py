@@ -27,7 +27,7 @@ from vaani.providers.base import (
     TextChunk,
 )
 from vaani.providers.chain import ProviderChain
-from vaani.turns import IllegalTransition, check_transition
+from vaani.turn_state import IllegalTransition, check_transition
 
 
 class ScriptedLLM(LLMProvider):
@@ -146,6 +146,9 @@ def test_agent_output_from_idle_raises() -> None:
 
 
 def test_transcript_streams_agent_text_then_done() -> None:
+    # TTS is off here (conftest), so the reply is text only. Since day 12
+    # `speaking` means audio is playing, so a text-only reply never enters
+    # it: thinking -> idle. The spoken path is in tests/test_turn_tts.py.
     llm = ScriptedLLM()
     with make_client(llm).websocket_connect("/ws/session") as ws:
         start(ws)
@@ -157,7 +160,6 @@ def test_transcript_streams_agent_text_then_done() -> None:
         "listening",
         "thinking",
         "transcript.final",
-        "speaking",
         "agent.text",
         "agent.text",
         "agent.text",
@@ -309,7 +311,8 @@ def test_dev_flush_while_thinking_cancels_the_stream() -> None:
         after = until_idle(ws)
         assert reacks(ws)  # no agent.text or agent.done slipped out
 
-    assert trace(after) == ["cancelling", "idle"]
+    # audio.flush is sent on every reply cancel, audio or not (day 12).
+    assert trace(after) == ["audio.flush", "cancelling", "idle"]
     assert llm.closed.is_set()  # the stream was closed, not left running
 
 
@@ -323,8 +326,8 @@ def test_dev_flush_mid_answer_stops_the_stream() -> None:
         after = until_idle(ws)
         assert reacks(ws)
 
-    assert trace(before)[-2:] == ["speaking", "agent.text"]
-    assert trace(after) == ["cancelling", "idle"]
+    assert trace(before)[-2:] == ["transcript.final", "agent.text"]
+    assert trace(after) == ["audio.flush", "cancelling", "idle"]
     assert llm.closed.is_set()
 
 
@@ -340,7 +343,7 @@ def test_speech_while_thinking_is_dropped_and_logged(caplog) -> None:
             after = until_idle(ws)
 
     # The second utterance opened no turn: no "listening" before the cancel.
-    assert trace(after) == ["cancelling", "idle"]
+    assert trace(after) == ["audio.flush", "cancelling", "idle"]
     logged = [r.getMessage() for r in caplog.records]
     assert any("speech dropped while thinking" in m for m in logged)
     assert any("dropped speech lasted" in m for m in logged)

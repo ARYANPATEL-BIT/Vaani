@@ -39,7 +39,7 @@ def new_runner(
         if finals is not None:
             finals.append((turn_id, text))
 
-    return AsrRunner(rec, asr_cfg(**cfg), send, Telemetry(session), on_final)
+    return AsrRunner(rec, asr_cfg(**cfg), 20, send, Telemetry(session), on_final)
 
 
 async def settle(runner: AsrRunner, seconds: float = 0.0) -> None:

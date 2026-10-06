@@ -9,17 +9,16 @@ there, in order:
      transcript, any echo audio and the agent's reply all carry the same id;
   4. ASR (asr/runner.py) is asked for partials while the user speaks and for
      the final when the turn ends — asked only: recognition never runs here;
-  5. the final transcript goes to reply.py, which streams the model's answer;
-  6. echo (day 3, development only) sends the turn's frames back.
+  5. the final transcript goes to reply.py, which streams the model's answer
+     and has it spoken (chunker.py, speaker.py, tts/);
+  6. echo (echo.py; day 3, development only) sends the turn's frames back.
 
 Everything in on_frame is quick: VAD is ~1 ms, the rest microseconds. The
 slow steps, recognition and the model, run as background tasks, so the frame
 loop never waits for them.
 
-The TURN STATE MACHINE (day 11) is what the agent is doing, as one value:
-idle, listening, thinking, speaking or cancelling. `_LEGAL` lists every
-allowed move; `move_to` is the only way to change state, raises on anything
-else, and sends turn.state to the browser.
+The TURN STATE MACHINE (day 11, turn_state.py) is what the agent is doing,
+as one value. Every change goes through its `move_to`, here and in reply.py.
 
 The system is HALF-DUPLEX today: while the agent is thinking, speaking or
 cancelling, user speech is detected but dropped (`_drop_overlap`), not
@@ -33,43 +32,21 @@ from time import perf_counter
 from vaani.asr import Recognizer
 from vaani.asr.runner import AsrRunner
 from vaani.config import Settings
-from vaani.endpoint import Endpointer, TurnEnded, ms_to_frames
-from vaani.protocol import TurnState, audio_end, audio_start, turn_state
+from vaani.echo import Echo
+from vaani.endpoint import Endpointer, TurnEnded
+from vaani.protocol import TurnState
 from vaani.providers.base import LLMProvider
 from vaani.reply import Responder
 from vaani.session import Session
-from vaani.telemetry import ECHO_SENT, FRAME_RECEIVED, TURN_ENDED, Telemetry
+from vaani.telemetry import TURN_ENDED, Telemetry
+from vaani.tts import Synthesizer
+from vaani.turn_state import TurnStateMachine
 from vaani.vad import SPEECH_ENDED, SPEECH_STARTED, SpeechEvent, VadStream
 
 log = logging.getLogger("vaani.turns")
 
 SendJson = Callable[[dict], Awaitable[None]]
 SendBytes = Callable[[bytes], Awaitable[None]]
-
-# Every legal move, and nothing else. An unlisted move is a bug in the
-# caller, so it raises instead of quietly happening.
-_LEGAL: dict[TurnState, set[TurnState]] = {
-    TurnState.IDLE: {TurnState.LISTENING},  # speech started: a turn opens
-    # Turn over -> thinking. Too short, flushed, or no model -> idle.
-    TurnState.LISTENING: {TurnState.THINKING, TurnState.IDLE},
-    # First reply text -> speaking; failed or nothing to say -> idle.
-    TurnState.THINKING: {TurnState.SPEAKING, TurnState.IDLE, TurnState.CANCELLING},
-    # Reply done or failed -> idle; dev.flush -> cancelling.
-    TurnState.SPEAKING: {TurnState.IDLE, TurnState.CANCELLING},
-    # dev.flush (no speech caused it) -> idle. Week-3 barge-in (the user's
-    # speech caused it and already opened the new turn) -> listening.
-    TurnState.CANCELLING: {TurnState.IDLE, TurnState.LISTENING},
-}
-
-
-class IllegalTransition(Exception):
-    """A move `_LEGAL` does not allow was attempted."""
-
-
-def check_transition(current: TurnState, new: TurnState) -> None:
-    """Raise IllegalTransition unless current -> new is in `_LEGAL`."""
-    if new not in _LEGAL[current]:
-        raise IllegalTransition(f"{current} -> {new}")
 
 
 class TurnPipeline:
@@ -85,13 +62,21 @@ class TurnPipeline:
         vad_model,
         recognizer: Recognizer | None,
         chain: LLMProvider | None,
+        synth: Synthesizer | None,
     ) -> None:
         self._session = session
         self._telemetry = telemetry
         self._send_json = send_json
-        self._send_bytes = send_bytes
         self._frame_ms = settings.audio.frame_ms
-        self._echo = settings.gateway.echo_enabled
+        self._machine = TurnStateMachine(session, send_json)
+        self._echo = Echo(
+            settings.gateway.echo_enabled,
+            settings.audio.sample_rate,
+            session,
+            telemetry,
+            send_json,
+            send_bytes,
+        )
         # Each stage needs the one before it: no VAD, no endpointing; no
         # endpointing (no utterances), nothing to transcribe; no transcript
         # (or no model), nothing to answer.
@@ -106,26 +91,36 @@ class TurnPipeline:
             else None
         )
         self._asr = (
-            AsrRunner(recognizer, settings.asr, send_json, telemetry, self._on_final)
+            AsrRunner(
+                recognizer,
+                settings.asr,
+                self._frame_ms,
+                send_json,
+                telemetry,
+                self._on_final,
+            )
             if self._endpointer is not None and recognizer is not None
             else None
         )
         self._responder = (
-            Responder(chain, settings, session, telemetry, send_json, self.move_to)
+            Responder(
+                chain,
+                synth,
+                settings,
+                session,
+                telemetry,
+                send_json,
+                send_bytes,
+                self._machine.move_to,
+            )
             if self._asr is not None and chain is not None
             else None
         )
-        self.state = TurnState.IDLE
         # perf_counter of the last turn_ended, for the first-token log line.
         self._ended_at = 0.0
         # speech_started of user speech being dropped (agent busy), until
         # its speech_ended.
         self._overlap: SpeechEvent | None = None
-        # Partial re-decode interval in frames; 0 = partials off.
-        interval = settings.asr.partial_interval_ms
-        self._partial_frames = ms_to_frames(interval, self._frame_ms) if interval else 0
-        # frames_since_start at which the last partial was requested.
-        self._last_partial_at = 0
 
     async def on_frame(self, data: bytes) -> None:
         """Process one valid frame. Must be called for every frame, in order."""
@@ -147,19 +142,24 @@ class TurnPipeline:
         if self._endpointer is not None:
             # THE ROUTING SEAM: who gets the user's speech right now.
             if (
-                self.state in (TurnState.IDLE, TurnState.LISTENING)
+                self._machine.state in (TurnState.IDLE, TurnState.LISTENING)
                 and self._overlap is None
             ):
                 await self._endpoint(data, speech_event)
             else:
                 self._drop_overlap(speech_event)
-        await self._echo_frame(data)
+        await self._echo.frame(data)
 
     async def on_dev_flush(self) -> None:
         """dev.flush: stop the agent's reply if there is one; otherwise flush
         the user's open turn (day 4) and abandon its recognition."""
-        if self.state in (TurnState.THINKING, TurnState.SPEAKING):
+        if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
             await self._cancel_reply()
+            return
+        if not self._session.turn_open:
+            log.info(
+                "session %s: dev flush ignored, no turn open", self._session.session_id
+            )
             return
         flushed = await self._session.flush(self._send_json, self._telemetry)
         if flushed is not None and self._asr is not None:
@@ -167,7 +167,7 @@ class TurnPipeline:
 
     async def on_session_end(self) -> None:
         """Clean session.end: close the open echo turn before the socket."""
-        await self._send_echo_end()
+        await self._echo.end()
 
     async def close(self) -> None:
         """Session over, cleanly or not. Sends nothing: the socket may be gone."""
@@ -182,18 +182,6 @@ class TurnPipeline:
             await self._asr.close()
         if self._endpointer is not None:
             self._endpointer.close()
-
-    async def move_to(self, new: TurnState) -> None:
-        """The ONLY way the state changes: check, record, tell the browser.
-
-        Recorded BEFORE the send, like a flush mark: anything that runs during
-        the send's await must already see the new state.
-        """
-        check_transition(self.state, new)
-        old, self.state = self.state, new
-        turn_id = None if new is TurnState.IDLE else self._session.current_turn_id
-        log.info("session %s: %s -> %s", self._session.session_id, old, new)
-        await self._send_json(turn_state(turn_id, new))
 
     # --- Routing -------------------------------------------------------------
 
@@ -212,10 +200,16 @@ class TurnPipeline:
         if (
             ep.utterance_open
             and not self._session.turn_open
-            and self.state is TurnState.IDLE
+            and self._machine.state is TurnState.IDLE
         ):
             await self._open_turn()
-        self._maybe_request_partial()
+        turn_id = self._session.current_turn_id
+        if (
+            self._asr is not None
+            and turn_id is not None
+            and not self._session.is_flushed(turn_id)
+        ):
+            self._asr.maybe_request_partial(turn_id, ep)
 
     def _drop_overlap(self, speech_event: SpeechEvent | None) -> None:
         """Agent busy, no barge-in yet: drop the user's speech, and log it.
@@ -230,9 +224,8 @@ class TurnPipeline:
         sid = self._session.session_id
         if speech_event.kind == SPEECH_STARTED:
             self._overlap = speech_event
-            log.info(
-                "session %s: speech dropped while %s (half-duplex)", sid, self.state
-            )
+            state = self._machine.state
+            log.info("session %s: speech dropped while %s (half-duplex)", sid, state)
         elif speech_event.kind == SPEECH_ENDED and self._overlap is not None:
             ms = (speech_event.frame_index - self._overlap.frame_index) * self._frame_ms
             log.info("session %s: dropped speech lasted %d ms", sid, ms)
@@ -242,12 +235,9 @@ class TurnPipeline:
 
     async def _open_turn(self) -> None:
         turn_id = self._session.open_turn()
-        self._last_partial_at = 0
         log.info("session %s: turn %s opened", self._session.session_id, turn_id)
-        await self.move_to(TurnState.LISTENING)
-        if self._echo:
-            # audio.start must precede the turn's first echoed frame.
-            await self._send_json(audio_start(turn_id))
+        await self._machine.move_to(TurnState.LISTENING)
+        await self._echo.start(turn_id)
 
     async def _end_turn(self, turn: TurnEnded) -> None:
         turn_id = self._session.current_turn_id
@@ -270,16 +260,16 @@ class TurnPipeline:
             turn.frame_count,
             waited,
         )
-        await self._send_echo_end()
+        await self._echo.end()
         self._session.close_turn()
         # A flushed (interrupted) turn gets no transcript: on_dev_flush already
         # abandoned its recognition, and nothing may restart it.
         if self._asr is None or self._session.is_flushed(turn_id):
-            await self.move_to(TurnState.IDLE)
+            await self._machine.move_to(TurnState.IDLE)
             return
         # Thinking only if a model will answer. Without one the transcript is
         # still sent, but the agent itself is idle.
-        await self.move_to(
+        await self._machine.move_to(
             TurnState.THINKING if self._responder is not None else TurnState.IDLE
         )
         self._asr.request_final(turn_id, turn.audio, turn.duration_ms, turn.at)
@@ -292,11 +282,11 @@ class TurnPipeline:
             self._session.session_id,
             turn_id,
         )
-        await self._send_echo_end()
+        await self._echo.end()
         self._session.close_turn()
         if self._asr is not None:
             self._asr.abandon_turn(turn_id)
-        await self.move_to(TurnState.IDLE)
+        await self._machine.move_to(TurnState.IDLE)
 
     # --- Reply lifecycle ---------------------------------------------------
 
@@ -306,7 +296,8 @@ class TurnPipeline:
         if self._responder is None:
             return  # no model: the turn already went idle
         if text is None or not text.strip():
-            await self.move_to(TurnState.IDLE)  # failed, or heard nothing to answer
+            # Failed, or heard nothing to answer.
+            await self._machine.move_to(TurnState.IDLE)
             return
         self._responder.start(turn_id, text, self._ended_at)
 
@@ -321,61 +312,13 @@ class TurnPipeline:
         # Still transcribing? Then no transcript, and so no reply, will come.
         if self._asr is not None and turn_id is not None:
             self._asr.abandon_turn(turn_id)
-        await self.move_to(TurnState.CANCELLING)
+        # Silence what the browser has queued. Day 13 settles the order of
+        # these steps; today the requirement is that audio.flush is sent.
+        await self._session.flush(self._send_json, self._telemetry)
+        await self._machine.move_to(TurnState.CANCELLING)
         await self._responder.wait()  # returns once the HTTP stream is closed
         ms = (perf_counter() - started) * 1000
         log.info("session %s: reply cancelled in %.1f ms", self._session.session_id, ms)
         # Idle, not listening: dev.flush has no speech behind it, and a turn
         # id is created by speech starting, and by nothing else.
-        await self.move_to(TurnState.IDLE)
-
-    def _maybe_request_partial(self) -> None:
-        """Ask for a partial every `partial_interval_ms` of an utterance.
-
-        Only while the user is actively speaking (a re-decode in the silence
-        window would hear nothing new) and only once the utterance is longer
-        than min_utterance_ms. The utterance then cannot be discarded as too
-        short later, so the browser never shows a partial whose turn vanishes.
-        """
-        ep = self._endpointer
-        if self._asr is None or not self._partial_frames or ep is None:
-            return
-        frames = ep.frames_since_start
-        turn_id = self._session.current_turn_id
-        if not ep.speaking or frames < ep.min_frames or turn_id is None:
-            return
-        if self._session.is_flushed(turn_id):
-            return
-        if frames - self._last_partial_at >= self._partial_frames:
-            self._last_partial_at = frames
-            self._asr.request_partial(turn_id, ep.snapshot())
-
-    # --- Echo (day 3, development only) -----------------------------------
-
-    async def _echo_frame(self, data: bytes) -> None:
-        """Send the frame back if echo is on and a turn is open."""
-        turn_id = self._session.current_turn_id
-        if not self._echo or not self._session.turn_open or turn_id is None:
-            return
-        self._telemetry.record(FRAME_RECEIVED, turn_id)
-        # Late-frame gate. There is NO await between this check and
-        # send_bytes, so nothing can flush the turn in between: if the turn
-        # is flushed, this frame is dropped, never sent.
-        if self._session.is_flushed(turn_id):
-            self._session.late_frames_dropped += 1
-            return
-        await self._send_bytes(data)
-        # Stamped AFTER the send returns, so the gap includes the send itself.
-        self._telemetry.record(ECHO_SENT, turn_id)
-
-    async def _send_echo_end(self) -> None:
-        """audio.end for the open turn, if echo sent it audio. A flushed turn
-        owes no audio.end: the flush already ended it."""
-        turn_id = self._session.current_turn_id
-        if (
-            self._echo
-            and self._session.turn_open
-            and turn_id is not None
-            and not self._session.is_flushed(turn_id)
-        ):
-            await self._send_json(audio_end(turn_id))
+        await self._machine.move_to(TurnState.IDLE)

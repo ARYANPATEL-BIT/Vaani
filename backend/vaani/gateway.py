@@ -16,6 +16,9 @@ flush the current turn, and the browser's flush.ack closes the round trip. A
 flushed turn also has its speech recognition abandoned, so no transcript is
 ever sent for it (the stand-in for week-3 barge-in).
 
+Day 12: the agent's reply is spoken; its audio leaves through the same
+send_bytes as the echo did (speaker.py, called from reply.py).
+
 Day 11: a dev.flush while the agent is thinking or speaking cancels its
 reply instead (TurnPipeline.on_dev_flush decides which). session.start's
 persona must be a key of config.toml's [personas].
@@ -217,6 +220,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     getattr(websocket.app.state, "vad_model", None),
                     getattr(websocket.app.state, "recognizer", None),
                     getattr(websocket.app.state, "llm", None),
+                    getattr(websocket.app.state, "synthesizer", None),
                 )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)

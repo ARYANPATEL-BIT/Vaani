@@ -1,0 +1,33 @@
+Server log lines for measure_turn_20261006-112757.txt (same run, port 8765).
+Started with VAANI_ASR__WHISPER__MODEL=large-v3 VAANI_ASR__WHISPER__DEVICE=cuda
+VAANI_ASR__WHISPER__COMPUTE_TYPE=float16, everything else from config.toml.
+Filtered to model loads, timing lines, warnings and errors; nothing else changed.
+
+INFO: vaani.vad: VAD model loaded in 39.0 ms
+INFO: vaani.asr: whisper large-v3 on cuda/float16 loaded and warmed up in 7.4 s (2 threads)
+INFO: vaani.tts: piper hi_IN-priyamvada-medium.onnx (22050 Hz) loaded and warmed up in 11.60 s
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn a57bb8ab0beb4fe7bec873fe971cafbc first token: 1662 ms after request, turn_ended->first agent.text 3747 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn a57bb8ab0beb4fe7bec873fe971cafbc first audio frame sent, turn_ended->first audio 8769 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 1b9efc4414cc4208a1ae6e4893c55d32 first token: 1264 ms after request, turn_ended->first agent.text 3251 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 1b9efc4414cc4208a1ae6e4893c55d32 first audio frame sent, turn_ended->first audio 5069 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn ee33c95b096f4f2ba041727ea63e27d1 first token: 1395 ms after request, turn_ended->first agent.text 3246 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn ee33c95b096f4f2ba041727ea63e27d1 first audio frame sent, turn_ended->first audio 5602 ms
+WARNING: vaani.providers.chain: failover: gemini ProviderTimeoutError after 10463 ms -> groq
+WARNING: vaani.providers.groq: groq: HTTP 401 invalid_request_error: Invalid API Key
+WARNING: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn bcc3b8532eac4dea92f843191d825230 reply failed: groq: HTTP 401 invalid_request_error: Invalid API Key
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 294be895101049738cddb24bd1399cb5 first token: 1582 ms after request, turn_ended->first agent.text 3442 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 294be895101049738cddb24bd1399cb5 first audio frame sent, turn_ended->first audio 5797 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn fdf325ff1072490989f29a44ff8e7fc7 first token: 1641 ms after request, turn_ended->first agent.text 3665 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn fdf325ff1072490989f29a44ff8e7fc7 first audio frame sent, turn_ended->first audio 6134 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 95935452f0e345c688574bcf80736d0e first token: 1843 ms after request, turn_ended->first agent.text 3852 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 95935452f0e345c688574bcf80736d0e first audio frame sent, turn_ended->first audio 6297 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn eb40f7281b3c4ac9b03df3e16ba24cc9 first token: 2659 ms after request, turn_ended->first agent.text 3180 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn eb40f7281b3c4ac9b03df3e16ba24cc9 first audio frame sent, turn_ended->first audio 3569 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn cfe8bf84f50341deb6a4b64cd266e135 first token: 1070 ms after request, turn_ended->first agent.text 1956 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn cfe8bf84f50341deb6a4b64cd266e135 first audio frame sent, turn_ended->first audio 2589 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 695795af716848b4b3b6ab24eab29bcd first token: 2626 ms after request, turn_ended->first agent.text 3329 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 695795af716848b4b3b6ab24eab29bcd first audio frame sent, turn_ended->first audio 3685 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 74b09227bd3444aca66ce8073087d4e2 first token: 2883 ms after request, turn_ended->first agent.text 3794 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 74b09227bd3444aca66ce8073087d4e2 first audio frame sent, turn_ended->first audio 3956 ms
+INFO: vaani.reply: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 9370fe43c172499da4699eb9b3b6be1b first token: 1395 ms after request, turn_ended->first agent.text 2018 ms
+INFO: vaani.speaker: session 1ac854c78db34a1c86821adb6b3e1fe1: turn 9370fe43c172499da4699eb9b3b6be1b first audio frame sent, turn_ended->first audio 2276 ms

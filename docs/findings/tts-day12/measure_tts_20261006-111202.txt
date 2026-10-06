@@ -1,0 +1,18 @@
+measure_tts run at 2026-10-06 11:12:02
+commit 5294b7f, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+voice hi_IN-priyamvada-medium.onnx, 22050 Hz, one synthesis at a time
+
+1. time to first byte (= synthesis time), median of 5
+chars  audio s  p50 ms  max ms    RTF
+   10     0.89      36      38  0.040
+   28     2.21      75      79  0.034
+   59     4.96     151     164  0.030
+  128    10.18     316     595  0.031
+  215    16.88     457     459  0.027
+
+2. prosody: the same reply chunked three ways
+  aggressive: first chunk 30 ms, chunks ['Theek hai,', 'main kal subah 8 baje yaad dila doongi aur traffic ka update bhi de doongi.', 'Agar aap chahein toh main dentist ka address bhi bhej sakti hoon.']
+conservative: first chunk 189 ms, chunks ['Theek hai, main kal subah 8 baje yaad dila doongi aur traffic ka update bhi de doongi.', 'Agar aap chahein toh main dentist ka address bhi bhej sakti hoon.']
+       whole: first chunk 325 ms, chunks ['Theek hai, main kal subah 8 baje yaad dila doongi aur traffic ka update bhi de doongi. Agar aap chahein toh main dentist ka address bhi bhej sakti hoon.']
+
+wrote measure_tts_20261006-111202.txt and prosody_*.wav
