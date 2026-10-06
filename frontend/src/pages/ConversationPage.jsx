@@ -15,11 +15,13 @@
  * Additional personas will be added here as the backend implements them.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAudioCapture } from '../hooks/useAudioCapture.js';
 import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
 import { useTranscript } from '../hooks/useTranscript.js';
+import { useLatencyTelemetry } from '../hooks/useLatencyTelemetry.js';
 import { TranscriptView } from '../components/TranscriptView.jsx';
+import { LatencyHud } from '../components/LatencyHud.jsx';
 import './ConversationPage.css';
 
 /**
@@ -46,9 +48,18 @@ export default function ConversationPage() {
   const {
     finalTranscriptEntries,
     currentPartialTranscript,
+    updatePartial,
+    finalizeTurn,
     clearActivePartial,
     resetTranscript,
   } = useTranscript();
+
+  // Latency telemetry state: manages live per-stage timings from server messages (Week 3, Day 1)
+  const {
+    telemetryData,
+    processServerMessage: processTelemetryMessage,
+    resetTelemetry,
+  } = useLatencyTelemetry();
 
   const {
     isCapturing,
@@ -114,8 +125,25 @@ export default function ConversationPage() {
   // ---- Handlers ------------------------------------------------------------
 
   /**
+   * Route incoming JSON control messages from the WebSocket.
+   * Dispatches speech transcripts to useTranscript, and telemetry frames
+   * to useLatencyTelemetry.
+   */
+  const handleServerMessage = useCallback((msg) => {
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'transcript.partial') {
+      updatePartial(msg.text);
+    } else if (msg.type === 'transcript.final') {
+      finalizeTurn(msg.text);
+    }
+
+    processTelemetryMessage(msg);
+  }, [updatePartial, finalizeTurn, processTelemetryMessage]);
+
+  /**
    * Connect: start audio capture and open the WebSocket session.
-   * Resets transcript so stale turns from a previous session do not carry over.
+   * Resets transcript and telemetry so stale turns from a previous session do not carry over.
    * The persona chosen in the selector is passed to useAudioCapture which
    * includes it in the session.start control message per contracts.md §2.3.
    * Guard: if already capturing, this is a no-op (useAudioCapture also guards).
@@ -123,7 +151,8 @@ export default function ConversationPage() {
   const handleConnect = () => {
     if (isCapturing) return;
     resetTranscript();
-    startCapture(enqueue, flushPlayback, selectedPersona);
+    resetTelemetry();
+    startCapture(enqueue, flushPlayback, selectedPersona, handleServerMessage);
   };
 
   /**
@@ -244,6 +273,13 @@ export default function ConversationPage() {
       <TranscriptView
         finalTranscriptEntries={finalTranscriptEntries}
         currentPartialTranscript={currentPartialTranscript}
+        isCapturing={isCapturing}
+      />
+
+      {/* ---- Latency HUD (Week 3, Day 1) ---- */}
+      <LatencyHud
+        telemetryData={telemetryData}
+        wsStatus={wsStatus}
         isCapturing={isCapturing}
       />
 
