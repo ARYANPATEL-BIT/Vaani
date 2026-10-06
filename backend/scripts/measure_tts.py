@@ -12,9 +12,15 @@
      conservative first_min_chars = 60, first_max_chars = 200 (the first
                   chunk is a whole sentence)
      whole        the reply in one call (no chunk boundaries at all)
-   Written to docs/findings/tts-day12/prosody_<name>.wav, for listening.
+   Written to docs/findings/reply-script/prosody_<name>_<timestamp>.wav, for
+   listening. The timestamp is the run's: a new run never overwrites the
+   WAVs an earlier verdict was given on.
 
-Everything printed is also written to docs/findings/tts-day12/
+All text is in the reply format the persona asks for since fix/reply-script:
+every word in Devanagari, English words too (hinglish_C in
+docs/learning/backend-learning/12-chunking-tts.md section 5).
+
+Everything printed is also written to docs/findings/reply-script/
 measure_tts_<timestamp>.txt (run_log.py), one file per run.
 
     uv run python scripts/measure_tts.py
@@ -34,21 +40,22 @@ from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
 from vaani.tts import build_synthesizer
 
+# Day 12's Latin texts, written in Devanagari word for word.
 LENGTHS = [
-    "Theek hai,",
-    "Main aapko yaad dila doongi.",
-    "Theek hai, main kal subah aath baje aapko yaad dila doongi.",
-    "Theek hai, main kal subah aath baje aapko yaad dila doongi, aur traffic "
-    "ka update bhi de doongi taaki aap time par nikal sakein.",
-    "Theek hai, main kal subah aath baje aapko yaad dila doongi, aur traffic "
-    "ka update bhi de doongi taaki aap time par nikal sakein, kyunki subah "
-    "ke samay highway par bahut bheed hoti hai aur dentist ka clinic door hai.",
+    "ठीक है,",
+    "मैं आपको याद दिला दूँगी।",
+    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी।",
+    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
+    "भी दे दूँगी ताकि आप टाइम पर निकल सकें।",
+    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
+    "भी दे दूँगी ताकि आप टाइम पर निकल सकें, क्योंकि सुबह के समय हाईवे पर "
+    "बहुत भीड़ होती है और डेंटिस्ट का क्लिनिक दूर है।",
 ]
 
+# First sentence: hinglish_C's text exactly. Second: day 12's second sentence.
 REPLY = (
-    "Theek hai, main kal subah 8 baje yaad dila doongi aur traffic ka update "
-    "bhi de doongi. Agar aap chahein toh main dentist ka address bhi bhej "
-    "sakti hoon."
+    "ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे "
+    "दूँगी। अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।"
 )
 
 
@@ -100,14 +107,16 @@ async def main(repeat: int) -> None:
         first = await synth.synthesize(chunks[0], cancel) or b""
         ttfb = (perf_counter() - started) * 1000
         rest = [await synth.synthesize(c, cancel) or b"" for c in chunks[1:]]
-        with wave.open(str(OUT / f"prosody_{name}.wav"), "wb") as f:
+        with wave.open(str(OUT / f"prosody_{name}_{log.stamp}.wav"), "wb") as f:
             f.setnchannels(1)
             f.setsampwidth(2)
             f.setframerate(rate)
             f.writeframes(first + b"".join(rest))
         log(f"{name:>12}: first chunk {ttfb:.0f} ms, chunks {chunks}")
+    # No WAV: only which of the three the committed config.toml matches.
+    log(f"{'committed':>12}: chunks {chunks_of(REPLY)}")
     log()
-    log(f"wrote {log.path.name} and prosody_*.wav")
+    log(f"wrote {log.path.name} and prosody_*_{log.stamp}.wav")
 
 
 if __name__ == "__main__":

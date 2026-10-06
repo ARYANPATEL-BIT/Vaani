@@ -75,6 +75,43 @@ def test_first_chunk_waits_until_it_has_first_min_chars() -> None:
     assert chunk(tokens("Haan, main aa rahi hoon."))[0] == "Haan, main aa rahi hoon."
 
 
+def test_a_sentence_end_cuts_the_first_chunk_below_first_min_chars() -> None:
+    # "Hello!" is 6 characters, under first_min_chars (8), but a whole sentence.
+    chunker = ClauseChunker(CFG)
+    out = []
+    for delta in tokens("Hello! Ye test bhi badhiya se kaam kar gaya hai."):
+        out += chunker.push(delta)
+    assert out == ["Hello!"]
+    assert chunker.first_rule == "sentence end"
+
+
+def test_first_rule_names_the_boundary_that_cut() -> None:
+    chunker = ClauseChunker(CFG)
+    for delta in tokens("Theek hai, main kal yaad dila doongi."):
+        chunker.push(delta)
+    assert chunker.first_rule == "clause break"
+
+
+def test_punctuation_alone_is_never_a_chunk() -> None:
+    # "..." would be a sentence end, but has no letter: it joins the next chunk.
+    assert chunk(tokens("... Haan, main aa rahi hoon."))[0] == "... Haan,"
+    # Left over at the end, it is dropped: there is nothing to say.
+    assert chunk(tokens("Theek hai. ...")) == ["Theek hai."]
+
+
+def test_devanagari_conjunctions_cut_the_first_chunk() -> None:
+    for word in ["लेकिन", "क्योंकि", "तो"]:
+        text = f"मुझे नहीं पता {word} मैं पता कर सकती हूँ।"
+        assert chunk(tokens(text)) == ["मुझे नहीं पता", f"{word} मैं पता कर सकती हूँ।"]
+
+
+def test_a_conjunction_inside_a_devanagari_word_is_not_a_cut() -> None:
+    # "तोड़" (break) starts with "तो". A \b regex cut there, because Python
+    # counts the vowel sign ो as a non-word character.
+    text = "उसने गलती से खिलौना तोड़ दिया।"
+    assert chunk(tokens(text)) == [text]
+
+
 def test_first_chunk_can_be_cut_before_a_conjunction() -> None:
     text = "Mujhe nahi pata lekin main pata kar sakti hoon."
     assert chunk(tokens(text)) == ["Mujhe nahi pata", "lekin main pata kar sakti hoon."]

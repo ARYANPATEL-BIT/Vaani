@@ -118,8 +118,11 @@ def test_speaking_lasts_until_the_audio_has_played() -> None:
         until(ws, is_("idle"))
         waited = perf_counter() - ended
 
-    # Every frame was sent long before; idle waits for the estimated play-out.
-    assert 0.8 < waited < 2.0, f"idle came {waited:.2f} s after audio.end"
+    # Every frame was sent long before; idle waits for the estimated play-out:
+    # 1.2 s at the voice's 22050 Hz. The window is tight on purpose: a play-out
+    # computed at a hardcoded 16000 Hz would wait 1.2 * 22050 / 16000 = 1.65 s
+    # and fail here.
+    assert abs(waited - 1.2) < 0.25, f"idle came {waited:.2f} s after audio.end"
 
 
 def test_cancel_mid_reply_discards_the_buffer_and_sends_no_more_frames() -> None:

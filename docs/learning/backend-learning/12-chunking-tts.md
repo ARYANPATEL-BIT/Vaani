@@ -5,7 +5,8 @@
 Branch `feat/tts`. Until day 11 the agent's reply was text only. Now the reply is cut
 into **chunks** while the model is still streaming, each chunk is turned into speech by
 **Piper** on the CPU, and the audio goes to the browser over the route the day-3 echo
-built: `audio.start` → binary frames → `audio.end` (shared protocol v0.5). `audio.start`
+built: `audio.start` → binary frames → `audio.end` (shared protocol v0.6; this doc first
+called it v0.5, which docs/contracts.md had already given to telemetry). `audio.start`
 now carries a `sample_rate`. The turn state `speaking` now means "audio is playing", not
 "text is streaming". Echo is off by default.
 

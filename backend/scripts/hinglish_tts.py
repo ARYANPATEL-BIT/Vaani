@@ -1,13 +1,22 @@
 """What the Hindi Piper voice does with Hinglish: phoneme dump, WAVs, ASR floor.
 
 One real agent reply (day 12, Gemini, default persona) in three scripts:
-  A  as the agent actually sent it: all Latin script (the persona asks for it);
+  A  as the agent actually sent it: all Latin script (the persona asked for it);
   B  mixed: Hindi words in Devanagari, English words in Latin (hand-written);
   C  all Devanagari (hand-written), as the control.
+Three real replies in the all-Devanagari format the persona asks for since
+fix/reply-script, verbatim from docs/findings/reply-script/
+ask_script_check_20261006-115858.tsv (Gemini, default persona):
+  R1 line 1: a digit and an English loanword pair (8, dentist appointment);
+  R2 line 7: many loanwords and the conjunction kyunki;
+  R3 line 9: technical English terms (Python, list, mutable, tuple).
 
-For each, written to docs/findings/tts-day12/:
-  * hinglish_<X>.wav - what the voice produced (22050 Hz, as the browser gets it);
-  * hinglish_phonemes.txt - per variant:
+For each, written to docs/findings/reply-script/, named with the run's
+timestamp so a new run never overwrites the WAVs a verdict was given on
+(docs/findings/tts-day12/ is frozen):
+  * hinglish_<X>_<timestamp>.wav - what the voice produced (22050 Hz, as
+    the browser gets it);
+  * hinglish_phonemes_<timestamp>.txt - per variant:
       - espeak-ng's raw output. "(en)...(hi)" marks words espeak switched to
         ENGLISH pronunciation rules; Piper strips those markers, so the Hindi
         voice then speaks English-rule phonemes;
@@ -24,6 +33,7 @@ For each, written to docs/findings/tts-day12/:
 import argparse
 import re
 import wave
+from datetime import datetime
 from pathlib import Path
 
 from piper import PiperVoice, espeakbridge
@@ -32,13 +42,18 @@ from piper.phonemize_espeak import ESPEAK_DATA_DIR
 from vaani.config import get_settings
 
 BACKEND = Path(__file__).resolve().parent.parent
-OUT = BACKEND.parent / "docs" / "findings" / "tts-day12"
+OUT = BACKEND.parent / "docs" / "findings" / "reply-script"
 
 VARIANTS = {
     "A": "Theek hai, main kal subah 8 baje yaad dila doongi aur traffic ka update "
     "bhi de doongi.",
     "B": "ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और traffic का update भी दे दूँगी।",
     "C": "ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी।",
+    "R1": "ज़रूर, मैं कल सुबह 8 बजे आपके डेंटिस्ट अपॉइंटमेंट के लिए आपको याद दिला दूँगी।",
+    "R2": "अभी मैप्स के हिसाब से एक्सप्रेसवे वाला रूट सबसे फ़ास्ट है, क्योंकि "
+    "वहाँ ट्रैफ़िक कम है। आप वही रास्ता ले सकते हैं।",
+    "R3": "पायथन में लिस्ट म्यूटेबल होती है यानी इसे बदला जा सकता है, जबकि "
+    "ट्यूबल इम्म्यूटेबल होता है और इसे बदला नहीं जा सकता है।",
 }
 
 
@@ -69,6 +84,7 @@ def main(asr: bool) -> None:
         whisper = WhisperModel("large-v3", device="cuda", compute_type="float16")
 
     OUT.mkdir(parents=True, exist_ok=True)
+    stamp = f"{datetime.now():%Y%m%d-%H%M%S}"
     lines = [
         f"Voice: {Path(cfg.model_path).name}, espeak voice "
         f"'{voice.config.espeak_voice}', {rate} Hz",
@@ -80,7 +96,7 @@ def main(asr: bool) -> None:
         phonemes = [p for sentence in voice.phonemize(text) for p in sentence]
         missing = sorted({p for p in phonemes if p not in known})
         pcm = b"".join(c.audio_int16_bytes for c in voice.synthesize(text))
-        wav = OUT / f"hinglish_{name}.wav"
+        wav = OUT / f"hinglish_{name}_{stamp}.wav"
         write_wav(wav, pcm, rate)
         lines += [
             f"=== {name}: {text}",
@@ -95,9 +111,9 @@ def main(asr: bool) -> None:
             heard = " ".join(s.text.strip() for s in segments)
             lines.append(f"whisper large-v3 (floor, not a pass): {heard}")
         lines.append("")
-    dump = OUT / "hinglish_phonemes.txt"
-    dump.write_text("\n".join(lines), encoding="utf-8")
-    print(f"wrote {dump} and {len(VARIANTS)} WAVs")
+    dump = OUT / f"hinglish_phonemes_{stamp}.txt"
+    dump.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+    print(f"wrote {dump.name} and {len(VARIANTS)} WAVs")
 
 
 if __name__ == "__main__":

@@ -220,7 +220,7 @@ class AsrRunner:
             await self._send(transcript_partial(job.turn_id, result.text))
             self._telemetry.record(ASR_PARTIAL, job.turn_id)
             log.info(
-                "session %s: transcript.partial turn %s (decode %.0f ms): %r",
+                "session %s: transcript.partial turn %s (decode %.0f ms): %a",
                 self._session_id,
                 job.turn_id,
                 decode_ms,
@@ -234,7 +234,7 @@ class AsrRunner:
         assert job.ended_at is not None  # always set for finals
         log.info(
             "session %s: transcript.final turn %s (turn_ended->final %.0f ms, "
-            "decode %.0f ms): %r",
+            "decode %.0f ms): %a",
             self._session_id,
             job.turn_id,
             (span.at - job.ended_at) * 1000,

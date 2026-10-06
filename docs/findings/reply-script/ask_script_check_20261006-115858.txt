@@ -1,0 +1,54 @@
+ask.py script check run at 2026-10-06 11:58:58
+commit a54fd43 + uncommitted fix/reply-script changes; persona default; VAANI_LLM__PROVIDER_ORDER=["gemini"]
+replies (real UTF-8 text): ask_script_check_20261006-115858.tsv
+
+=== 1: kal subah 8 baje mujhe dentist appointment ke liye remind kar dena
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1643 ms, total: 2047 ms
+script: 61 Devanagari, 0 Latin letters, other: none
+=== 2: aaj Delhi mein mausam kaisa rahega?
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1701 ms, total: 2012 ms
+script: 71 Devanagari, 0 Latin letters, other: none
+=== 3: mera internet bahut slow chal raha hai, kya karun?
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 2780 ms, total: 2993 ms
+script: 74 Devanagari, 0 Latin letters, other: none
+=== 4: Can you explain what machine learning is in simple words?
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1688 ms, total: 2295 ms
+script: 157 Devanagari, 0 Latin letters, other: none
+=== 5: mujhe ek healthy breakfast idea do
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 3677 ms, total: 3974 ms
+script: 62 Devanagari, 0 Latin letters, other: none
+=== 6: meeting ko 3 baje se 4 baje shift kar do please
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1490 ms, total: 1977 ms
+script: 42 Devanagari, 0 Latin letters, other: none
+=== 7: office jaane ka sabse fast route kaunsa hai?
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1651 ms, total: 2055 ms
+script: 92 Devanagari, 0 Latin letters, other: none
+=== 8: mera order abhi tak deliver nahi hua, order number 4521 hai
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1708 ms, total: 1989 ms
+script: 74 Devanagari, 0 Latin letters, other: none
+=== 9: Python mein list aur tuple mein kya difference hai?
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1896 ms, total: 2351 ms
+script: 95 Devanagari, 0 Latin letters, other: none
+=== 10: thank you, aaj ke liye bas itna hi
+
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1370 ms, total: 1682 ms
+script: 26 Devanagari, 0 Latin letters, other: none

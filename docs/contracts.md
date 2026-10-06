@@ -35,6 +35,19 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
+**Current version: SHARED PROTOCOL v0.6.** This file is the source of truth
+for version numbers; `backend/vaani/protocol.py` repeats the same history.
+Only the PR that changes this file bumps the version.
+
+| Version | Adds | Section |
+|---|---|---|
+| v0.1 | `session.start`, `session.started`, `session.end`, `error`; 640-byte 16 kHz mic frames | 2.1, 2.3 |
+| v0.2 | Server → browser audio (`audio.start`, frames, `audio.end`); flush (`audio.flush`, `flush.ack`); dev-only `dev.flush` | 2.2, 2.3 |
+| v0.3 | Transcripts (`transcript.partial`, `transcript.final`); a turn is one utterance; `ASR_FAILED` proposed | 2.4 |
+| v0.4 | Agent turn (`turn.state`, `agent.text`, `agent.done`); `LLM_FAILED`, `INPUT_REJECTED` | 2.5 |
+| v0.5 | `telemetry` for the Latency HUD (frontend proposal; the backend does not send it yet) | 2.6 |
+| v0.6 | `audio.start` carries `sample_rate`; `speaking` starts with the first audio frame; `TTS_FAILED` | 2.2, 2.3, 2.5 |
+
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
 The frontend captures microphone audio using AudioWorklet and sends it as binary
@@ -55,29 +68,33 @@ WebSocket messages.
 Each binary message is exactly 640 bytes. The frontend converts Float32 Web Audio
 samples directly to Int16LE inside the dedicated AudioWorklet thread.
 
-### 2.2 Server → Client: Audio Playback (Proposed — pending Aryan confirmation)
+### 2.2 Server → Client: Audio Playback — SHARED PROTOCOL v0.6 (Proposed — pending Samyak)
 
-The backend will stream synthesised audio back as binary WebSocket frames using
-the **same PCM encoding** as the upstream direction. This is the format the
-frontend playback queue (Day 3) is built to decode.
+The backend streams audio back as binary WebSocket frames, always between an
+`audio.start` and that turn's `audio.end` (or `audio.flush`). The encoding is
+the same as the upstream direction; **the sample rate is not fixed**: it is
+the `sample_rate` declared by the most recent `audio.start`, and holds for
+every frame until the matching `audio.end`.
 
 | Parameter       | Value                                  |
 |-----------------|----------------------------------------|
 | Message type    | Binary                                 |
 | Encoding        | Raw PCM, 16-bit signed little-endian (Int16LE) |
-| Sample rate     | 16,000 Hz                              |
+| Sample rate     | The `sample_rate` in `audio.start`: 22050 for the agent's voice (Piper `hi_IN-priyamvada-medium`), 16000 for the dev echo |
 | Channels        | 1 (mono)                               |
-| Frame duration  | Variable (backend may bundle frames)   |
+| Frame duration  | 20 ms at the declared rate (882 bytes at 22050 Hz, 640 at 16000 Hz). Do not rely on the size: decode any even length |
 | Bytes/sample    | 2                                      |
 | Byte order      | Little-endian                          |
 
 The frontend decodes incoming bytes as `Int16Array`, scales to Float32
 (dividing by 32768), and schedules each chunk on the Web Audio clock for
-gapless playback. No format negotiation is needed: both sides use the same
-sample rate and encoding.
+gapless playback, **at the rate `audio.start` declared**. An `AudioBuffer`
+can be created at any rate; the browser resamples it to the output device.
 
-> **Note**: The current backend (`gateway.py`) does not yet echo audio back.
-> This format will be confirmed when Aryan implements the TTS/echo path.
+> **Frontend gap (2026-10-06)**: `usePlaybackQueue` plays every frame at the
+> fixed `AUDIO_SAMPLE_RATE = 16_000` (`frontend/src/config.js`) and does not
+> read `audio.start`. The agent's 22050 Hz audio would play about 27% slow and
+> low until it does.
 
 ### 2.3 Control Messages (Agreed)
 
@@ -89,15 +106,40 @@ Control messages use JSON text frames (not binary).
 |------------------|-----------------------------------------------------------|--------------------------------------------------|
 | `session.start`  | `{ "type": "session.start", "persona": "default", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects                         |
 | `session.end`    | `{ "type": "session.end" }`                               | User ends conversation                           |
-| `audio.flush.ack`| `{ "type": "audio.flush.ack", "timestamp_ms": <number> }` | Sent immediately after audio playback is flushed |
+| `flush.ack`      | `{ "type": "flush.ack", "turn_id": "<string>", "client_ts": <number> }` | As soon as the flushed turn's audio has stopped. `client_ts` is the browser's `performance.now()`; the server logs it but never subtracts it from its own clock |
+| `dev.flush`      | `{ "type": "dev.flush" }`                                 | **Dev only**, removed when barge-in lands (week 3): asks the server to flush the current turn |
+
+`persona` must be one of `default`, `tutor`, `support` (config.toml
+`[personas]`); anything else gets `BAD_MESSAGE`. `audio` must be exactly
+`16000` / `1` / `20`; anything else gets `UNSUPPORTED_FORMAT`.
 
 #### Server → Client
 
 | Type             | Payload                                               | When                              |
 |------------------|-------------------------------------------------------|-----------------------------------|
 | `session.started`| `{ "type": "session.started", "session_id": "..." }`  | Backend accepted session.start    |
-| `error`          | `{ "type": "error", "code": "...", "message": "..." }` | Protocol error (non-fatal)        |
-| `audio.flush`    | `{ "type": "audio.flush" }`                           | Server requests immediate silence |
+| `error`          | `{ "type": "error", "code": "<code>", "message": "..." }` | A problem report. Non-fatal: the connection stays open. Codes below |
+| `audio.start`    | `{ "type": "audio.start", "turn_id": "<string>", "sample_rate": <number> }` | Before a turn's first audio frame. Every frame until the matching `audio.end` belongs to `turn_id` and is at `sample_rate` (v0.6) |
+| `audio.end`      | `{ "type": "audio.end", "turn_id": "<string>" }`      | After a turn's last audio frame   |
+| `audio.flush`    | `{ "type": "audio.flush", "turn_id": "<string>" }`    | Silence that turn at once: stop scheduled audio, drop its queued frames, fade out within 10 ms, reply `flush.ack`. Replaces `audio.end` for that turn; frames that still arrive for it must be discarded |
+
+#### Error codes
+
+Shape: `{ "type": "error", "code": "<code>", "message": "..." }`. Every code
+is non-fatal and none carries a `turn_id`. `message` is for display; branch
+on `code`.
+
+| Code | Meaning | What follows |
+|---|---|---|
+| `SESSION_NOT_STARTED` | Audio or a message arrived before `session.start` | Nothing; send `session.start` |
+| `UNSUPPORTED_FORMAT` | `session.start`'s audio settings are not 16000 / 1 / 20 | No `session.started` |
+| `BAD_FRAME_SIZE` | A binary frame is not 640 bytes | The frame is dropped |
+| `BAD_MESSAGE` | Not valid JSON, no `type`, a malformed known message, or an unknown persona | The message is dropped |
+| `UNKNOWN_MESSAGE_TYPE` | A `type` the server does not handle | The message is dropped |
+| `ASR_FAILED` | The turn's final transcript could not be produced (recogniser error, or the `[asr].timeout_s` timeout) | No `transcript.final`; `turn.state idle` |
+| `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be shown to the user, never silence. The backend does **not** yet speak an apology; text only |
+| `INPUT_REJECTED` | The user's turn was blocked by the input guardrail before reaching the model | `turn.state idle`. The message is deliberately vague ("that turn wasn't processed") |
+| `TTS_FAILED` | The reply could not be spoken (speech synthesis failed) | `audio.end` if audio had started, then `error`, then `turn.state idle`; no `agent.done` (v0.6) |
 
 ### 2.4 Transcripts — SHARED PROTOCOL v0.3 (Agreed)
 
@@ -143,23 +185,21 @@ A failed turn gets `error` then `turn.state idle`, and **no** `agent.done`. A
 cancelled turn (`dev.flush` today) traces `cancelling → idle`, and also gets
 no `agent.done`.
 
-Backend notes (day 11):
-- `speaking` means "reply text is streaming" until speech synthesis lands
-  (day 12). Nothing is audible yet.
+Backend notes:
+- **v0.6:** `speaking` starts when the reply's first **audio frame** is sent,
+  and lasts until the backend estimates the browser has played the last one.
+  So `agent.text` deltas arrive while the state is still `thinking`, and the
+  text runs ahead of the audio. A spoken turn traces
+  `listening → thinking → speaking → idle` with
+  `audio.start … frames … audio.end` inside `speaking`.
+- **v0.6:** replies are written entirely in Devanagari, English words too
+  (the persona asks for it; the Hindi voice cannot read Latin-script
+  Hinglish). The user's `transcript.final` stays in whatever script the
+  recogniser produced, usually Latin.
 - The backend is **half-duplex**: speech while the agent is thinking or
   speaking is dropped (logged server-side), so no `listening` appears then.
-- `session.start`'s `persona` must be one of `default`, `tutor`, `support`
-  (config.toml `[personas]`); anything else gets `BAD_MESSAGE`.
-
-**Error codes (all three pending Samyak).** Shape:
-`{ "type": "error", "code": "<code>", "message": "..." }`. All are non-fatal:
-the connection stays open. None carries a `turn_id`.
-
-| Code | Meaning | What follows |
-|---|---|---|
-| `ASR_FAILED` | The turn's final transcript could not be produced (recogniser error, or the `[asr].timeout_s` timeout) | No `transcript.final`; `turn.state idle` |
-| `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be surfaced to the user, never silence. Once synthesis exists (day 12) the backend will **speak** an apology instead of only sending text |
-| `INPUT_REJECTED` | The user's turn was blocked by the input guardrail before reaching the model | `turn.state idle`. The message is deliberately vague ("that turn wasn't processed"): the user needs to know nothing happened, not which rule fired |
+- `ASR_FAILED`, `LLM_FAILED`, `INPUT_REJECTED` and `TTS_FAILED` are in the
+  error-code table in §2.3, with every other code.
 
 ### 2.6 Telemetry — SHARED PROTOCOL v0.5 (Proposed — Frontend addition for Latency HUD)
 
@@ -184,6 +224,10 @@ Stage vocabulary (aligned with `backend/vaani/telemetry.py` constants):
 - `tts`: Speech synthesis first audio chunk latency (`tts_first_audio` span).
 - `playback`: Web Audio queue scheduling delay to speaker output (`playback_start` span).
 
+Backend note (2026-10-06): the backend does **not** send `telemetry` yet.
+`backend/vaani/protocol.py` has no model for it; the span names above exist
+in `backend/vaani/telemetry.py` but are only logged server-side.
+
 ---
 
 ## 3. Future Contracts (Planned)
@@ -206,3 +250,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-02 | Aryan   | Day 10: shared protocol v0.3 transcripts; turn = utterance (echo per utterance); proposed ASR_FAILED |
 | 2026-10-02 | Aryan   | Day 11: shared protocol v0.4 (turn.state, agent.text, agent.done); ASR_FAILED, LLM_FAILED, INPUT_REJECTED proposed together in §2.5 |
 | 2026-10-05 | Samyak  | Day 15 (W3D1): shared protocol v0.5 telemetry specification for Latency HUD in §2.6     |
+| 2026-10-06 | Aryan   | Shared protocol v0.6: `audio.start.sample_rate` (§2.2 rate no longer fixed at 16000); `speaking` = first audio; `TTS_FAILED`; version table in §2; §2.3 brought in line with protocol.py (`flush.ack` shape, `audio.start`/`audio.end`/`audio.flush` with `turn_id`, `dev.flush`, all error codes); §2.5 stale day-11 notes replaced; §2.6 notes the backend does not send telemetry |
