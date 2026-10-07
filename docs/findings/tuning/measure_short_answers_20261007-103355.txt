@@ -1,0 +1,14 @@
+measure_short_answers run at 2026-10-07 10:33:55
+commit 8ec0c4d + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+clip short_answers_16k.wav; [vad] threshold 0.5, start_frames 4, end_frames 10; committed min_utterance_ms 300
+WARNING: 7 utterances, expected 10: words cannot be matched to utterances, no value is chosen
+
+  #  word   start s  voiced frames  voiced ms  span ms
+  1  ?         1.64              7        140      460
+  2  ?         3.12             16        320      520
+  3  ?         4.88              3         60      260
+  4  ?         6.48             10        200      400
+  5  ?        15.66              7        140      340
+  6  ?        23.54              6        120      320
+  7  ?        25.84              5        100      300

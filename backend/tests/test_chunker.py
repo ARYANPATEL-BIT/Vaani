@@ -70,9 +70,17 @@ def test_first_chunk_is_shorter_than_later_chunks() -> None:
     ]
 
 
-def test_first_chunk_waits_until_it_has_first_min_chars() -> None:
-    # "Haan," is 5 characters, under first_min_chars (8): too short to cut.
-    assert chunk(tokens("Haan, main aa rahi hoon."))[0] == "Haan, main aa rahi hoon."
+def test_a_clause_break_cuts_the_first_chunk_at_any_length() -> None:
+    # "जी," is 3 characters, under first_min_chars (8), but a comma is a pause.
+    assert chunk(tokens("जी, मैं आ रही हूँ।")) == ["जी,", "मैं आ रही हूँ।"]
+    assert chunk(tokens("Haan, main aa rahi hoon.")) == ["Haan,", "main aa rahi hoon."]
+
+
+def test_a_conjunction_waits_until_the_first_chunk_has_first_min_chars() -> None:
+    # "हाँ" is 3 characters: a cut before "तो" would leave a fragment with no
+    # pause after it, so the first chunk waits.
+    text = "हाँ तो मैं कल आ जाऊँगी।"
+    assert chunk(tokens(text)) == [text]
 
 
 def test_a_sentence_end_cuts_the_first_chunk_below_first_min_chars() -> None:
@@ -130,8 +138,9 @@ def test_ki_is_not_a_conjunction() -> None:
 def test_devanagari_danda_ends_a_sentence() -> None:
     text = "नमस्ते, आज हम real-time voice के बारे में बात करेंगे। यह बहुत interesting है।"
     chunks = chunk(tokens(text))
+    assert chunks[0] == "नमस्ते,"  # a clause break cuts the first chunk
     assert chunks[-1] == "यह बहुत interesting है।"
-    assert all(c.endswith("।") for c in chunks)
+    assert all(c.endswith("।") for c in chunks[1:])
 
 
 def test_first_chunk_with_no_boundary_is_cut_at_a_space() -> None:

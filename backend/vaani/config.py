@@ -85,8 +85,8 @@ class EndpointSettings(BaseModel):
     enabled: bool = True
     # Silence after speech_ended before the turn counts as over.
     end_of_turn_silence_ms: int = 700
-    # An utterance shorter than this produces no turn (a cough, a lone "mm").
-    min_utterance_ms: int = 300
+    # Less voiced audio than this, counted from speech_started, makes no turn.
+    min_utterance_ms: int = 40
     # Audio kept from BEFORE speech_started, so the first syllable survives.
     preroll_ms: int = 300
     # Longest utterance kept; past this the turn is forced to end.

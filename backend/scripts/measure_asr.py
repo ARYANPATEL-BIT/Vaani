@@ -57,9 +57,11 @@ def endpoint(path: Path) -> TurnEnded | None:
     frames = [silence] * 25 + load_frames(path, frame_bytes) + [silence] * 150
     model = load_model(settings.vad.model_path, settings.vad.model_sha256)
     vad = VadStream(model, settings.vad, settings.audio)
-    endpointer = Endpointer(settings.endpoint, settings.audio.frame_ms)
+    endpointer = Endpointer(
+        settings.endpoint, settings.audio.frame_ms, settings.vad.threshold
+    )
     for frame in frames:
-        turn = endpointer.push(frame, vad.push(frame))
+        turn = endpointer.push(frame, vad.push(frame), vad.probability)
         if turn is not None:
             return turn
     return None

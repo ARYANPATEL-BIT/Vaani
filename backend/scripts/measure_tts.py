@@ -40,8 +40,10 @@ from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
 from vaani.tts import build_synthesizer
 
-# Day 12's Latin texts, written in Devanagari word for word.
+# Day 12's Latin texts, written in Devanagari word for word. "जी," first
+# since day 14: replies open with it, and it is now a first chunk on its own.
 LENGTHS = [
+    "जी,",
     "ठीक है,",
     "मैं आपको याद दिला दूँगी।",
     "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी।",

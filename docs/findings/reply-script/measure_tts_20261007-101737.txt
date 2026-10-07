@@ -1,0 +1,21 @@
+measure_tts run at 2026-10-07 10:17:37
+commit 8ec0c4d + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Performance
+voice hi_IN-priyamvada-medium.onnx, 22050 Hz, one synthesis at a time
+
+1. time to first byte (= synthesis time), median of 5
+chars  audio s  p50 ms  max ms    RTF
+    3     0.59      26      30  0.044
+    7     0.80      31      32  0.038
+   24     1.99      69      76  0.035
+   47     4.42    1110    1176  0.251
+  107     8.81    1879    1966  0.213
+  185    14.84    2820    2956  0.190
+
+2. prosody: the same reply chunked three ways
+  aggressive: first chunk 34 ms, chunks ['ठीक है,', 'मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी।', 'अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।']
+conservative: first chunk 30 ms, chunks ['ठीक है,', 'मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी।', 'अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।']
+       whole: first chunk 329 ms, chunks ['ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी। अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।']
+   committed: chunks ['ठीक है,', 'मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी।', 'अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।']
+
+wrote measure_tts_20261007-101737.txt and prosody_*_20261007-101737.wav

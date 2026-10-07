@@ -8,9 +8,14 @@
 #
 # Run from anywhere:
 #   powershell -ExecutionPolicy Bypass -File backend\scripts\record_fixture.ps1
-# Optional: -Seconds 6 (default 8).
+# Optional: -Seconds 6 (default 8), and -Out <path> to save somewhere else
+# (default: the fixture path above). A relative -Out is relative to the
+# current directory.
 
-param([int]$Seconds = 8)
+param(
+    [int]$Seconds = 8,
+    [string]$Out = (Join-Path $PSScriptRoot '..\tests\fixtures\hinglish_real_16k.wav')
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -29,9 +34,9 @@ function Send-Mci([string]$command) {
     }
 }
 
-# backend/scripts -> backend/tests/fixtures
-$out = Join-Path $PSScriptRoot '..\tests\fixtures\hinglish_real_16k.wav'
-$out = [System.IO.Path]::GetFullPath($out)
+# MCI needs a full path. Resolved against PowerShell's current directory,
+# which .NET's own current directory does not always follow.
+$out = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
 
 Send-Mci 'open new type waveaudio alias rec'
 # The format must be set before recording starts. bytespersec and alignment

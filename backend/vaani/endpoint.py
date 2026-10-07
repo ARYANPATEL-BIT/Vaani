@@ -9,8 +9,11 @@ Two rules, both from [endpoint] in config.toml:
   * end_of_turn_silence_ms: after speech_ended, wait this long. If speech
     starts again inside the window, the pending end is cancelled and the same
     utterance continues.
-  * min_utterance_ms: an utterance shorter than this (a cough, a lone "mm")
-    produces no turn at all.
+  * min_utterance_ms: an utterance with less VOICED audio than this (a
+    cough, a lone "mm") produces no turn at all. Voiced frames are those whose
+    speech probability reaches [vad].threshold, counted from speech_started.
+    Not the pre-roll, and not VAD's 200 ms of silence before speech_ended:
+    counting those let every barge-in "hmm" pass as a turn (day 14).
 
 It also keeps the utterance's AUDIO (UtteranceBuffer), because speech
 recognition will need it: a short pre-roll from before speech_started, then
@@ -49,6 +52,8 @@ class TurnEnded:
     `frame_count` is how many frames that is. `speech_ended_at` is the
     perf_counter time of the speech_ended that began the silence window
     (None for a forced end), so the caller can measure the wait.
+    `voiced_frames` is how many frames from start_frame to end_frame were
+    voiced: what min_utterance_ms is compared against.
     """
 
     start_frame: int
@@ -59,6 +64,7 @@ class TurnEnded:
     forced: bool
     at: float
     speech_ended_at: float | None
+    voiced_frames: int
 
 
 def ms_to_frames(ms: int, frame_ms: int) -> int:
@@ -133,9 +139,15 @@ class Endpointer:
     """
 
     def __init__(
-        self, cfg: EndpointSettings, frame_ms: int, session_id: str = "-"
+        self,
+        cfg: EndpointSettings,
+        frame_ms: int,
+        vad_threshold: float,
+        session_id: str = "-",
     ) -> None:
         self._frame_ms = frame_ms
+        # The same line VAD draws between speech and silence ([vad].threshold).
+        self._vad_threshold = vad_threshold
         self._silence_frames = ms_to_frames(cfg.end_of_turn_silence_ms, frame_ms)
         self._min_frames = ms_to_frames(cfg.min_utterance_ms, frame_ms)
         self._max_frames = ms_to_frames(cfg.max_utterance_ms, frame_ms)
@@ -147,28 +159,40 @@ class Endpointer:
         self._start_frame: int | None = None
         self._ended_frame: int | None = None
         self._ended_at: float | None = None
+        self._voiced = 0  # voiced frames since speech_started
+        # _voiced as it stood at speech_ended. Frames in the silence window
+        # after it are not part of the utterance unless speech resumes.
+        self._ended_voiced = 0
 
-    def push(self, frame: bytes, event: SpeechEvent | None) -> TurnEnded | None:
-        """Feed one frame and the VAD event it produced (usually None).
+    def push(
+        self, frame: bytes, event: SpeechEvent | None, probability: float
+    ) -> TurnEnded | None:
+        """Feed one frame, the VAD event it produced (usually None) and its
+        speech probability.
 
         Must be called for EVERY valid frame, in order, even silent ones:
         the frame count is our clock.
         """
         self._frame_index += 1
         i = self._frame_index
+        voiced = probability >= self._vad_threshold
 
         if self._start_frame is None:  # idle
             if event is not None and event.kind == SPEECH_STARTED:
                 self._start_frame = i
                 self._buffer.open(frame, with_preroll=True)
+                self._voiced = int(voiced)  # the pre-roll is never counted
             else:
                 self._buffer.add_idle(frame)
             return None
 
         self._buffer.add(frame)
+        if voiced:
+            self._voiced += 1
         if event is not None and event.kind == SPEECH_ENDED:
             # Start the silence window. Not the end yet: the user may go on.
             self._ended_frame, self._ended_at = i, event.at
+            self._ended_voiced = self._voiced
         elif event is not None and event.kind == SPEECH_STARTED:
             # Speech resumed inside the window: cancel the pending end. The
             # pause frames are already in the buffer, so audio stays continuous.
@@ -205,7 +229,8 @@ class Endpointer:
 
     @property
     def min_frames(self) -> int:
-        """min_utterance_ms in frames: shorter utterances make no turn."""
+        """min_utterance_ms in frames: utterances with fewer voiced frames
+        make no turn."""
         return self._min_frames
 
     def snapshot(self) -> bytes:
@@ -227,14 +252,18 @@ class Endpointer:
         assert start is not None  # only called with an utterance open
         speech_frames = end_frame - start + 1
         ended_at = self._ended_at
+        # A forced end has no speech_ended: everything so far counts.
+        voiced = self._voiced if forced else self._ended_voiced
         frames = self._buffer.take(speech_frames)
         self._start_frame = self._ended_frame = self._ended_at = None
 
-        if speech_frames < self._min_frames and not forced:
+        if voiced < self._min_frames and not forced:
             log.info(
-                "session %s: utterance of %d ms ignored (min_utterance_ms)",
+                "session %s: utterance of %d ms, %d ms voiced, ignored "
+                "(min_utterance_ms)",
                 self._session_id,
                 speech_frames * self._frame_ms,
+                voiced * self._frame_ms,
             )
             return None
         return TurnEnded(
@@ -246,6 +275,7 @@ class Endpointer:
             forced=forced,
             at=perf_counter(),
             speech_ended_at=None if forced else ended_at,
+            voiced_frames=voiced,
         )
 
     def _force_while_speaking(self, i: int) -> TurnEnded | None:
@@ -262,4 +292,5 @@ class Endpointer:
         turn = self._finish(i, forced=True)
         # take() left the buffer empty, so the next frame goes in via add().
         self._start_frame = i + 1
+        self._voiced = 0
         return turn

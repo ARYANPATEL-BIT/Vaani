@@ -1,0 +1,9 @@
+fixture_levels run at 2026-10-07 12:00:52
+commit 8ec0c4d + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+per WAV: peak sample, 20 ms frame RMS p50 / p99 (dBFS), frames with Silero p >= [vad].threshold
+speech_16k_mono.wav       5.46 s  peak   -0.7  p50  -24.5  p99  -12.3  voiced 212/272
+hinglish_real_16k.wav     7.95 s  peak  -39.8  p50  -60.4  p99  -46.1  voiced 298/397
+short_answers_16k.wav    34.95 s  peak  -32.3  p50  -87.5  p99  -42.7  voiced 77/1747
+
+wrote fixture_levels_20261007-120052.txt
