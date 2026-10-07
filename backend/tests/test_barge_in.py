@@ -73,14 +73,15 @@ class Recognizer(FakeRecognizer):
         return Transcript(self.texts.pop(0), result.language)
 
 
-def make_client(llm, synth, rec, min_utterance_ms: int = 300) -> TestClient:
+def make_client(llm, synth, rec, min_utterance_ms: int | None = None) -> TestClient:
     base = Settings()
+    endpoint = base.endpoint
+    if min_utterance_ms is not None:
+        endpoint = endpoint.model_copy(update={"min_utterance_ms": min_utterance_ms})
     settings = Settings(
         gateway=GatewaySettings(echo_enabled=False),
         asr=base.asr.model_copy(update={"enabled": True}),
-        endpoint=base.endpoint.model_copy(
-            update={"min_utterance_ms": min_utterance_ms}
-        ),
+        endpoint=endpoint,
     )
     return TestClient(create_app(settings, recognizer=rec, llm=llm, synthesizer=synth))
 
@@ -272,13 +273,16 @@ def test_speech_judged_as_the_reply_ends_becomes_a_normal_turn() -> None:
 
 
 def test_hmm_after_a_cut_question_answers_the_question() -> None:
-    # min_utterance_ms raised so the 200 ms "hmm" is discarded as too short.
-    # (With the defaults it cannot be: VAD's 200 ms end hangover makes any
-    # barge-in at least 340 ms long by the endpointer's measure.)
+    # min_utterance_ms set to 300 so the 200 ms "hmm" is discarded: it is
+    # enough to interrupt (10 speech frames from the onset, VAD's 4 included)
+    # but has only 7 voiced frames from speech_started, under 300 ms (15).
+    # The default (40 ms = 2) keeps it as a turn: this fix is active only
+    # under this override until the short-answers measurement sets the real
+    # value (14-tuning.md, known issues).
     llm = ScriptedLLM(("Theek hai, ", "sab theek hai."))
     synth = FakeSynthesizer(gate_from=0)
     rec = Recognizer("kal kitne baje meeting hai")
-    client = make_client(llm, synth, rec, min_utterance_ms=500)
+    client = make_client(llm, synth, rec, min_utterance_ms=300)
     with client.websocket_connect("/ws/session") as ws:
         start(ws)
         say(ws, speech_frames=30)
@@ -305,7 +309,7 @@ def test_hmm_while_the_question_is_still_transcribing_answers_it() -> None:
     llm = ScriptedLLM(("Theek hai.",))
     synth = FakeSynthesizer()
     rec = Recognizer("kal kitne baje meeting hai", gated=True)
-    client = make_client(llm, synth, rec, min_utterance_ms=500)
+    client = make_client(llm, synth, rec, min_utterance_ms=300)  # as above
     try:
         with client.websocket_connect("/ws/session") as ws:
             start(ws)
@@ -363,6 +367,26 @@ def test_judge_resets_on_speech_ended() -> None:
         *[(None, 1.0)] * 5,
     )
     assert not any(fired)
+
+
+def test_each_judged_speech_logs_its_probabilities_once(caplog) -> None:
+    # scripts/barge_in_sweep.py replays these lines, so their format matters.
+    caplog.set_level(logging.DEBUG, logger="vaani.barge_in")
+    barge_in = BargeIn(BargeInSettings(), Settings().vad, frame_ms=20)
+    barge_in.push(b"", SpeechEvent(SPEECH_STARTED, 0, 0.0), 0.9)
+    barge_in.push(b"", None, 0.4567)
+    barge_in.push(b"", SpeechEvent(SPEECH_ENDED, 2, 0.0), 0.1)
+    barge_in.take()  # decided already: no second line
+    # An interruption (fires on the 7th frame), then taken, as turns.py does.
+    barge_in.push(b"", SpeechEvent(SPEECH_STARTED, 0, 0.0), 1.0)
+    assert [barge_in.push(b"", None, 1.0) for _ in range(6)][-1]
+    barge_in.take()
+    lines = [r.getMessage() for r in caplog.records]
+    assert lines == [
+        "judged speech: noise after 3 frames; probabilities 0.900 0.457 0.100",
+        "judged speech: interruption after 7 frames; probabilities "
+        + " ".join(["1.000"] * 7),
+    ]
 
 
 def test_heard_text_keeps_whole_chunks_and_whole_words() -> None:

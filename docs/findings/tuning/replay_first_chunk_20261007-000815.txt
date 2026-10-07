@@ -1,0 +1,44 @@
+replay_first_chunk run at 2026-10-07 00:08:15
+commit 8ec0c4d + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+source measure_turn_20261006-120205_server.txt
+turn  before: ms  chars rule          after: ms  chars rule          saved ms
+   1        2363     41 sentence end       2363      7 clause break         0
+      before 'नमस्ते, यह मेरे लिए ठीक से काम कर रहा है।'
+      after  'नमस्ते,'
+   2        4199     27 end of reply       4189      4 clause break        10
+      before 'हाँ, आवाज़ ठीक से आ रही है।'
+      after  'हाँ,'
+   3        3597     27 end of reply       3597     27 end of reply         0
+      before 'मैंने आपकी आवाज़ सुन ली है।'
+      after  'मैंने आपकी आवाज़ सुन ली है।'
+   4        3537     27 end of reply       3499      7 clause break        38
+      before 'जी हाँ, मैं सुन पा रही हूँ।'
+      after  'जी हाँ,'
+   5        6874     29 end of reply       6874     29 end of reply         0
+      before 'मैंने आपका टेस्ट सुन लिया है।'
+      after  'मैंने आपका टेस्ट सुन लिया है।'
+   6        6758     30 end of reply       6736      3 clause break        22
+      before 'जी, आपका टेस्ट पूरा हो गया है।'
+      after  'जी,'
+   7        8286     34 end of reply       8283      3 clause break         3
+      before 'जी, आपकी आवाज़ एकदम साफ़ आ रही है।'
+      after  'जी,'
+   8        2404     34 end of reply       2402      3 clause break         2
+      before 'जी, मैं आपका यह टेस्ट सुन रही हूँ।'
+      after  'जी,'
+   9        3573     47 end of reply       3478      3 clause break        95
+      before 'जी, आपका यह Vani प्रोजेक्ट का टेस्ट सफल रहा है।'
+      after  'जी,'
+  10        4350     42 end of reply       4069      3 clause break       281
+      before 'जी, आपकी आवाज़ मुझ तक ठीक से पहुँच रही है।'
+      after  'जी,'
+  11        3088     36 end of reply       3079      3 clause break         9
+      before 'जी, यह टेस्ट पूरी तरह से सफल रहा है।'
+      after  'जी,'
+  12        2068     49 end of reply       2066      3 clause break         2
+      before 'जी, मैंने आपका यह टेस्ट सुन लिया है और सब ठीक है।'
+      after  'जी,'
+
+12 turns; text-side ms saved: p50 6, max 281, min 0
+
+wrote replay_first_chunk_20261007-000815.txt

@@ -38,7 +38,7 @@ def test_wrong_size_frames_never_reach_vad(monkeypatch) -> None:
 
     class SpyVad:
         def __init__(self, *args) -> None:
-            pass
+            self.probability = 0.0  # read by the endpointer for each frame
 
         def push(self, frame: bytes) -> None:
             pushed.append(len(frame))

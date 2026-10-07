@@ -71,9 +71,16 @@ enabled = true
 # Speech resuming inside this window cancels the pending end.
 end_of_turn_silence_ms = 700
 
-# Speech shorter than this (speech_started to speech_ended) makes no turn, so
-# a cough or a lone "mm" is ignored.
-min_utterance_ms = 300
+# An utterance with less VOICED audio than this makes no turn, so a cough or
+# a click is ignored. Voiced = frames at or over [vad].threshold, counted from
+# speech_started; not the pre-roll, not VAD's 200 ms wait before speech_ended
+# (day 14). 40 (2 frames) is the no-regression value: everything the old
+# 300 ms span rule kept has at least 2 voiced frames from speech_started (the
+# speech_started frame itself, and a last voiced frame at least 4 frames
+# later), so nothing that passed before is dropped. The price: one unbroken
+# sound now passes at 100 ms of voice, not 160. Provisional until the
+# short-answers measurement (docs/learning/backend-learning/14-tuning.md).
+min_utterance_ms = 40
 
 # Audio kept from before speech_started. VAD confirms speech 80 ms after it
 # really begins (start_frames), so without this the first syllable is lost.
@@ -92,14 +99,16 @@ max_utterance_ms = 30000
 # cough does not stop a reply; short because the whole budget from the user's
 # first sound to silence at the speaker is 300 ms (PERF-3), and network,
 # browser fade and the output device still come after this. A "hmm" of
-# 300 ms or more WILL stop the agent. Starting value; tuned on day 14.
+# 300 ms or more WILL stop the agent. Starting value: day 14's measurement
+# (runs A2 and B) is pending, and the final value waits for the mentor's
+# PERF-3 decision (docs/learning/backend-learning/14-tuning.md).
 min_speech_ms = 200
 
 # Speech probability (0 to 1) a frame needs to count toward min_speech_ms.
 # Separate from [vad].threshold so it can be raised on its own if the
 # browser's echo cancellation leaks the agent's voice back into the mic
 # (residual echo usually scores lower). The same 0.5 for now: no echo
-# measurement exists yet. Tuned on day 14.
+# measurement exists yet: day 14's echo run (A2) is pending.
 threshold = 0.5
 
 [asr]
@@ -243,9 +252,11 @@ model_url = "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb
 #
 # The FIRST chunk is the only one the user waits for (every later one is
 # synthesised while earlier audio plays), so it is cut at the earliest
-# boundary: a sentence end at any length ("Hello!"), a clause break or
-# conjunction once it has first_min_chars. If it reaches first_max_chars with
-# no boundary, it is cut at the last space. A chunk of only punctuation
+# boundary: a sentence end or a clause break at any length ("Hello!",
+# "जी,"), a conjunction once it has first_min_chars. Clause breaks ignore the
+# minimum since day 14: replies open with "जी," or "ठीक है," and waited
+# for the whole reply (docs/learning/backend-learning/14-tuning.md). If it
+# reaches first_max_chars with no boundary, it is cut at the last space. A chunk of only punctuation
 # ("...") is never cut on its own; it joins the next chunk.
 first_min_chars = 8
 first_max_chars = 60

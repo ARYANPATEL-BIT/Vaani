@@ -1,0 +1,89 @@
+run S; commit 8ec0c4d + uncommitted changes; power scheme Silent
+override VAANI_ASR__ENABLED=false
+582 INFO: vaani.vad: VAD model loaded in 38.5 ms
+2679 INFO: vaani.tts: piper hi_IN-priyamvada-medium.onnx (22050 Hz) loaded and warmed up in 1.72 s
+611175 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.840ms p95=1.525ms)
+611975 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 89 (1.80s into audio)
+611975 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn 4549cc5da6ff4321920ca30c1664c1c9 opened
+611977 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: idle -> listening
+612176 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.787ms p95=1.463ms)
+612754 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 128 (2.58s into audio)
+613154 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 148 (2.98s into audio)
+613174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.774ms p95=1.356ms)
+613654 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 173 (3.48s into audio)
+614174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.776ms p95=1.383ms)
+614354 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn_ended turn 4549cc5da6ff4321920ca30c1664c1c9 frames 89-173, 1700 ms, 980 ms voiced, 100 frames buffered (waited 700 ms)
+614354 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: listening -> idle
+614595 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 220 (4.42s into audio)
+614595 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn fb2eebd1a52a4138a9c1401f2ce38ce5 opened
+614595 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: idle -> listening
+615094 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 245 (4.92s into audio)
+615175 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.762ms p95=1.292ms)
+615775 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 279 (5.60s into audio)
+616174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.738ms p95=1.273ms)
+616753 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 328 (6.58s into audio)
+617174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.774ms p95=1.319ms)
+617274 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 354 (7.10s into audio)
+618015 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 391 (7.84s into audio)
+618174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.789ms p95=1.318ms)
+618714 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn_ended turn fb2eebd1a52a4138a9c1401f2ce38ce5 frames 220-391, 3440 ms, 1800 ms voiced, 187 frames buffered (waited 700 ms)
+618714 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: listening -> idle
+618816 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 431 (8.64s into audio)
+618816 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn 52a5aaeb9fd84176b41975d260b1836e opened
+618816 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: idle -> listening
+619034 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 442 (8.86s into audio)
+619175 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.798ms p95=1.328ms)
+619194 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 450 (9.02s into audio)
+619995 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 490 (9.82s into audio)
+620174 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.776ms p95=1.295ms)
+620695 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn_ended turn 52a5aaeb9fd84176b41975d260b1836e frames 431-490, 1200 ms, 720 ms voiced, 75 frames buffered (waited 700 ms)
+620695 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: listening -> idle
+620715 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_started at frame 526 (10.54s into audio)
+620716 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn 74a77ed0369a46fcaf50c182ec03f69a opened
+620716 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: idle -> listening
+621173 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.757ms p95=1.451ms)
+621273 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: speech_ended at frame 554 (11.10s into audio)
+621976 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: turn_ended turn 74a77ed0369a46fcaf50c182ec03f69a frames 526-554, 580 ms, 380 ms voiced, 44 frames buffered (waited 702 ms)
+621976 INFO: vaani.turns: session e16844d82f4c4730b86c2f07e2d2e12a: listening -> idle
+622175 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.778ms p95=1.506ms)
+623175 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.803ms p95=1.487ms)
+624077 INFO: vaani.gateway: session e16844d82f4c4730b86c2f07e2d2e12a closed: 694 frames total, 0 late frames dropped
+858253 INFO: vaani.gateway: session 19cdffd162024f07ad1a9e94f6adade6 closed: 9 frames total, 0 late frames dropped
+860151 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 49 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.750ms p95=1.367ms)
+860293 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 55 (1.12s into audio)
+860293 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: turn 8a053096af0042548cb13f4c1d8f4e93 opened
+860294 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: idle -> listening
+860552 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 68 (1.38s into audio)
+861151 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.776ms p95=1.384ms)
+861253 INFO: vaani.endpoint: session 989c3392cadc48a5ab0ddda6652ecce2: utterance of 280 ms, 80 ms voiced, ignored (min_utterance_ms)
+861253 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: turn 8a053096af0042548cb13f4c1d8f4e93 discarded (too short)
+861253 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: listening -> idle
+862153 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.779ms p95=1.403ms)
+862193 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 150 (3.02s into audio)
+862193 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: turn 2b1bf3d0c3e64fc29e16574a2c9ee6c8 opened
+862193 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: idle -> listening
+862953 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 188 (3.78s into audio)
+863154 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.766ms p95=1.418ms)
+863492 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 215 (4.32s into audio)
+864151 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.809ms p95=1.521ms)
+865152 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=0.865ms p95=1.612ms)
+865312 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 306 (6.14s into audio)
+865673 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 324 (6.50s into audio)
+866153 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.223ms p95=1.547ms)
+866271 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 354 (7.10s into audio)
+866693 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 375 (7.52s into audio)
+866912 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 386 (7.74s into audio)
+867112 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 396 (7.94s into audio)
+867151 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.212ms p95=1.470ms)
+867671 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 424 (8.50s into audio)
+867953 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 438 (8.78s into audio)
+868153 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.197ms p95=1.503ms)
+869151 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 498 (9.98s into audio)
+869153 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.197ms p95=1.552ms)
+869512 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 516 (10.34s into audio)
+870153 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.230ms p95=1.572ms)
+870751 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_ended at frame 578 (11.58s into audio)
+870893 INFO: vaani.turns: session 989c3392cadc48a5ab0ddda6652ecce2: speech_started at frame 585 (11.72s into audio)
+871151 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2: 50 frames in last 1.000s (echo p50=- p95=-) (vad p50=1.006ms p95=1.524ms)
+871907 INFO: vaani.endpoint: session 989c3392cadc48a5ab0ddda6652ecce2: discarding unfinished utterance (486 frames) at close
+871907 INFO: vaani.gateway: session 989c3392cadc48a5ab0ddda6652ecce2 closed: 636 frames total, 0 late frames dropped

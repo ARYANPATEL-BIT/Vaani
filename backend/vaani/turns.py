@@ -88,7 +88,12 @@ class TurnPipeline:
             else None
         )
         self._endpointer = (
-            Endpointer(settings.endpoint, self._frame_ms, session.session_id)
+            Endpointer(
+                settings.endpoint,
+                self._frame_ms,
+                settings.vad.threshold,
+                session.session_id,
+            )
             if self._vad is not None and settings.endpoint.enabled
             else None
         )
@@ -153,9 +158,9 @@ class TurnPipeline:
                 if self._barge.judging:
                     # The reply ended while speech begun over it was being
                     # judged: it is the user's next turn, first frames included.
-                    for frame, event in self._barge.take():
-                        await self._endpoint(frame, event)
-                await self._endpoint(data, speech_event)
+                    for frame, event, probability in self._barge.take():
+                        await self._endpoint(frame, event, probability)
+                await self._endpoint(data, speech_event, self._vad.probability)
         await self._echo.frame(data)
 
     async def on_session_end(self) -> None:
@@ -178,12 +183,14 @@ class TurnPipeline:
 
     # --- Routing -------------------------------------------------------------
 
-    async def _endpoint(self, data: bytes, speech_event: SpeechEvent | None) -> None:
+    async def _endpoint(
+        self, data: bytes, speech_event: SpeechEvent | None, probability: float
+    ) -> None:
         """Agent not busy: the user's speech opens and ends turns."""
         ep = self._endpointer
         assert ep is not None  # on_frame routes here only when it exists
         was_open = ep.utterance_open
-        turn = ep.push(data, speech_event)
+        turn = ep.push(data, speech_event, probability)
         if turn is not None:
             await self._end_turn(turn)
         elif was_open and not ep.utterance_open:
@@ -208,8 +215,8 @@ class TurnPipeline:
         elif not self._barge.judging:
             # No speech, or a noise that stopped short. The endpointer still
             # gets every frame, as silence: its pre-roll stays the latest audio.
-            for frame, _ in self._barge.take():
-                self._endpointer.push(frame, None)
+            for frame, _, _ in self._barge.take():
+                self._endpointer.push(frame, None, 0.0)
 
     async def _barge_in(self) -> None:
         """The user is talking over the agent: stop it, then open their turn."""
@@ -229,8 +236,8 @@ class TurnPipeline:
         await self._machine.move_to(TurnState.CANCELLING)
         await self._open_turn()
         # 5. The speech so far, pre-roll included, as if endpointed live.
-        for frame, event in self._barge.take():
-            await self._endpoint(frame, event)
+        for frame, event, probability in self._barge.take():
+            await self._endpoint(frame, event, probability)
 
     # --- Turn lifecycle ----------------------------------------------------
 
@@ -251,13 +258,14 @@ class TurnPipeline:
             else f"waited {(turn.at - turn.speech_ended_at) * 1000:.0f} ms"
         )
         log.info(
-            "session %s: turn_ended turn %s frames %d-%d, %d ms, "
+            "session %s: turn_ended turn %s frames %d-%d, %d ms, %d ms voiced, "
             "%d frames buffered (%s)",
             self._session.session_id,
             turn_id,
             turn.start_frame,
             turn.end_frame,
             turn.duration_ms,
+            turn.voiced_frames * self._frame_ms,
             turn.frame_count,
             waited,
         )

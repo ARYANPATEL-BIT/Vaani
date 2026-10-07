@@ -5,8 +5,9 @@ the text does. Boundaries, best first: sentence end, clause break,
 conjunction, then any space once a chunk is too long.
 
 THE FIRST CHUNK PLAYS BY DIFFERENT RULES. It is the only chunk the user waits
-for, so it is cut at the EARLIEST boundary: a sentence end at any length
-("Hello!"), any other boundary once it is long enough. Every later chunk is
+for, so it is cut at the EARLIEST boundary: a sentence end or a clause break
+at any length ("Hello!", "जी,"), a conjunction once the chunk is long
+enough. Every later chunk is
 synthesised while earlier audio plays, so it waits for a sentence end, which
 keeps each sentence's intonation whole.
 
@@ -78,10 +79,13 @@ class ClauseChunker:
         buf, cfg = self._buf, self._cfg
         sentences, clauses, conjunctions = self._boundaries(buf)
         if self._first:
-            # A sentence end cuts at any length: "Hello!" is a whole thought.
-            # A comma or conjunction only once the chunk has first_min_chars.
+            # A sentence end or a comma cuts at any length: "Hello!" and
+            # "जी," are each said with a pause after them (day 14: replies
+            # open with "जी," / "ठीक है," and waited for the whole reply).
+            # A conjunction only once the chunk has first_min_chars: it has
+            # no pause of its own, so a 3-character cut would be a fragment.
             cuts = [(e, "sentence end") for e in sentences]
-            cuts += [(e, "clause break") for e in clauses if e >= cfg.first_min_chars]
+            cuts += [(e, "clause break") for e in clauses]
             cuts += [
                 (e, "conjunction") for e in conjunctions if e >= cfg.first_min_chars
             ]

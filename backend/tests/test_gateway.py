@@ -31,6 +31,7 @@ class SpeechOnFirstFrame:
 
     def __init__(self, *args) -> None:
         self._frames = 0
+        self.probability = 1.0  # read by the endpointer for each frame
 
     def push(self, frame: bytes) -> SpeechEvent | None:
         self._frames += 1

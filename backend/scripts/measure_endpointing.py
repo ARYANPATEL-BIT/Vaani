@@ -76,7 +76,7 @@ def measure(path: Path) -> tuple[int, int, int, list[float]] | None:
 
     model = load_model(settings.vad.model_path, settings.vad.model_sha256)
     vad = VadStream(model, settings.vad, settings.audio)
-    endpointer = Endpointer(settings.endpoint, frame_ms)
+    endpointer = Endpointer(settings.endpoint, frame_ms, settings.vad.threshold)
     costs: list[float] = []
     last_ended = None
     for i, frame in enumerate(frames):
@@ -84,7 +84,7 @@ def measure(path: Path) -> tuple[int, int, int, list[float]] | None:
         if event is not None and event.kind == SPEECH_ENDED:
             last_ended = event.frame_index
         started = perf_counter()
-        turn = endpointer.push(frame, event)
+        turn = endpointer.push(frame, event, vad.probability)
         costs.append(perf_counter() - started)
         if turn is not None:
             assert last_ended is not None

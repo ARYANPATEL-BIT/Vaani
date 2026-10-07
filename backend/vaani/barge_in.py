@@ -15,9 +15,14 @@ While the agent is thinking or speaking, turns.py feeds every frame to
    cough would look like 300 ms of speech by the clock.
 
 2. KEEP THE AUDIO. Every frame since speech_started is held, with its VAD
-   event. If the speech is an interruption, turns.py replays them into the
-   endpointer, so the user's new turn starts at their first sound, not
-   200 ms in. If it was a noise, they go to the endpointer as silence.
+   event and speech probability. If the speech is an interruption, turns.py
+   replays them into the endpointer, so the user's new turn starts at their
+   first sound, not 200 ms in. If it was a noise, they go to the endpointer as silence.
+
+Every judged speech, whatever its outcome, writes one DEBUG line with the
+probability of each of its frames. Day 14's tuning runs switch it on, and
+scripts/barge_in_sweep.py replays those lines through this class to show
+what other min_speech_ms and threshold values would have done.
 
 When it is one, turns.py calls `stop_reply` (steps 1 to 3 below), then
 closes the agent's turn and opens the user's (steps 4 and 5, turns.py).
@@ -44,8 +49,9 @@ log = logging.getLogger("vaani.barge_in")
 
 SendJson = Callable[[dict], Awaitable[None]]
 
-# One held frame: its bytes and the VAD event it produced (usually None).
-Held = tuple[bytes, SpeechEvent | None]
+# One held frame: its bytes, the VAD event it produced (usually None) and
+# its speech probability.
+Held = tuple[bytes, SpeechEvent | None, float]
 
 
 class BargeIn:
@@ -72,7 +78,7 @@ class BargeIn:
         Every frame is held until the caller takes it with `take`: between
         speech that is just this frame; while judging, the whole utterance.
         """
-        self._held.append((frame, event))
+        self._held.append((frame, event, probability))
         if self.started is None:
             if event is None or event.kind != SPEECH_STARTED:
                 return False
@@ -82,17 +88,37 @@ class BargeIn:
             self._speech = self._start_frames
         elif event is not None and event.kind == SPEECH_ENDED:
             self.started = None  # it stopped short: a noise, not an interruption
+            self._log_judged("noise")
             return False
         elif probability >= self._threshold:
             self._speech += 1
-        return self._speech >= self._needed
+        if self._speech < self._needed:
+            return False
+        self._log_judged("interruption")
+        return True
 
     def take(self) -> list[Held]:
         """Hand over every held frame, oldest first, and start afresh."""
+        if self.started is not None and self._speech < self._needed:
+            # Still undecided: the reply ended (or the session closed) first.
+            self._log_judged("undecided")
         held, self._held = self._held, []
         self.started = None
         self._speech = 0
         return held
+
+    def _log_judged(self, outcome: str) -> None:
+        # Debug: off in normal runs. One line per judged speech, frames from
+        # speech_started on. "noise" ends on its speech_ended frame; the other
+        # two outcomes are cut off, so what came next is unknown.
+        log.debug(
+            "judged speech: %s after %d frames; probabilities %s",
+            outcome,
+            len(self._held),
+            # 3 decimals: a frame is voiced at >= 0.5, so 2 would misplace
+            # every probability from 0.495 to 0.4999 in a replay.
+            " ".join(f"{p:.3f}" for _, _, p in self._held),
+        )
 
 
 def heard_text(spoken: list[Spoken], cut_at: float) -> str:
