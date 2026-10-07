@@ -2,36 +2,84 @@
 
 NOT marked slow: loading the voice takes about a second and a chunk tens of
 ms, so these run everywhere, CI included. They need the voice file, which is
-not committed: run `uv run python scripts/fetch_models.py` first (CI does).
-A missing voice fails here with that instruction, rather than skipping.
+not committed: run `uv run python scripts/fetch_models.py default` first (CI
+does). A missing voice fails here with that instruction, rather than skipping.
+
+Day 15: personas have their own voices, but these tests LOAD only the default
+persona's voice, the one CI fetches. The other voices are checked through
+their committed .onnx.json files, without their 63 MB .onnx.
 """
 
 import asyncio
+import json
+from pathlib import Path
 
 import pytest
+from piper import PiperConfig
 
-from vaani.config import Settings
-from vaani.tts import TtsError, build_synthesizer
-from vaani.tts.piper import PiperSynthesizer
+from vaani.app import create_app
+from vaani.config import PersonaVoice, Settings, TtsSettings
+from vaani.tts import TtsError, build_synthesizers
 
 CFG = Settings().tts
+DEFAULT = CFG.piper.voices["default"]
+MODELS = Path(__file__).resolve().parent.parent / CFG.piper.models_dir
 
 
-def synthesize(text: str, cancel: asyncio.Event | None = None) -> bytes | None:
-    synth = build_synthesizer(CFG)  # cached: the voice loads once per run
+def only(**voices: PersonaVoice) -> TtsSettings:
+    """The committed [tts] with just these persona voices, switched on."""
+    piper = CFG.piper.model_copy(update={"voices": voices})
+    return CFG.model_copy(update={"enabled": True, "piper": piper})
+
+
+# The default voice, and the same voice file 1.5x slower: needs no other file.
+TWO = only(default=DEFAULT, slow=DEFAULT.model_copy(update={"length_scale": 1.5}))
+
+
+def synthesize(text: str, cancel: asyncio.Event | None = None, persona="default"):
+    synth = build_synthesizers(TWO)[persona]  # cached: loads once per run
     return asyncio.run(synth.synthesize(text, cancel or asyncio.Event()))
 
 
+def committed_rate(voice: str) -> int:
+    """The rate in the voice's committed .onnx.json, read as piper reads it."""
+    text = (MODELS / f"{voice}.onnx.json").read_text(encoding="utf-8")
+    return PiperConfig.from_dict(json.loads(text)).sample_rate
+
+
 def test_voice_rate_is_read_from_the_voice_config() -> None:
-    assert build_synthesizer(CFG).sample_rate == 22050
+    assert build_synthesizers(TWO)["default"].sample_rate == committed_rate(
+        DEFAULT.voice
+    )
+
+
+@pytest.mark.parametrize("persona", sorted(CFG.piper.voices))
+def test_every_persona_voice_has_a_committed_config_with_a_rate(persona) -> None:
+    # What audio.start will declare for this persona, without its .onnx.
+    assert committed_rate(CFG.piper.voices[persona].voice) == 22050
 
 
 def test_a_chunk_becomes_pcm_of_plausible_length() -> None:
-    pcm = synthesize("Theek hai, main aapko yaad dila doongi.")
+    pcm = synthesize("ठीक है, मैं आपको याद दिला दूँगी।")
     assert pcm is not None and len(pcm) % 2 == 0  # whole 16-bit samples
     seconds = len(pcm) / 2 / 22050
     assert 0.5 < seconds < 8.0, f"{seconds:.2f} s of audio"
     assert max(pcm[1::2]) > 0  # high bytes not all zero: not silence
+
+
+def test_personas_sharing_a_voice_share_one_load_and_one_pool() -> None:
+    synths = build_synthesizers(TWO)
+    assert synths["default"]._voice is synths["slow"]._voice  # loaded once
+    assert synths["default"]._pool is synths["slow"]._pool  # max_concurrent holds
+
+
+def test_length_scale_slows_the_voice_down() -> None:
+    text = "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी।"
+    normal = len(synthesize(text) or b"")
+    slow = len(synthesize(text, persona="slow") or b"")
+    # 1.5x every sound's length. Durations are predicted with some noise,
+    # so the check is loose: clearly longer, not exactly 1.5x.
+    assert slow > 1.25 * normal, f"{slow / normal:.2f}x"
 
 
 def test_cancelled_before_start_returns_none() -> None:
@@ -41,8 +89,19 @@ def test_cancelled_before_start_returns_none() -> None:
 
 
 def test_wrong_hash_refuses_to_load() -> None:
-    bad = CFG.model_copy(
-        update={"piper": CFG.piper.model_copy(update={"model_sha256": "0" * 64})}
-    )
     with pytest.raises(TtsError, match="sha256"):
-        PiperSynthesizer(bad)
+        build_synthesizers(
+            only(default=DEFAULT.model_copy(update={"sha256": "0" * 64}))
+        )
+
+
+def test_startup_refuses_a_missing_voice_and_names_the_fetch_command() -> None:
+    gone = PersonaVoice(voice="hi_IN-nobody-medium", sha256="0" * 64)
+    voices = dict.fromkeys(Settings().personas, gone)
+    with pytest.raises(TtsError, match="scripts/fetch_models.py"):
+        create_app(Settings(tts=only(**voices)))
+
+
+def test_startup_refuses_a_persona_without_a_voice() -> None:
+    with pytest.raises(TtsError, match="tutor"):
+        create_app(Settings(tts=only(default=DEFAULT)))

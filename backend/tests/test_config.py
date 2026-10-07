@@ -89,3 +89,10 @@ def test_gemini_key_only_from_env(monkeypatch) -> None:
     toml_lines = _CONFIG_PATH.read_text(encoding="utf-8").splitlines()
     assignments = [ln for ln in toml_lines if "=" in ln and not ln.startswith("#")]
     assert not any("key" in ln.split("=")[0].lower() for ln in assignments)
+
+
+def test_every_persona_has_a_voice() -> None:
+    """Day 15: [tts.piper.voices] covers exactly the [personas] keys, so the
+    committed config never stops the server with "persona has no voice"."""
+    settings = Settings()
+    assert settings.tts.piper.voices.keys() == settings.personas.keys()

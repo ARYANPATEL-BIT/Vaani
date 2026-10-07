@@ -26,66 +26,7 @@ The purpose is teaching. I am learning this stack while building it, so the docu
 
 Assume I am smart but new to this area. Never assume I already know a term you are about to use.
 
-Write to docs/learning/<module-or-feature>.md. Use this exact structure:
-
-markdown
-# <Module or Feature>
-
-## In one paragraph
-What this does and why the system would break without it. No jargon.
-
-## Concepts you need first
-Explain every technique or term used here that I might not know.
-"A cancellation token is an object passed into a long-running operation.
-The caller can flip it, and the operation checks it and stops early.
-We need one because a user can interrupt mid-response, and without it
-the LLM would keep streaming tokens nobody will hear."
-Two to five of these. Skip anything already explained in an earlier doc,
-and link to that doc instead.
-
-## Where the code lives
-| File | Responsibility |
-|---|---|
-| `src/turn/state_machine.py` | Legal states and transitions |
-
-## Walk through the code
-Take the main path and narrate it in call order, with real snippets.
-Show the actual lines, then explain what each is doing and why it is
-written that way. This is the section I will reread most.
-
-## Who calls this, and what it calls
-Inbound: which modules invoke it and from where.
-Outbound: which modules or services it depends on.
-
-## Why it is built this way
-The reasoning, at a level someone learning can follow.
-Not "we used X" but "we used X because Y mattered more than Z."
-
-## Alternatives considered
-| Alternative | What it would have looked like | Why rejected |
-|---|---|---|
-| Fixed 700 ms silence timer | One constant, no adaptation | Cuts users off mid-thought |
-Explain each alternative well enough that I understand what we passed up.
-
-## Trade-offs accepted
-What is worse because of this choice. Every decision costs something.
-
-## API / interface design
-If this exposes an interface: why these methods, why these parameters,
-why this return shape. Why not fewer methods, or more. What a caller
-can and cannot do with it.
-
-## Pros and cons
-**Pros:** ...
-**Cons:** ...
-
-## What would make us change this
-The condition under which this decision should be revisited.
-
-## Questions a reviewer could ask, with answers
-Six to eight. Include at least two "where is X implemented", two
-"what happens when Y fails", and two conceptual ones about the
-techniques used.
+Write to docs/learning/backend-learning/ or docs/learning/frontend-learning/, numbered in order. The required sections, their order, length limits and writing rules are in docs/learning/STANDARD.md; follow that file exactly. It is the single source for the document's structure.
 
 Rules for the learning document:
 

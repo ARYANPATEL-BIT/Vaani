@@ -1,0 +1,7 @@
+persona_clips run at 2026-10-07 12:42:54
+commit 8c6123e + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+support: hi_IN-rohan-medium, length_scale 1.15, 22050 Hz, 8.87 s audio in 5505 ms -> persona_support_hi_IN-rohan-medium_ls1.15_20261007-124254.wav
+  text: जी, मैं आपकी परेशानी समझ सकता हूँ। कृपया अपना ऑर्डर नंबर बताइए, मैं अभी उसका स्टेटस चेक कर दूँगा।
+
+wrote persona_clips_20261007-124254.txt

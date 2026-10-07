@@ -24,13 +24,13 @@ Everything printed is also written to docs/findings/reply-script/
 measure_tts_<timestamp>.txt (run_log.py), one file per run.
 
     uv run python scripts/measure_tts.py
+    uv run python scripts/measure_tts.py --persona tutor
 """
 
 import argparse
 import asyncio
 import re
 import wave
-from pathlib import Path
 from statistics import median
 from time import perf_counter
 
@@ -38,7 +38,7 @@ from run_log import OUT, RunLog  # scripts/ is on sys.path when run as a file
 
 from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
-from vaani.tts import build_synthesizer
+from vaani.tts import build_synthesizers
 
 # Day 12's Latin texts, written in Devanagari word for word. "जी," first
 # since day 14: replies open with it, and it is now a first chunk on its own.
@@ -71,12 +71,16 @@ def chunks_of(text: str, **cfg) -> list[str]:
     return out
 
 
-async def main(repeat: int) -> None:
+async def main(repeat: int, persona: str) -> None:
     log = RunLog("measure_tts")
     tts = get_settings().tts
-    synth = build_synthesizer(tts)
+    synth = build_synthesizers(tts)[persona]
     rate = synth.sample_rate
-    log(f"voice {Path(tts.piper.model_path).name}, {rate} Hz, one synthesis at a time")
+    pv = tts.piper.voices[persona]
+    log(
+        f"persona {persona}: voice {pv.voice}, length_scale {pv.length_scale}, "
+        f"{rate} Hz, one synthesis at a time"
+    )
     log()
     cancel = asyncio.Event()
     await synth.synthesize("namaste", cancel)  # warm-up, untimed
@@ -124,4 +128,6 @@ async def main(repeat: int) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeat", type=int, default=5)
-    asyncio.run(main(parser.parse_args().repeat))
+    parser.add_argument("--persona", default="default", help="whose voice to time")
+    args = parser.parse_args()
+    asyncio.run(main(args.repeat, args.persona))

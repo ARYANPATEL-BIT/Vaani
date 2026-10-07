@@ -1,0 +1,19 @@
+measure_voices run at 2026-10-07 15:25:13
+commit 8c6123e + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+voices ['hi_IN-priyamvada-medium'], repeat 5
+
+1. load, in this order, in one process
+RSS before: 29 MB; after `import piper`: 58 MB
+voice                       load s  warm s  RSS MB    +MB     Hz
+hi_IN-priyamvada-medium       1.49    0.08     168    110  22050
+all 1 loaded: 140 MB over the baseline
+
+3. synthesis time, median and max of 5, one call at a time
+voice                      chars  audio s  p50 ms  max ms    RTF
+hi_IN-priyamvada-medium        3     0.67      25      29  0.037
+hi_IN-priyamvada-medium       24     2.17      75      77  0.034
+hi_IN-priyamvada-medium       47     4.53     144     590  0.032
+hi_IN-priyamvada-medium      107     9.07     275     299  0.030
+
+wrote measure_voices_20261007-152513.txt

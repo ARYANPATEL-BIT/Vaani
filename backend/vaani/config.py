@@ -148,13 +148,26 @@ class AsrSettings(BaseModel):
     whisper: WhisperSettings
 
 
-class PiperSettings(BaseModel):
-    """The Piper voice, under [tts.piper] in config.toml."""
+class PersonaVoice(BaseModel):
+    """One persona's voice, under [tts.piper.voices.<persona>]."""
 
-    model_path: str  # relative to backend/; fetched by scripts/fetch_models.py
-    config_path: str  # the voice's .onnx.json (committed)
-    model_sha256: str  # checked at load and by fetch_models.py
-    model_url: str  # where fetch_models.py downloads it from
+    voice: str  # Piper voice name, e.g. "hi_IN-priyamvada-medium"
+    sha256: str  # of <voice>.onnx; checked at load and by fetch_models.py
+    # Piper's length_scale: 1.0 = the voice's own pace, above 1 = slower.
+    # None = the value in the voice's .onnx.json.
+    length_scale: float | None = None
+
+
+class PiperSettings(BaseModel):
+    """Piper voices, under [tts.piper] in config.toml."""
+
+    # Where <voice>.onnx (fetched) and <voice>.onnx.json (committed) live.
+    models_dir: str
+    # The piper-voices repository, pinned to one revision; fetch_models.py
+    # appends the path it builds from each voice name.
+    voices_url: str
+    # Persona key -> its voice. Every key of [personas] must have one.
+    voices: dict[str, PersonaVoice]
 
 
 class TtsSettings(BaseModel):

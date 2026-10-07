@@ -28,8 +28,9 @@ class FakeSynthesizer(Synthesizer):
         audio_ms_per_char: float = 2.0,
         gate_from: int | None = None,
         fail_on: int | None = None,
+        sample_rate: int = SAMPLE_RATE,
     ) -> None:
-        self.sample_rate = SAMPLE_RATE
+        self.sample_rate = sample_rate
         self.synth_s = synth_s
         self.audio_ms_per_char = audio_ms_per_char
         self.gate_from = gate_from
@@ -49,7 +50,9 @@ class FakeSynthesizer(Synthesizer):
             time.sleep(self.synth_s)  # releases the GIL, like ONNX Runtime
             if index == self.fail_on:
                 raise RuntimeError("voice exploded")
-            samples = round(len(text) * self.audio_ms_per_char * SAMPLE_RATE / 1000)
+            samples = round(
+                len(text) * self.audio_ms_per_char * self.sample_rate / 1000
+            )
             return b"\x01\x00" * samples
         finally:
             self.windows.append((start, perf_counter()))

@@ -8,6 +8,7 @@ recogniser, a scripted model (tests/test_turn_llm.py) and a fake synthesiser
 import json
 from time import perf_counter
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tests.fake_asr import FakeRecognizer
@@ -170,3 +171,27 @@ def test_echo_audio_start_declares_the_mic_rate() -> None:
         audio_start = until(ws, is_("audio.start"))[-1]
 
     assert audio_start["sample_rate"] == 16000
+
+
+@pytest.mark.parametrize("persona, rate", [("default", SAMPLE_RATE), ("tutor", 16000)])
+def test_each_persona_speaks_with_its_own_voice_and_rate(persona, rate) -> None:
+    # Day 15. Every Piper voice we have is 22050 Hz, so a stand-in at 16000 Hz
+    # is what proves audio.start and the frame size follow the PERSONA's
+    # voice rather than one rate for the whole server.
+    voices = {
+        "default": FakeSynthesizer(),
+        "tutor": FakeSynthesizer(sample_rate=16000),
+        "support": FakeSynthesizer(),
+    }
+    client = make_client(ScriptedLLM(("Theek hai.",)), voices["default"])
+    client.app.state.synthesizers = voices
+    with client.websocket_connect("/ws/session") as ws:
+        start(ws, persona)
+        speak(ws)
+        msgs = until(ws, is_("idle"))
+
+    assert [p for p, v in voices.items() if v.texts] == [persona]  # its voice only
+    audio_start = next(m for m in msgs if is_("audio.start")(m))
+    assert audio_start["sample_rate"] == rate
+    frames = [m for m in msgs if isinstance(m, bytes)]
+    assert max(len(f) for f in frames) == rate * 20 // 1000 * 2  # 20 ms frames
