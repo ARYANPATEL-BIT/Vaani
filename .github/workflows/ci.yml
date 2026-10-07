@@ -45,17 +45,19 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
 
-      # The Piper voice (63.5 MB) is not committed. Cache it, keyed on the
-      # config that names it, so it is downloaded once per voice. The script
-      # verifies the hash either way and fails the build on a mismatch.
+      # Piper voices (about 63 MB each) are not committed. CI fetches only
+      # the default persona's voice: it is the only one the tests load (the
+      # other voices are tested through their committed .onnx.json). Cached,
+      # keyed on the config that names it. The script verifies the hash
+      # either way and fails the build on a mismatch.
       - name: Cache Piper voice
         uses: actions/cache@v4
         with:
-          path: backend/models/hi_IN-priyamvada-medium.onnx
+          path: backend/models/hi_IN-*.onnx
           key: piper-${{ hashFiles('backend/config.toml') }}
 
       - name: Fetch models
-        run: uv run python scripts/fetch_models.py
+        run: uv run python scripts/fetch_models.py default
 
       # Run the test suite. Tests marked `slow` (they load a real Whisper
       # model) are excluded by pyproject's addopts; asr-slow.yml runs them.

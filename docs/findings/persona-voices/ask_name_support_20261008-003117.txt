@@ -1,0 +1,23 @@
+ask.py --persona support, name rule (no personal name, role only), run at 20261008-003117
+commit 8c6123e + uncommitted changes (prompts: 'You are Vaani' removed, name rule added)
+
+Q: tumhara naam kya hai?
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini, groq)
+time to first token: 1102 ms, total: 1126 ms
+script: 22 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+
+
+Q: apna introduction do, tum kaun ho?
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964 \u0915\u0943\u092a\u092f\u093e \u092c\u0924\u093e\u0907\u090f \u0915\u093f \u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0915\u094d\u092f\u093e \u092e\u0926\u0926 \u0915\u0930 \u0938\u0915\u0924\u0940 \u0939\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini, groq)
+time to first token: 804 ms, total: 870 ms
+script: 58 Devanagari, 0 Latin letters, other: none
+first person: 1 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+
+

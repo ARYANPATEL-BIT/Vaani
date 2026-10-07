@@ -29,7 +29,9 @@ provider listed there needs its key in the environment or backend/.env
 
 After the answer, a "script:" line counts the reply's characters IN CODE:
 Devanagari, Latin letters, and anything else. Under the Devanagari reply
-format any Latin letter is drift. The console only ever gets ASCII: the reply
+format any Latin letter is drift. A "first person:" line counts gendered verb
+forms, and a "self-name:" line lists any place the reply names its speaker
+with something other than a role word. The console only ever gets ASCII: the reply
 is printed with non-ASCII escaped (the Windows console cannot be trusted with
 Devanagari); --save keeps the real text.
 """
@@ -37,6 +39,7 @@ Devanagari); --save keeps the real text.
 import argparse
 import asyncio
 import logging
+import re
 import sys
 from pathlib import Path
 from time import perf_counter
@@ -52,6 +55,38 @@ from vaani.spend import RequestCap, SpendCapExceededError
 # Punctuation a Devanagari reply may use besides the danda (which is inside
 # the Devanagari block). Anything else that is not a letter or digit is "other".
 PUNCTUATION = set(",.?!;:'\"()-")
+
+# First-person verb forms that carry the speaker's gender (day 15). Only forms
+# that are first person by their shape: the future in -ऊँगा / -ऊँगी
+# ("करूँगा", "दूँगी", "जाऊँगा") and a participle before हूँ ("सकता हूँ",
+# "रही हूँ", "गया हूँ"). "गया" alone is NOT counted: "वह गया" is third
+# person. Either nasal mark (ँ or ं) is accepted; LLMs write both.
+# The word ends here: no Devanagari letter or vowel sign follows. The danda
+# (U+0964, U+0965) and the digits are in the same Unicode block but are not
+# part of a word, so they are left out of the range.
+_END = r"(?![ऀ-ॣॱ-ॿ])"
+FEMININE = re.compile(rf"[ूऊ][ँं]गी{_END}|(?:ती|रही|ई|यी|की)\s+हू[ँं]{_END}")
+MASCULINE = re.compile(rf"[ूऊ][ँं]गा{_END}|(?:ता|रहा|या|का)\s+हू[ँं]{_END}")
+
+# Self-naming (day 15): a persona has no personal name, only a role. Code
+# cannot know every human name, so this finds the places where a reply says
+# who its speaker is, and every one must hold a role word. The three shapes:
+# "मेरा नाम X", "मैं आपका/आपकी X हूँ" (X up to two words: "सपोर्ट एजेंट"),
+# and "मैं X हूँ" with X one word ("मैं राहुल हूँ"). "मैं मदद कर सकती हूँ" is
+# not a match: no possessive, and more than one word before हूँ.
+ROLES = ("असिस्टेंट", "सहायक", "ट्यूटर", "शिक्षक", "सपोर्ट", "एजेंट")
+SELF_NAME = re.compile(
+    r"मेरा\s+नाम\s+(\S+)"
+    r"|मैं\s+(?:आपका|आपकी|तुम्हारा|तुम्हारी)\s+(\S+(?:\s+\S+)?)\s+हू[ँं]"
+    r"|मैं\s+(\S+)\s+हू[ँं]"
+)
+
+
+def self_names(text: str) -> tuple[int, list[str]]:
+    """(places the reply names its speaker, those that hold no role word)."""
+    # findall gives one tuple per match, one slot per shape; one slot is set.
+    said = ["".join(groups) for groups in SELF_NAME.findall(text)]
+    return len(said), [s for s in said if not any(r in s for r in ROLES)]
 
 
 def ascii_only(text: str) -> str:
@@ -160,6 +195,17 @@ async def ask(
     print(
         f"script: {devanagari} Devanagari, {latin} Latin letters, "
         f"other: {ascii_only(other) or 'none'}",
+        file=sys.stderr,
+    )
+    print(
+        f"first person: {len(FEMININE.findall(reply))} feminine, "
+        f"{len(MASCULINE.findall(reply))} masculine",
+        file=sys.stderr,
+    )
+    said, not_roles = self_names(reply)
+    print(
+        f"self-name: {said} self-description(s), not a role: "
+        f"{ascii_only(', '.join(not_roles)) or 'none'}",
         file=sys.stderr,
     )
     return 0

@@ -209,6 +209,11 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 # Fresh per-session VAD / endpointing / ASR / reply state. The
                 # models (VAD, Whisper) and the LLM chain are built once per
                 # process and shared; getattr gives None for one disabled.
+                # The voice is the persona's (day 15), chosen once here, never
+                # per turn: {} when TTS is off, so .get gives None.
+                synth = getattr(websocket.app.state, "synthesizers", {}).get(
+                    session.persona
+                )
                 pipeline = TurnPipeline(
                     settings,
                     session,
@@ -218,7 +223,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     getattr(websocket.app.state, "vad_model", None),
                     getattr(websocket.app.state, "recognizer", None),
                     getattr(websocket.app.state, "llm", None),
-                    getattr(websocket.app.state, "synthesizer", None),
+                    synth,
                 )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)

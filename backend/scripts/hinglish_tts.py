@@ -67,7 +67,9 @@ def write_wav(path: Path, pcm: bytes, rate: int) -> None:
 
 def main(asr: bool) -> None:
     cfg = get_settings().tts.piper
-    voice = PiperVoice.load(BACKEND / cfg.model_path, BACKEND / cfg.config_path)
+    # The default persona's voice: the one the day-12 verdict was given on.
+    model = BACKEND / cfg.models_dir / f"{cfg.voices['default'].voice}.onnx"
+    voice = PiperVoice.load(model)  # its .onnx.json sits beside it
     rate = voice.config.sample_rate
     known = set(voice.config.phoneme_id_map)
     espeakbridge.initialize(str(ESPEAK_DATA_DIR))
@@ -86,8 +88,7 @@ def main(asr: bool) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     stamp = f"{datetime.now():%Y%m%d-%H%M%S}"
     lines = [
-        f"Voice: {Path(cfg.model_path).name}, espeak voice "
-        f"'{voice.config.espeak_voice}', {rate} Hz",
+        f"Voice: {model.name}, espeak voice '{voice.config.espeak_voice}', {rate} Hz",
         "",
     ]
     for name, text in VARIANTS.items():

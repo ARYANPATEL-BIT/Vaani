@@ -19,7 +19,7 @@ from vaani.gateway import router as gateway_router
 from vaani.providers.base import LLMProvider
 from vaani.providers.chain import build_chain
 from vaani.spend import RequestCap
-from vaani.tts import Synthesizer, build_synthesizer
+from vaani.tts import Synthesizer, TtsError, build_synthesizers
 from vaani.vad import load_model
 
 
@@ -92,13 +92,20 @@ def create_app(
         cap = RequestCap(settings.llm.max_requests_per_process)
         app.state.llm = build_chain(settings, cap)
 
-    # The voice, loaded (and warmed up) once at startup and shared, like
-    # Whisper. A missing or wrong voice file raises: the server refuses to
-    # start rather than reply in silence.
+    # The voices, loaded (and warmed up) once at startup and shared, like
+    # Whisper: persona key -> synthesiser (day 15). A persona with no voice,
+    # or a missing or wrong voice file, raises: the server refuses to start
+    # rather than reply in silence. A test's single stand-in speaks for every
+    # persona.
     if synthesizer is not None:
-        app.state.synthesizer = synthesizer
+        app.state.synthesizers = dict.fromkeys(settings.personas, synthesizer)
     elif settings.tts.enabled:
-        app.state.synthesizer = build_synthesizer(settings.tts)
+        voiceless = settings.personas.keys() - settings.tts.piper.voices.keys()
+        if voiceless:
+            raise TtsError(
+                f"persona(s) {sorted(voiceless)} have no [tts.piper.voices] entry"
+            )
+        app.state.synthesizers = build_synthesizers(settings.tts)
 
     @app.get("/health")
     def health() -> dict[str, str]:

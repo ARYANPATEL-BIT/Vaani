@@ -81,7 +81,7 @@ every frame until the matching `audio.end`.
 |-----------------|----------------------------------------|
 | Message type    | Binary                                 |
 | Encoding        | Raw PCM, 16-bit signed little-endian (Int16LE) |
-| Sample rate     | The `sample_rate` in `audio.start`: 22050 for the agent's voice (Piper `hi_IN-priyamvada-medium`), 16000 for the dev echo |
+| Sample rate     | The `sample_rate` in `audio.start`: the rate of the session persona's voice, 22050 for every voice configured today (Piper, one voice per persona: `[tts.piper.voices]` in `backend/config.toml`); 16000 for the dev echo. It can differ between sessions, so read it from every `audio.start` |
 | Channels        | 1 (mono)                               |
 | Frame duration  | 20 ms at the declared rate (882 bytes at 22050 Hz, 640 at 16000 Hz). Do not rely on the size: decode any even length |
 | Bytes/sample    | 2                                      |
@@ -304,3 +304,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-05 | Samyak  | Day 15 (W3D1): shared protocol v0.5 telemetry specification for Latency HUD in §2.6     |
 | 2026-10-06 | Aryan   | Shared protocol v0.7 (day 13, barge-in): no new message; `dev.flush` removed; `audio.flush` first on barge-in and possible during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` for a turn no longer current is accepted; `cancelling → listening` with a new `turn_id`, `cancelling → idle` removed; §2.7 with the corrected barge-in sequence diagram |
 | 2026-10-06 | Aryan   | Shared protocol v0.6: `audio.start.sample_rate` (§2.2 rate no longer fixed at 16000); `speaking` = first audio; `TTS_FAILED`; version table in §2; §2.3 brought in line with protocol.py (`flush.ack` shape, `audio.start`/`audio.end`/`audio.flush` with `turn_id`, `dev.flush`, all error codes); §2.5 stale day-11 notes replaced; §2.6 notes the backend does not send telemetry |
+| 2026-10-07 | Aryan   | Editorial, no version change (day 15, persona voices): §2.2 sample-rate note no longer names one voice; the rate is the session persona's voice |

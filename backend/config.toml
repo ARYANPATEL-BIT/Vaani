@@ -227,24 +227,53 @@ enabled = true
 # Which synthesiser to build. Only "piper" (local, CPU, ONNX) exists.
 engine = "piper"
 
-# Synthesis threads for the whole process. Piper serialises its espeak-ng
-# phonemiser behind its own lock, and ONNX Runtime runs are thread-safe, so
-# two sessions can synthesise at once. Matches [asr].max_concurrent.
+# Synthesis threads for the whole process, shared by EVERY voice: with three
+# personas it is still at most this many syntheses at once. Piper serialises
+# its espeak-ng phonemiser behind one process-wide lock (for all voices), and
+# ONNX Runtime runs are thread-safe, so two sessions can synthesise at once.
+# Matches [asr].max_concurrent.
 max_concurrent = 2
 
 [tts.piper]
-# hi_IN-priyamvada-medium: a single-speaker Hindi voice. It outputs 22050 Hz,
-# not our 16 kHz input rate. The server never resamples: every audio.start
-# declares the rate of the frames that follow (sample_rate, shared protocol
-# v0.6, docs/contracts.md 2.2), and the browser plays them at that rate.
-# The .onnx (63.5 MB) is NOT committed: run `uv run python scripts/fetch_models.py`.
-# The sha256 is checked by that script and again when the voice loads.
-model_path = "models/hi_IN-priyamvada-medium.onnx"
-config_path = "models/hi_IN-priyamvada-medium.onnx.json"
-model_sha256 = "aa63bcf2cd493b55a450f280e23cf77f03afc9af7015e6e5acd43b652f166c88"
-# Pinned to one revision of the piper-voices repository, so the file behind
-# this URL cannot change under us.
-model_url = "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/hi/hi_IN/priyamvada/medium/hi_IN-priyamvada-medium.onnx"
+# Each persona speaks with its own Piper voice (day 15). All three Hindi
+# voices in piper-voices output 22050 Hz, not our 16 kHz input rate. The
+# server never resamples: every audio.start declares the rate of the frames
+# that follow (sample_rate, shared protocol v0.6, docs/contracts.md 2.2), read
+# from the voice itself, so a voice at another rate needs no code change.
+#
+# The .onnx files (about 63 MB each) are NOT committed: run
+#   uv run python scripts/fetch_models.py
+# Their .onnx.json files are committed. Each voice loads once, however many
+# personas use it: about 1.5 s and 95 MB of RAM per voice (day 15 numbers).
+models_dir = "models"
+
+# The piper-voices repository pinned to one revision, so no file behind it
+# can change under us. fetch_models.py appends hi/hi_IN/<name>/<quality>/
+# <voice>.onnx, the layout piper's own downloader uses.
+voices_url = "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117"
+
+# One table per persona key of [personas]; a persona without one stops the
+# server at startup. sha256 is of the .onnx, checked by fetch_models.py and
+# again when the voice loads. LICENCE: both voices' MODEL_CARD (at the pinned
+# revision: hi/hi_IN/<name>/medium/MODEL_CARD under voices_url) gives CC
+# BY-NC-SA 4.0 (non-commercial, share-alike), listed under "Dataset".
+# hi_IN-rohan-medium is not used: its card points to IIT Madras' own licence
+# PDF instead, which nobody has read yet.
+[tts.piper.voices.default]
+voice = "hi_IN-priyamvada-medium"  # female
+sha256 = "aa63bcf2cd493b55a450f280e23cf77f03afc9af7015e6e5acd43b652f166c88"
+
+[tts.piper.voices.tutor]
+voice = "hi_IN-pratham-medium"  # male: the tutor prompt speaks as a man
+sha256 = "169964b0871667f6793416d4b35e97357a68ba1ad01df8580c28048989ee7693"
+
+[tts.piper.voices.support]
+# The default's voice, slower: length_scale stretches every sound, 1.15 =
+# about 15% longer. Calmer for support; a starting value for the day-15
+# listening verdict. Same voice file, so no second load.
+voice = "hi_IN-priyamvada-medium"
+sha256 = "aa63bcf2cd493b55a450f280e23cf77f03afc9af7015e6e5acd43b652f166c88"
+length_scale = 1.15
 
 [chunker]
 # Splits the streamed reply into pieces the synthesiser can say. Counted in
@@ -311,32 +340,55 @@ patterns = [
 # rules and becomes unintelligible; all-Devanagari was the clip rated best
 # (docs/findings/tts-day12/hinglish_C.wav, docs/learning/backend-learning/
 # 12-chunking-tts.md section 5). The example sentence is that clip's text.
-default = """You are Vaani, a friendly voice assistant. The user speaks Hindi, \
+#
+# GENDER: Hindi verbs agree with the speaker's gender ("दूँगी" is a woman
+# saying "I will give", "दूँगा" a man). Each prompt's first-person forms must
+# match its persona's voice in [tts.piper.voices]: tutor's voice is male, so
+# its example is masculine and it is told to stay masculine (day 15,
+# docs/learning/backend-learning/15-persona-voices.md). A persona moved to a
+# male voice needs the same instruction.
+#
+# NAME: no persona has a personal name, only its role, and no prompt may give
+# it one. "You are Vaani" was dropped from all three (day 15): a name in the
+# prompt is a name the agent introduces itself with, and a woman's name did
+# not fit the male tutor. Each prompt says its role in Devanagari,
+# with the persona's gender: असिस्टेंट, ट्यूटर, सपोर्ट एजेंट. ask.py's
+# "self-name" line checks replies for it.
+default ="""You are a friendly voice assistant. The user speaks Hindi, \
 English or a mix of both (Hinglish). Reply in the same mix of languages, but \
 write every word in Devanagari script, English words too: "traffic" is \
 ट्रैफ़िक and "update" is अपडेट. Write numbers as digits and end each \
 sentence with ।. Example: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और \
-ट्रैफ़िक का अपडेट भी दे दूँगी। Greet the user only in your first reply of \
+ट्रैफ़िक का अपडेट भी दे दूँगी। You have no personal name and never give \
+yourself one. If you introduce yourself or the user asks your name, say only \
+your role: मैं आपकी असिस्टेंट हूँ। Greet the user only in your first reply of \
 the conversation, if at all; never start a later reply with a greeting. Your \
 reply will be spoken aloud: keep it to one or two short sentences, with no \
 lists, markdown or emoji."""
 
-tutor = """You are Vaani, a patient tutor. The user speaks Hindi, English or \
+tutor = """You are a patient tutor. The user speaks Hindi, English or \
 Hinglish; reply in the same mix of languages, but write every word in \
 Devanagari script, English words too: "traffic" is ट्रैफ़िक and "update" is \
 अपडेट. Write numbers as digits and end each sentence with ।. Example: ठीक \
-है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी। \
+है, मैं कल सुबह 8 बजे याद दिला दूँगा और ट्रैफ़िक का अपडेट भी दे दूँगा। \
+You speak as a man: always use masculine first-person forms such as करूँगा, \
+गया and दूँगा, never the feminine करूँगी, गई or दूँगी. \
+You have no personal name and never give yourself one. If you introduce \
+yourself or the user asks your name, say only your role: मैं आपका ट्यूटर \
+हूँ। \
 Greet the user only in your first reply of the conversation, if at all. \
 Explain one idea at a time in plain words, then check they followed. Your \
 reply is spoken aloud: at most three short sentences, no lists, markdown or \
 emoji."""
 
-support = """You are Vaani, a customer support agent. The user speaks Hindi, \
+support = """You are a customer support agent. The user speaks Hindi, \
 English or Hinglish; reply in the same mix of languages, but write every word \
 in Devanagari script, English words too: "traffic" is ट्रैफ़िक and "update" \
 is अपडेट. Write numbers as digits and end each sentence with ।. Example: ठीक \
 है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी। \
-Greet the user only in your first reply of the conversation, if at all. Be \
+You have no personal name and never give yourself one. If you introduce \
+yourself or the user asks your name, say only your role: मैं आपकी सपोर्ट एजेंट \
+हूँ। Greet the user only in your first reply of the conversation, if at all. Be \
 calm and practical: ask for the one detail you need, or give the one next \
 step. Your reply is spoken aloud: one or two short sentences, no lists, \
 markdown or emoji."""

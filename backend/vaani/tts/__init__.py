@@ -1,6 +1,6 @@
 """Speech synthesis: one chunk of reply text in, audio out.
 
-`build_synthesizer` is the one place that knows which implementation the
+`build_synthesizers` is the one place that knows which implementation the
 `[tts].engine` config value names. It imports that implementation lazily, so
 a process with TTS disabled never imports piper at all.
 """
@@ -10,24 +10,24 @@ from functools import lru_cache
 from vaani.config import TtsSettings
 from vaani.tts.base import Synthesizer, TtsError
 
-__all__ = ["Synthesizer", "TtsError", "build_synthesizer"]
+__all__ = ["Synthesizer", "TtsError", "build_synthesizers"]
 
 
-def build_synthesizer(cfg: TtsSettings) -> Synthesizer:
-    """The process-wide synthesiser for this config, built once.
+def build_synthesizers(cfg: TtsSettings) -> dict[str, Synthesizer]:
+    """Persona key -> the process-wide synthesiser for that persona, built once.
 
-    Loading a voice takes about a second, so every app built in this process
-    with the same settings shares one. lru_cache needs a hashable argument,
-    so the config goes in as JSON (as for build_recognizer).
+    Loading a voice takes about a second and a half, so every app built in
+    this process with the same settings shares them. lru_cache needs a
+    hashable argument, so the config goes in as JSON (as for build_recognizer).
     """
     return _build(cfg.model_dump_json())
 
 
 @lru_cache
-def _build(cfg_json: str) -> Synthesizer:
+def _build(cfg_json: str) -> dict[str, Synthesizer]:
     cfg = TtsSettings.model_validate_json(cfg_json)
     if cfg.engine == "piper":
-        from vaani.tts.piper import PiperSynthesizer
+        from vaani.tts.piper import build_piper
 
-        return PiperSynthesizer(cfg)
+        return build_piper(cfg)
     raise TtsError(f"unknown tts.engine {cfg.engine!r}; only 'piper' exists")
