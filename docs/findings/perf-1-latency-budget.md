@@ -192,3 +192,45 @@ The browser plays the 22050 Hz voice as 16000 Hz
 audible sample, but every chunk plays 1.378x as long as the server estimates,
 so the server returns to `idle` early. Details in
 `docs/learning/backend-learning/12-chunking-tts.md`, section 6.
+
+## Day 16 update: Groq vs Gemini, first token
+
+Date: 2026-10-08 (day 16), branch `fix/groq-model`. The day-11 gap ("Groq was
+not measured") is closed. Groq's old model `llama-3.1-8b-instant` is no longer
+offered to our key (HTTP 404), so two models the key does list were measured.
+
+Setup: `scripts/measure_llm.py --rounds 10 --groq-model openai/gpt-oss-20b:low
+--groq-model qwen/qwen3.8-27b:none`. Each contestant alone (no failover), the
+same 10 real assembled prompts (default persona + 2-exchange Hinglish history),
+1 untimed warm-up each, rounds rotating who goes first. Timed: request start ->
+first text chunk. Both Groq models with `include_reasoning = false`, each at
+the lowest `reasoning_effort` it accepts. Laptop on the **Silent** power
+scheme. 33 paid requests.
+Source: `docs/findings/llm-latency/measure_llm_20261008-101039.txt`.
+
+| Contestant | n | p50 | p95 | min | max |
+|---|---|---|---|---|---|
+| Gemini `gemini-3.5-flash-lite` | 10 | 1702 ms | 2382 ms | 1229 | 2382 |
+| Groq `openai/gpt-oss-20b` (low) | 10 | 788 ms | 1632 ms | 507 | 1632 |
+| **Groq `qwen/qwen3.8-27b` (none)** | 10 | **454 ms** | 1835 ms | 249 | 1835 |
+
+p95 over 10 values is the largest value (nearest rank): one request each.
+
+What it says, for the latency decision:
+- **qwen3.8-27b is now the Groq model in config.toml** (lowest p50). Groq is
+  still second in `provider_order`; that order was not changed.
+- On this run, Groq first would take about **1.25 s off the p50 first token**
+  (1702 -> 454 ms). Changing `provider_order` is the mentor's call, not made here.
+- qwen's tail is wide: 3 of 10 rounds took 1139-1835 ms. Ten requests cannot
+  say whether that is Groq's free tier queueing or noise.
+- **Gemini is slower than on day 11** (p50 898 -> 1702 ms, same script, same
+  prompts). Cause not established. Day 11's power scheme was not recorded.
+- Not measured: Groq's free-tier rate limits under real use, and whole turns
+  (`measure_turn.py`) with Groq answering.
+
+**Proposed, not done: a first-token deadline for failover.** Today a hung
+Gemini costs the full `timeout_s = 10` s before Groq is tried. Gemini's p95
+here is 2382 ms, so a separate "no first chunk within **2.5 s**" deadline
+would cut that wait to 2.5 s while failing over on about 1 in 20 normal
+Gemini turns. With n = 10, that p95 is one request; re-measure on more
+requests before setting it.

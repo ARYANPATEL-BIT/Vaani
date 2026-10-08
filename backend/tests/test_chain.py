@@ -8,6 +8,7 @@ inside them.
 """
 
 import asyncio
+import json
 import logging
 from time import perf_counter
 
@@ -202,6 +203,39 @@ def test_spend_cap_covers_the_whole_chain() -> None:
         collect(chain)
     assert cap.used == 1
     assert groq_requests == []  # never reached the network
+
+
+def test_gemini_timeout_fails_over_to_groq_with_configured_model() -> None:
+    """The day-15 failure, end to end on fake HTTP: Gemini times out before
+    its first chunk, and Groq answers with the model config.toml names. The
+    real providers and build_chain run; only the network is fake."""
+    settings = Settings(_env_file=None, gemini_api_key="k1", groq_api_key="groq-key")
+    groq_requests: list[httpx.Request] = []
+
+    def gemini(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("no headers", request=request)
+
+    def groq(request: httpx.Request) -> httpx.Response:
+        groq_requests.append(request)
+        sse = b'data: {"choices": [{"delta": {"content": "groq answers"}}]}\n\n'
+        return httpx.Response(200, content=sse + b"data: [DONE]\n\n")
+
+    clients = {
+        "gemini": httpx.AsyncClient(transport=httpx.MockTransport(gemini)),
+        "groq": httpx.AsyncClient(transport=httpx.MockTransport(groq)),
+    }
+    chain = build_chain(settings, RequestCap(5), clients)
+
+    assert collect(chain) == ["groq answers"]
+    body = json.loads(groq_requests[0].content)
+    groq_cfg = settings.llm.groq
+    assert body["model"] == groq_cfg.model
+    assert body.get("reasoning_effort") == groq_cfg.reasoning_effort
+    assert body.get("include_reasoning") == groq_cfg.include_reasoning
+    # The key travels in the header only.
+    assert groq_requests[0].headers["authorization"] == "Bearer groq-key"
+    assert "groq-key" not in str(groq_requests[0].url)
+    asyncio.run(chain.aclose())
 
 
 def test_build_chain_fails_fast_on_missing_key(monkeypatch) -> None:

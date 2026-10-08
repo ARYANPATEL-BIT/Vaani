@@ -1,0 +1,27 @@
+ask.py --persona tutor --simulate-429 gemini (step 4: persona rules on Groq qwen/qwen3.8-27b), run at 20261008-101158
+commit 2967acf + uncommitted changes
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+[vaani.providers.gemini] gemini: HTTP 429 : simulated by ask.py
+[vaani.providers.chain] failover: gemini RateLimitedError after 1 ms -> groq
+\u091c\u0940 \u0939\u093e\u0901, \u092e\u0948\u0902 \u0915\u0932 \u0938\u0941\u092c\u0939 7 \u092c\u091c\u0947 \u0906\u092a\u0915\u094b \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u093e\u0964 \u0906\u091c \u092e\u0948\u0902 \u0906\u092a\u0915\u0947 \u0932\u093f\u090f \u0915\u0941\u091b \u0928\u092f\u093e \u0938\u092e\u091d\u093e\u0928\u0947 \u091c\u093e \u0930\u0939\u093e \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0902?
+model: qwen/qwen3.8-27b (chain order: gemini, groq)
+time to first token: 173 ms, total: 269 ms
+script: 81 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 2 masculine
+self-name: 0 self-description(s), not a role: none
+
+
+Q: tumhara naam kya hai?
+[vaani.providers.gemini] gemini: HTTP 429 : simulated by ask.py
+[vaani.providers.chain] failover: gemini RateLimitedError after 1 ms -> groq
+\u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u091f\u094d\u092f\u0942\u091f\u0930 \u0939\u0942\u0901\u0964
+\u0915\u094d\u092f\u093e \u092f\u0939 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0924\u0941\u092e\u094d\u0939\u093e\u0930\u0947 \u0915\u093e\u092e \u0906\u0924\u0940 \u0939\u0948?
+\u092c\u0924\u093e\u0913 \u0915\u093f \u0924\u0941\u092e \u0915\u094c\u0928-\u0938\u093e \u0935\u093f\u0937\u092f \u0938\u0940\u0916\u0928\u093e \u091a\u093e\u0939\u0924\u0947 \u0939\u094b?
+model: qwen/qwen3.8-27b (chain order: gemini, groq)
+time to first token: 207 ms, total: 307 ms
+script: 76 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+

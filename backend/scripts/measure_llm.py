@@ -12,13 +12,22 @@ provider opens its connection first: the server keeps its HTTP clients open
 between turns, so the warm number is what a user's turn sees. The cold call
 is printed too.
 
-Rounds alternate which provider goes first, so neither is always measured
-right after the other (a slow network minute then hits both alike).
+Rounds rotate which provider goes first, so none is always measured right
+after another (a slow network minute then hits them all alike).
 
-Costs (rounds + 1) x providers paid requests, counted against the cap.
+--groq-model ID:EFFORT (repeatable) replaces config.toml's one Groq model
+with several, each measured as its own contestant against the same prompts,
+so two candidate models can be compared before one goes into config. EFFORT
+is sent as reasoning_effort; include_reasoning comes from config.toml.
+
+Costs (rounds + 1) x contestants paid requests, counted against the cap.
+Everything printed is also written to docs/findings/llm-latency/
+measure_llm_<timestamp>.txt (run_log.py), with the commit and power scheme.
 
     uv run python scripts/measure_llm.py            # 10 rounds
     uv run python scripts/measure_llm.py --rounds 20
+    uv run python scripts/measure_llm.py --groq-model openai/gpt-oss-20b:low \\
+        --groq-model qwen/qwen3.8-27b:none
 """
 
 import argparse
@@ -28,7 +37,9 @@ from contextlib import aclosing
 from statistics import median
 from time import perf_counter
 
-from vaani.config import get_settings
+from run_log import REPO, RunLog  # scripts/ is on sys.path when run as a file
+
+from vaani.config import Settings, get_settings
 from vaani.persona import assemble
 from vaani.providers.base import LLMProvider, Message
 from vaani.providers.chain import build_chain
@@ -74,43 +85,57 @@ async def first_token_ms(
     raise RuntimeError("stream ended without any text")
 
 
-async def main(rounds: int) -> None:
+def alone(settings: Settings, name: str, groq: dict | None = None) -> Settings:
+    """Settings whose chain is just `name`, with `groq` fields overridden."""
+    llm = settings.llm.model_copy(update={"provider_order": [name]})
+    if groq:
+        llm = llm.model_copy(update={"groq": llm.groq.model_copy(update=groq)})
+    return settings.model_copy(update={"llm": llm})
+
+
+async def main(rounds: int, groq_models: list[str]) -> None:
+    log = RunLog("measure_llm", REPO / "docs" / "findings" / "llm-latency")
     settings = get_settings()
     cap = RequestCap(settings.llm.max_requests_per_process)
     system = settings.personas["default"]
-    names = settings.llm.provider_order
-    chains = {
-        name: build_chain(
-            settings.model_copy(
-                update={
-                    "llm": settings.llm.model_copy(update={"provider_order": [name]})
-                }
-            ),
-            cap,
-        )
-        for name in names
-    }
+    # Contestant label -> its own one-provider chain.
+    chains: dict[str, LLMProvider] = {}
+    for name in settings.llm.provider_order:
+        if name == "groq" and groq_models:
+            for spec in groq_models:
+                model, effort = spec.rsplit(":", 1)
+                update = {"model": model, "reasoning_effort": effort}
+                chains[model] = build_chain(alone(settings, name, update), cap)
+        else:
+            chains[name] = build_chain(alone(settings, name), cap)
+    names = list(chains)
+    log(f"contestants: {', '.join(names)}; {rounds} timed rounds + 1 warm-up each")
+    log(f"groq include_reasoning (config.toml): {settings.llm.groq.include_reasoning}")
+    for spec in groq_models:
+        log(f"groq reasoning_effort: {spec}")
+
     warm_up = assemble(system, HISTORY, "namaste")
     for name, chain in chains.items():
         cold, model = await first_token_ms(chain, warm_up)
-        print(f"{name}: cold first call {cold:.0f} ms (model {model})")
+        log(f"{name}: cold first call {cold:.0f} ms (model {model})")
 
     times: dict[str, list[float]] = {name: [] for name in names}
     for i in range(rounds):
         messages = assemble(system, HISTORY, QUESTIONS[i % len(QUESTIONS)])
-        order = names if i % 2 == 0 else list(reversed(names))
-        for name in order:
+        # Rotate who goes first: round 0 a,b,c; round 1 b,c,a; round 2 c,a,b.
+        shift = i % len(names)
+        for name in names[shift:] + names[:shift]:
             ms, _ = await first_token_ms(chains[name], messages)
             times[name].append(ms)
-            print(f"round {i + 1:2d} {name:7s} {ms:6.0f} ms")
+            log(f"round {i + 1:2d} {name:20s} {ms:6.0f} ms")
 
-    print(f"\nwarm first token over {rounds} real prompts:")
+    log(f"\nwarm first token over {rounds} real prompts:")
     for name, values in times.items():
-        print(
-            f"  {name:7s} p50 {median(values):6.0f} ms   p95 {p95(values):6.0f} ms"
+        log(
+            f"  {name:20s} p50 {median(values):6.0f} ms   p95 {p95(values):6.0f} ms"
             f"   min {min(values):.0f}  max {max(values):.0f}"
         )
-    print(f"paid requests used: {cap.used}/{cap.limit}")
+    log(f"paid requests used: {cap.used}/{cap.limit}")
     for chain in chains.values():
         await chain.aclose()
 
@@ -118,4 +143,8 @@ async def main(rounds: int) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--rounds", type=int, default=10)
-    asyncio.run(main(parser.parse_args().rounds))
+    parser.add_argument(
+        "--groq-model", action="append", default=[], metavar="ID:EFFORT"
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.rounds, args.groq_model))
