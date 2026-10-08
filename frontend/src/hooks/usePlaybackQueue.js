@@ -4,8 +4,8 @@
  * Sits between the WebSocket receiver and the speaker:
  *   WebSocket binary frame → enqueue() → AudioContext clock → speaker
  *
- * The only input is raw PCM audio chunks (same format the microphone sends:
- * 16-bit signed little-endian mono at 16 kHz). The hook converts each chunk
+ * The only input is raw PCM audio chunks (16-bit signed little-endian mono, at
+ * the sample_rate the latest audio.start declared). The hook converts each chunk
  * into an AudioBuffer and schedules it onto the Web Audio clock so there is no
  * gap between chunks.
  *
@@ -81,8 +81,11 @@ export function usePlaybackQueue() {
   const getAudioContext = useCallback(async () => {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!audioCtxRef.current) {
+      // No sampleRate option: the context runs at the output device's own rate
+      // (usually 48 kHz). Each AudioBuffer carries the rate audio.start
+      // declared, and the browser resamples it up to the device rate. Forcing
+      // 16 kHz here would downsample 22050 Hz agent speech and dull it.
       audioCtxRef.current = new AudioContextClass({
-        sampleRate: AUDIO_SAMPLE_RATE,
         latencyHint: 'interactive',
       });
     }

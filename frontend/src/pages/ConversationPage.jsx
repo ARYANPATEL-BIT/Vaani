@@ -215,6 +215,14 @@ export default function ConversationPage() {
             </div>
           </div>
 
+          {/* Turn State Pill: the server's latest turn.state, shown verbatim */}
+          {isConnected && (
+            <div className={`session-pill turn-pill turn-${turnState}`} data-testid="turn-state-pill">
+              <span className="status-indicator" />
+              <span className="status-text">{turnState}</span>
+            </div>
+          )}
+
           {/* Session Status Pill */}
           <div className={`session-pill status-${wsStatus}`}>
             <span className="status-indicator" />
@@ -304,7 +312,10 @@ export default function ConversationPage() {
             turnState={turnState}
             isConnected={isConnected}
             isTransitioning={isTransitioning}
-            errorMessage={errorMessage}
+            // Only mic and connection failures take over the orb. A per-turn
+            // server error (LLM_FAILED etc.) shows in the banner while the orb
+            // keeps showing the live turn state.
+            errorMessage={isMicDenied || isConnectionDropped || wsStatus === 'error' ? errorMessage : null}
             onClick={!isConnected ? handleConnect : undefined}
           />
         </section>
