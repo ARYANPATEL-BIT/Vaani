@@ -22,8 +22,9 @@ then:
     uv run python scripts/measure_turn.py --speech-wav hinglish_16k.wav --turns 12 \
         --label "cuda/large-v3, gemini"
 
-Everything printed is also written to docs/findings/tts-day12/
-measure_turn_<timestamp>.txt (run_log.py), one file per run. This client
+Everything printed is also written to docs/findings/groq-primary/
+measure_turn_<timestamp>.txt (run_log.py), one file per run. Earlier runs
+stay where they were written (tts-day12/, reply-script/). This client
 cannot see the server's settings, so --label (free text, e.g. the ASR device
 and model the server was started with) goes into the file's header.
 """
@@ -45,8 +46,9 @@ from fake_client import (  # scripts/ is on sys.path when run as a file
     SILENT_FRAME,
     load_speech_frames,
 )
-from run_log import RunLog
+from run_log import REPO, RunLog
 
+OUT = REPO / "docs" / "findings" / "groq-primary"
 VOICE_RMS = 300  # 16-bit sample RMS above which a frame counts as voiced
 REPLY_TIMEOUT_S = 20.0
 
@@ -115,13 +117,14 @@ def fmt(ms: float | None) -> str:
 
 
 async def main(url: str, wav: Path, turns: int, label: str) -> None:
-    log = RunLog("measure_turn")
+    log = RunLog("measure_turn", out=OUT)
     log(f"server: {url} ({label or 'no --label given'})")
     log(f"clip: {wav.name}, {turns} turns")
     clip = load_speech_frames(wav)
     last_voiced = max(i for i, f in enumerate(clip) if rms(f) > VOICE_RMS)
     inbox: asyncio.Queue = asyncio.Queue()
     to_final, to_text, to_audio = [], [], []
+    model_ms, tts_ms = [], []  # per-turn stage gaps, see "per stage" below
     async with websockets.connect(url) as ws:
         start = {
             "type": "session.start",
@@ -152,8 +155,11 @@ async def main(url: str, wav: Path, turns: int, label: str) -> None:
             to_final.append(final_ms)
             if text_ms is not None:
                 to_text.append(text_ms)
+                model_ms.append(text_ms - final_ms)
             if audio_ms is not None:
                 to_audio.append(audio_ms)
+            if text_ms is not None and audio_ms is not None:
+                tts_ms.append(audio_ms - text_ms)
         await ws.send(json.dumps({"type": "session.end"}))
         receiver.cancel()
 
@@ -172,6 +178,17 @@ async def main(url: str, wav: Path, turns: int, label: str) -> None:
             f"  -> first audio frame p50 {median(to_audio):.0f}"
             f"  p95 {p95(to_audio):.0f} ms"
         )
+    # Per stage: the gaps between the three arrivals above, per turn, so a
+    # slower total can be pinned on one stage. "model" starts at
+    # transcript.final because reply.py dispatches the request right then.
+    log("per stage (client clock):")
+    for stage, gaps in (
+        ("endpoint + ASR", to_final),
+        ("model first token", model_ms),
+        ("first chunk + TTS", tts_ms),
+    ):
+        if gaps:
+            log(f"  {stage:18s} p50 {median(gaps):5.0f}  p95 {p95(gaps):5.0f} ms")
     log(f"wrote {log.path.name}")
 
 

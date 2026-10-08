@@ -74,9 +74,14 @@ MASCULINE = re.compile(rf"[ूऊ][ँं]गा{_END}|(?:ता|रहा|य�
 # "मेरा नाम X", "मैं आपका/आपकी X हूँ" (X up to two words: "सपोर्ट एजेंट"),
 # and "मैं X हूँ" with X one word ("मैं राहुल हूँ"). "मैं मदद कर सकती हूँ" is
 # not a match: no possessive, and more than one word before हूँ.
+# "मेरा नाम X" is skipped right after ने (day 16): ने marks someone else as
+# the doer, so "आपने मेरा नाम पूछा है" ("you asked my name") is about the
+# name, not a statement of it. qwen said exactly that and got "पूछा" flagged
+# (docs/findings/groq-primary/ask_after_groq_tutor_20261008-103752.txt).
+# The lookbehind is fixed width: ने and one space, as in "आपने मेरा".
 ROLES = ("असिस्टेंट", "सहायक", "ट्यूटर", "शिक्षक", "सपोर्ट", "एजेंट")
 SELF_NAME = re.compile(
-    r"मेरा\s+नाम\s+(\S+)"
+    r"(?<!ने\s)मेरा\s+नाम\s+(\S+)"
     r"|मैं\s+(?:आपका|आपकी|तुम्हारा|तुम्हारी)\s+(\S+(?:\s+\S+)?)\s+हू[ँं]"
     r"|मैं\s+(\S+)\s+हू[ँं]"
 )
