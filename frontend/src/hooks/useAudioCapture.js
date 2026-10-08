@@ -254,9 +254,17 @@ export function useAudioCapture() {
               }
             }
           } else if (msg.type === 'error') {
+            // The code leads the banner text so the failing stage (ASR, LLM,
+            // TTS, guardrail) is visible at a glance, not only in the console.
             const formatted = formatServerError(msg.code, msg.message);
-            setErrorMessage(formatted);
+            setErrorMessage(msg.code ? `${msg.code}: ${formatted}` : formatted);
             console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
+          } else if (msg.type === 'turn.state' && msg.state === 'listening') {
+            // Every error code is non-fatal (contracts.md 2.3). Once the user
+            // starts a new turn, the previous turn's error is stale: clear it.
+            // Connection and mic errors cannot arrive here (the socket is open
+            // and audio is flowing), so this never hides one of those.
+            setErrorMessage(null);
           }
 
           if (typeof onServerMessage === 'function') {

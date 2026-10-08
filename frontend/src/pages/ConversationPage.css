@@ -168,6 +168,17 @@
   border-left: 1px solid rgba(203, 213, 225, 0.6);
 }
 
+/* Turn-state pill: mirrors the server's turn.state. Reuses .session-pill
+   for shape; only the dot colour changes per state. */
+.turn-pill .status-text {
+  font-family: var(--mono);
+}
+
+.turn-listening .status-indicator { background: #10b981; }
+.turn-thinking .status-indicator { background: #f59e0b; animation: pulseAnim 1.4s infinite; }
+.turn-speaking .status-indicator { background: #6366f1; animation: pulseAnim 1.4s infinite; }
+.turn-cancelling .status-indicator { background: #ef4444; }
+
 /* -------------------------------------------------------------------------
  * Error Banner & Failure Screens
  * ----------------------------------------------------------------------- */

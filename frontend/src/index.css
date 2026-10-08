@@ -35,7 +35,11 @@
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-full: 9999px;
 
   /* Typography */
-  --font-ui:     'Inter', system-ui, -apple-system, sans-serif;
+  /* Inter has no Devanagari glyphs. The browser falls back per character, so
+     the Devanagari fonts named next draw Hindi while Inter keeps the Latin.
+     Nirmala UI ships with Windows; Noto Sans Devanagari covers other systems
+     when installed. */
+  --font-ui:     'Inter', 'Nirmala UI', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
   --font-serif:  'Fraunces', Georgia, serif;
 
   /* Sidebar */

@@ -18,7 +18,21 @@
  *   in-flight unfinalized text does not linger.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
+
+/**
+ * Build one immutable transcript entry. Kept outside the hook so every commit
+ * path creates entries the same way.
+ */
+function makeEntry(role, text, extra = {}) {
+  return {
+    id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    role,
+    text: text.trim(),
+    timestamp: Date.now(),
+    ...extra,
+  };
+}
 
 export function useTranscript() {
   // Immutable list of finalized speech turns: Array<{ id: string, role: 'user'|'agent', text: string, timestamp: number, interrupted?: boolean }>
@@ -30,6 +44,14 @@ export function useTranscript() {
   // Active partial response from agent currently streaming (string or null)
   const [currentAgentPartial, setCurrentAgentPartial] = useState(null);
 
+  // Mirrors of the two in-flight texts. The commit functions below read these
+  // instead of reading state inside a setState updater. React's StrictMode
+  // (main.jsx) runs updater functions twice in development; an updater that
+  // itself appends an entry therefore appended every line twice. Refs are read
+  // once, synchronously, so each commit happens exactly once.
+  const userPartialRef = useRef(null);
+  const agentPartialRef = useRef(null);
+
   /**
    * Update the currently active partial transcript from the user.
    * Replaces any existing partial text in-place.
@@ -38,11 +60,9 @@ export function useTranscript() {
    * @param {string|null} text - Recognized partial speech string.
    */
   const updatePartial = useCallback((text) => {
-    if (typeof text !== 'string' || !text.trim()) {
-      setCurrentPartialTranscript(null);
-      return;
-    }
-    setCurrentPartialTranscript(text);
+    const next = typeof text === 'string' && text.trim() ? text : null;
+    userPartialRef.current = next;
+    setCurrentPartialTranscript(next);
   }, []);
 
   /**
@@ -53,30 +73,21 @@ export function useTranscript() {
    * @param {string} [text] - Optional finalized text. If omitted, uses current partial.
    */
   const finalizeTurn = useCallback((text) => {
-    setCurrentPartialTranscript((currentPartial) => {
-      const finalText = text !== undefined ? text : currentPartial;
-      if (typeof finalText === 'string' && finalText.trim()) {
-        const entry = {
-          id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          role: 'user',
-          text: finalText.trim(),
-          timestamp: Date.now(),
-        };
-        setFinalTranscriptEntries((prev) => [...prev, entry]);
-      }
-      return null;
-    });
+    const finalText = text !== undefined ? text : userPartialRef.current;
+    userPartialRef.current = null;
+    setCurrentPartialTranscript(null);
+    if (typeof finalText === 'string' && finalText.trim()) {
+      setFinalTranscriptEntries((prev) => [...prev, makeEntry('user', finalText)]);
+    }
   }, []);
 
   /**
    * Update or replace streaming text for agent's reply.
    */
   const updateAgentPartial = useCallback((text) => {
-    if (typeof text !== 'string' || !text.trim()) {
-      setCurrentAgentPartial(null);
-      return;
-    }
-    setCurrentAgentPartial(text);
+    const next = typeof text === 'string' && text.trim() ? text : null;
+    agentPartialRef.current = next;
+    setCurrentAgentPartial(next);
   }, []);
 
   /**
@@ -84,27 +95,23 @@ export function useTranscript() {
    */
   const appendAgentDelta = useCallback((delta) => {
     if (!delta) return;
-    setCurrentAgentPartial((prev) => (prev ? prev + delta : delta));
+    agentPartialRef.current = (agentPartialRef.current ?? '') + delta;
+    setCurrentAgentPartial(agentPartialRef.current);
   }, []);
 
   /**
    * Finalize the agent's turn normally with complete text.
    */
   const finalizeAgentTurn = useCallback((text) => {
-    setCurrentAgentPartial((currentPartial) => {
-      const finalText = text !== undefined && text !== null ? text : currentPartial;
-      if (typeof finalText === 'string' && finalText.trim()) {
-        const entry = {
-          id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          role: 'agent',
-          text: finalText.trim(),
-          timestamp: Date.now(),
-          interrupted: false,
-        };
-        setFinalTranscriptEntries((prev) => [...prev, entry]);
-      }
-      return null;
-    });
+    const finalText = text !== undefined && text !== null ? text : agentPartialRef.current;
+    agentPartialRef.current = null;
+    setCurrentAgentPartial(null);
+    if (typeof finalText === 'string' && finalText.trim()) {
+      setFinalTranscriptEntries((prev) => [
+        ...prev,
+        makeEntry('agent', finalText, { interrupted: false }),
+      ]);
+    }
   }, []);
 
   /**
@@ -114,20 +121,15 @@ export function useTranscript() {
    * @param {string} [reason='Interrupted'] - Description of cancellation cause.
    */
   const interruptAgentTurn = useCallback((reason = 'Interrupted') => {
-    setCurrentAgentPartial((currentPartial) => {
-      if (typeof currentPartial === 'string' && currentPartial.trim()) {
-        const entry = {
-          id: `agent-interrupted-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          role: 'agent',
-          text: currentPartial.trim(),
-          timestamp: Date.now(),
-          interrupted: true,
-          interruptedReason: reason,
-        };
-        setFinalTranscriptEntries((prev) => [...prev, entry]);
-      }
-      return null;
-    });
+    const partial = agentPartialRef.current;
+    agentPartialRef.current = null;
+    setCurrentAgentPartial(null);
+    if (typeof partial === 'string' && partial.trim()) {
+      setFinalTranscriptEntries((prev) => [
+        ...prev,
+        makeEntry('agent', partial, { interrupted: true, interruptedReason: reason }),
+      ]);
+    }
   }, []);
 
   /**
@@ -135,6 +137,8 @@ export function useTranscript() {
    * Used on session disconnect or socket reset.
    */
   const clearActivePartial = useCallback(() => {
+    userPartialRef.current = null;
+    agentPartialRef.current = null;
     setCurrentPartialTranscript(null);
     setCurrentAgentPartial(null);
   }, []);
@@ -145,6 +149,8 @@ export function useTranscript() {
    */
   const resetTranscript = useCallback(() => {
     setFinalTranscriptEntries([]);
+    userPartialRef.current = null;
+    agentPartialRef.current = null;
     setCurrentPartialTranscript(null);
     setCurrentAgentPartial(null);
   }, []);
