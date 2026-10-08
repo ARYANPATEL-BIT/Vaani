@@ -1,0 +1,46 @@
+measure_llm run at 2026-10-08 10:10:39
+commit 2967acf + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+contestants: gemini, openai/gpt-oss-20b, qwen/qwen3.8-27b; 10 timed rounds + 1 warm-up each
+groq include_reasoning (config.toml): False
+groq reasoning_effort: openai/gpt-oss-20b:low
+groq reasoning_effort: qwen/qwen3.8-27b:none
+gemini: cold first call 1958 ms (model gemini-3.5-flash-lite)
+openai/gpt-oss-20b: cold first call 850 ms (model openai/gpt-oss-20b)
+qwen/qwen3.8-27b: cold first call 364 ms (model qwen/qwen3.8-27b)
+round  1 gemini                 1589 ms
+round  1 openai/gpt-oss-20b      708 ms
+round  1 qwen/qwen3.8-27b        288 ms
+round  2 openai/gpt-oss-20b      578 ms
+round  2 qwen/qwen3.8-27b        327 ms
+round  2 gemini                 1586 ms
+round  3 qwen/qwen3.8-27b        249 ms
+round  3 gemini                 2228 ms
+round  3 openai/gpt-oss-20b     1360 ms
+round  4 gemini                 2382 ms
+round  4 openai/gpt-oss-20b      808 ms
+round  4 qwen/qwen3.8-27b       1139 ms
+round  5 openai/gpt-oss-20b     1387 ms
+round  5 qwen/qwen3.8-27b        738 ms
+round  5 gemini                 1774 ms
+round  6 qwen/qwen3.8-27b        451 ms
+round  6 gemini                 1630 ms
+round  6 openai/gpt-oss-20b     1632 ms
+round  7 gemini                 1229 ms
+round  7 openai/gpt-oss-20b      544 ms
+round  7 qwen/qwen3.8-27b       1406 ms
+round  8 openai/gpt-oss-20b     1531 ms
+round  8 qwen/qwen3.8-27b       1835 ms
+round  8 gemini                 1609 ms
+round  9 qwen/qwen3.8-27b        458 ms
+round  9 gemini                 1813 ms
+round  9 openai/gpt-oss-20b      767 ms
+round 10 gemini                 1778 ms
+round 10 openai/gpt-oss-20b      507 ms
+round 10 qwen/qwen3.8-27b        407 ms
+
+warm first token over 10 real prompts:
+  gemini               p50   1702 ms   p95   2382 ms   min 1229  max 2382
+  openai/gpt-oss-20b   p50    788 ms   p95   1632 ms   min 507  max 1632
+  qwen/qwen3.8-27b     p50    454 ms   p95   1835 ms   min 249  max 1835
+paid requests used: 33/200

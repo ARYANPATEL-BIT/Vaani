@@ -12,9 +12,11 @@
      conservative first_min_chars = 60, first_max_chars = 200 (the first
                   chunk is a whole sentence)
      whole        the reply in one call (no chunk boundaries at all)
-   Written to docs/findings/reply-script/prosody_<name>_<timestamp>.wav, for
-   listening. The timestamp is the run's: a new run never overwrites the
-   WAVs an earlier verdict was given on.
+   With --wavs, written to docs/findings/reply-script/
+   prosody_<name>_<timestamp>.wav, for listening. The timestamp is the run's:
+   a new run never overwrites the WAVs an earlier verdict was given on.
+   Without --wavs only the timings are kept, so routine timing runs leave no
+   audio in the repo.
 
 All text is in the reply format the persona asks for since fix/reply-script:
 every word in Devanagari, English words too (hinglish_C in
@@ -25,6 +27,7 @@ measure_tts_<timestamp>.txt (run_log.py), one file per run.
 
     uv run python scripts/measure_tts.py
     uv run python scripts/measure_tts.py --persona tutor
+    uv run python scripts/measure_tts.py --wavs      # also keep the prosody WAVs
 """
 
 import argparse
@@ -71,7 +74,7 @@ def chunks_of(text: str, **cfg) -> list[str]:
     return out
 
 
-async def main(repeat: int, persona: str) -> None:
+async def main(repeat: int, persona: str, wavs: bool) -> None:
     log = RunLog("measure_tts")
     tts = get_settings().tts
     synth = build_synthesizers(tts)[persona]
@@ -113,21 +116,23 @@ async def main(repeat: int, persona: str) -> None:
         first = await synth.synthesize(chunks[0], cancel) or b""
         ttfb = (perf_counter() - started) * 1000
         rest = [await synth.synthesize(c, cancel) or b"" for c in chunks[1:]]
-        with wave.open(str(OUT / f"prosody_{name}_{log.stamp}.wav"), "wb") as f:
-            f.setnchannels(1)
-            f.setsampwidth(2)
-            f.setframerate(rate)
-            f.writeframes(first + b"".join(rest))
+        if wavs:
+            with wave.open(str(OUT / f"prosody_{name}_{log.stamp}.wav"), "wb") as f:
+                f.setnchannels(1)
+                f.setsampwidth(2)
+                f.setframerate(rate)
+                f.writeframes(first + b"".join(rest))
         log(f"{name:>12}: first chunk {ttfb:.0f} ms, chunks {chunks}")
     # No WAV: only which of the three the committed config.toml matches.
     log(f"{'committed':>12}: chunks {chunks_of(REPLY)}")
     log()
-    log(f"wrote {log.path.name} and prosody_*_{log.stamp}.wav")
+    log(f"wrote {log.path.name}" + (f" and prosody_*_{log.stamp}.wav" if wavs else ""))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--persona", default="default", help="whose voice to time")
+    parser.add_argument("--wavs", action="store_true", help="write the prosody WAVs")
     args = parser.parse_args()
-    asyncio.run(main(args.repeat, args.persona))
+    asyncio.run(main(args.repeat, args.persona, args.wavs))

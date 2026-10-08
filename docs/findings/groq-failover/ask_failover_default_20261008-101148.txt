@@ -1,0 +1,13 @@
+ask.py --persona default --simulate-429 gemini (step 3: real failover to Groq, no Gemini traffic), run at 20261008-101148
+commit 2967acf + uncommitted changes (groq model qwen/qwen3.8-27b, reasoning_effort none)
+
+Q: kal subah 8 baje meeting hai, mujhe yaad dila dena
+[vaani.providers.gemini] gemini: HTTP 429 : simulated by ask.py
+[vaani.providers.chain] failover: gemini RateLimitedError after 1 ms -> groq
+\u0920\u0940\u0915 \u0939\u0948, \u092e\u0948\u0902 \u0915\u0932 \u0938\u0941\u092c\u0939 8 \u092c\u091c\u0947 \u0906\u092a\u0915\u0940 \u092e\u0940\u091f\u093f\u0902\u0917 \u0915\u0947 \u0932\u093f\u090f \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u0940\u0964
+model: qwen/qwen3.8-27b (chain order: gemini, groq)
+time to first token: 427 ms, total: 437 ms
+script: 45 Devanagari, 0 Latin letters, other: none
+first person: 1 feminine, 0 masculine
+self-name: 0 self-description(s), not a role: none
+

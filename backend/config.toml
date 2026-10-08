@@ -206,8 +206,11 @@ thinking_level = "minimal"
 
 [llm.groq]
 # Exact model ID, as returned by Groq's GET /openai/v1/models for our key.
-# MODEL_PLACEHOLDER
-model = "llama-3.1-8b-instant"
+# Groq retires models: llama-3.1-8b-instant was gone by day 15 (HTTP 404).
+# Picked on day 16 by measured first token over 10 real prompts:
+# qwen3.8-27b p50 454 ms vs openai/gpt-oss-20b p50 788 ms
+# (docs/findings/llm-latency/measure_llm_20261008-101039.txt).
+model = "qwen/qwen3.8-27b"
 
 # Groq's OpenAI-compatible API root. The key comes only from the
 # VAANI_GROQ_API_KEY environment variable (or the gitignored backend/.env).
@@ -216,8 +219,14 @@ base_url = "https://api.groq.com/openai/v1"
 # Seconds to wait for each step of a request, as for Gemini.
 timeout_s = 10.0
 
-# reasoning_effort / include_reasoning: only for reasoning models such as
-# openai/gpt-oss-20b. Leave them out for any other model; it rejects them.
+# How much the model reasons before its first token. "none" is the lowest
+# level qwen3.8-27b accepts (gpt-oss models start at "low"); thinking
+# happens before the first token, so it adds directly to time-to-first-token.
+reasoning_effort = "none"
+
+# Don't send the model's reasoning text back at all: groq.py never speaks it,
+# so streaming it would only add bytes before the answer.
+include_reasoning = false
 
 [tts]
 # Speech synthesis: turns each chunk of the reply into audio. Needs [llm]

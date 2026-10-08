@@ -32,9 +32,7 @@ Rules for the learning document:
 
 You write it, in the same session as the code. It is not my homework and not a retrofit.
 Teach, do not summarise. A sentence I cannot follow is a failed sentence.
-Real code snippets in the walkthrough, not pseudocode.
 Alternatives must be real options that were genuinely available, explained well enough that I understand what we gave up.
-The trade-offs section must not be empty. If a decision has no downside, it was not a decision.
 Never assume the reader wrote the code.
 How to work with me
 

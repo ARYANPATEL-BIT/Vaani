@@ -1,0 +1,25 @@
+ask.py --persona default --simulate-429 gemini (step 4: persona rules on Groq qwen/qwen3.8-27b), run at 20261008-101158
+commit 2967acf + uncommitted changes
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+[vaani.providers.gemini] gemini: HTTP 429 : simulated by ask.py
+[vaani.providers.chain] failover: gemini RateLimitedError after 1 ms -> groq
+\u091c\u0940 \u0939\u093e\u0901, \u092e\u0948\u0902 \u0915\u0932 \u0938\u0941\u092c\u0939 7 \u092c\u091c\u0947 \u0906\u092a\u0915\u094b \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u0940\u0964 \u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0905\u0938\u093f\u0938\u094d\u091f\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: qwen/qwen3.8-27b (chain order: gemini, groq)
+time to first token: 292 ms, total: 304 ms
+script: 54 Devanagari, 0 Latin letters, other: none
+first person: 1 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+
+Q: tumhara naam kya hai?
+[vaani.providers.gemini] gemini: HTTP 429 : simulated by ask.py
+[vaani.providers.chain] failover: gemini RateLimitedError after 1 ms -> groq
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0905\u0938\u093f\u0938\u094d\u091f\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: qwen/qwen3.8-27b (chain order: gemini, groq)
+time to first token: 228 ms, total: 253 ms
+script: 20 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+

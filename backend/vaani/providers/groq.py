@@ -141,7 +141,16 @@ class GroqProvider(LLMProvider):
             return ProviderTimeoutError(message)
         if status in _UNAVAILABLE:
             return ProviderUnavailableError(message)
-        # 400, 404 (unknown model), 413, 422...: our request is wrong.
+        if status == 404:
+            # Groq retires models (llama-3.1-8b-instant went this way), and a
+            # retired model ID answers 404. Say so, naming the ID from config.
+            return ProviderFailedError(
+                f"groq: configured model {self._settings.model!r} not found "
+                f"(HTTP 404); it may have been retired. List the models the key "
+                f"can use with GET {self._settings.base_url}/models and update "
+                f"[llm.groq] model in config.toml. {detail}".rstrip()
+            )
+        # 400, 413, 422...: our request is wrong.
         return ProviderFailedError(message)
 
     def _redact(self, text: str) -> str:

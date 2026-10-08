@@ -147,6 +147,17 @@ def test_status_codes_map_to_typed_errors(status, expected) -> None:
         run(make(lambda request: httpx.Response(status, json=body)))
 
 
+def test_404_names_the_configured_model_as_maybe_retired() -> None:
+    body = {"error": {"message": f"model gone, key {KEY}", "type": "invalid"}}
+    with pytest.raises(ProviderFailedError) as info:
+        run(make(lambda request: httpx.Response(404, json=body)))
+
+    text = str(info.value)
+    assert "configured model 'test-model' not found" in text
+    assert "may have been retired" in text
+    assert KEY not in text  # Groq's echoed message is redacted
+
+
 def test_connection_failure_is_unavailable() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=request)
