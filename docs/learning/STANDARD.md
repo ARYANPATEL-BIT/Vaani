@@ -1,100 +1,76 @@
 # Learning Document Standard
 
-Every pull request ships with a learning document in `docs/learning/`,
-numbered in order (`01-repo-setup.md`, `02-ws-gateway.md`, …).
+Every pull request ships one learning document. It says what the PR changed and why,
+in plain words, for a reader who did not write the code and will be asked about it by
+the mentor.
 
-## Purpose
+## Two kinds of document
 
-The reader is Aryan, who did not write this code and will be questioned
-on it by his mentor. After one read he should be able to say what was
-built, what it was built with, why those choices and not others, where
-every piece lives, and what happens when it fails.
+- **The per-PR document** (this standard): one per PR, numbered in order, in
+  `docs/learning/backend-learning/` or `docs/learning/frontend-learning/`.
+- **`docs/learning/PROJECT.md`**: the whole system as it is on `dev` now. A PR that
+  changes the flow, the stack or the database updates PROJECT.md in the same PR.
+  The per-PR document says what changed. PROJECT.md says how everything works now.
+
+## History
+
+Documents `01` to `15b` in both folders were written to the old nine-section
+standard. They stay as they are, as a record of each step. Do not edit or reformat
+them. If one of them disagrees with the code, the code wins, and PROJECT.md describes
+the code. `backend-learning/16-english-voice.md` is the first document in this format.
 
 ## Length
 
-- Target: 150–300 lines. Hard ceiling: 350 lines.
-- Short beats complete. If something is unlikely to be asked about,
-  leave it out.
-- No padding. A section with nothing to say gets one line.
-
-## Rules
-
-1. Define every term the first time it appears. Two or three sentences,
-   not an essay.
-2. Every code snippet is copied from the real code, with its file path.
-   Only the lines that matter.
-3. Never invent behaviour, limits, versions or facts. If unsure, say so.
-4. State weaknesses honestly.
-5. Plain language, short sentences.
+60 to 120 lines per document.
 
 ## Sections, in this order
 
-### 1. What we built in this branch
-Branch name, and 4–6 lines: what this adds to the project, and what
-can be done now that could not be done before.
+### 1. What
+One short paragraph: what this PR adds or changes. Branch name at the top.
 
-### 2. What we used to build it
-Every library, tool, service or technique used in this change.
-One short entry each:
+### 2. Why
+The problem it solves. Give the measured number when there is one, with the run file
+it came from (`docs/findings/...`). If nothing was measured, say so.
 
-- **What it is** — one or two lines.
-- **What it does for us here** — the specific job it does in this code.
-- **Why we used it** — the reason it was picked.
+### 3. How
+The flow in plain words, step by step, naming the files that take part. No code, no
+snippets, no line-by-line walkthrough. A reader should be able to say where each part
+lives and what it does.
 
-Include things that are easy to take for granted: a validation
-library, a test runner, a clock function, a data structure chosen for
-a reason. If it appears in the code and someone could ask "what is
-that", it belongs here.
+### 4. When
+When this runs or triggers: at startup, at session start, on every frame, at the end
+of a turn, during a barge-in, and so on.
 
-### 3. Alternatives we rejected
-One table covering every real choice made in this change — libraries,
-approaches, orderings, data structures, API shapes.
+### 5. Alternatives
+One table. One row for every library, model or approach this PR chose, with **exactly
+one** alternative and why it was not picked.
 
-| Decision | What we chose | Alternatives | Why not them | What we gave up |
-|---|---|---|---|---|
-
-Every row needs a real reason. "It is the standard" is not a reason;
-say what it gives us that the alternative does not.
-
-### 4. Where things live
-A map of this change, so any "where is the code that does X" question
-has a direct answer.
-
-| What | File | Function or class |
+| Chosen | The alternative | Why not the alternative |
 |---|---|---|
 
-Cover the layers a question could land on: where config is read, where
-data is validated, where state is held, where the database layer is
-and which queries it runs, where errors are raised, where things are
-logged. If a layer does not exist yet in this change, say so in one
-line rather than leaving it out.
+The alternative must have been a real option. The reason must say what we would
+have lost or risked. "It is the standard" is not a reason.
 
-### 5. How it works
-Walk through the main path with the key snippets. Explain the lines
-that are not obvious, and why they are written that way. Add a small
-Mermaid diagram if the flow has more than three steps.
+### 6. Known issues
+3 to 5 short lines: what is still wrong, what was not measured, what broke in a live
+run. Honest, with the number or run file when there is one.
 
-### 6. When things go wrong
-A short table of the realistic failures and what the code does.
+## Writing rules
 
-| What fails | What the code does | What the user sees |
-|---|---|---|
+1. Plain language, short sentences. When you first use a term the reader may not
+   know, explain it in a few words.
+2. No code snippets and no code walkthroughs. Name the file and say what it does.
+3. Never invent a behaviour, a limit, a version or a number. Every number cites the
+   run file or document it came from. If something was not measured, say "not
+   measured".
+4. Do not copy from `docs/contracts.md` (the protocol) or
+   `docs/findings/perf-1-latency-budget.md` (the latency numbers). Link to them.
+5. Files are UTF-8 without BOM.
 
-Skip only if this change genuinely has no failure paths.
+## Checklist before the PR is ready
 
-### 7. New terms
-Every term, acronym or concept introduced in this change, alphabetical.
-Two or three lines each: what it means, and why it appears in our code.
-
-Examples of the level expected: Pydantic, monotonic clock, percentile,
-coroutine, WebSocket frame, migration, index. If the reader would have
-to look it up, it goes here — even if it was already mentioned in an
-earlier section.
-
-### 8. Questions you could be asked
-8–12 questions with short answers. Include at least one of each:
-"where is the code that…", "what happens if…", "why not…",
-"what does <term> mean", and the hardest question about this change.
-
-### 9. Check yourself
-3 questions to answer out loud without the document open.
+- [ ] The document has all six sections, in order, and is 60 to 120 lines long.
+- [ ] Every alternative row has exactly one alternative and a real reason.
+- [ ] Every number has a source, or is marked as not measured.
+- [ ] If the flow, the stack or the database changed, PROJECT.md is updated in the
+      same PR.
