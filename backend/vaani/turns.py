@@ -64,7 +64,7 @@ class TurnPipeline:
         vad_model,
         recognizer: Recognizer | None,
         chain: LLMProvider | None,
-        synth: Synthesizer | None,
+        voices: dict[str, Synthesizer] | None,  # language -> voice; None: no TTS
     ) -> None:
         self._session = session
         self._telemetry = telemetry
@@ -112,7 +112,7 @@ class TurnPipeline:
         self._responder = (
             Responder(
                 chain,
-                synth,
+                voices,
                 settings,
                 session,
                 telemetry,

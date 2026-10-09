@@ -29,11 +29,15 @@ provider listed there needs its key in the environment or backend/.env
 
 After the answer, a "script:" line counts the reply's characters IN CODE:
 Devanagari, Latin letters, and anything else. Under the Devanagari reply
-format any Latin letter is drift. A "first person:" line counts gendered verb
-forms, and a "self-name:" line lists any place the reply names its speaker
-with something other than a role word. The console only ever gets ASCII: the reply
-is printed with non-ASCII escaped (the Windows console cannot be trusted with
-Devanagari); --save keeps the real text.
+format any Latin letter is drift; in an English reply any Devanagari is. A
+"language:" line gives the voice the server would pick (vaani/language.py on
+the reply's first chunk, cut by the real chunker) and the whole reply's
+verdict: the two differ only if the reply drifts. A "first person:" line
+counts gendered verb forms, and a "self-name:" line lists any place the
+reply names its speaker with something other than a role word. The console
+only ever gets ASCII: the reply is printed with non-ASCII escaped (the
+Windows console cannot be trusted with Devanagari); --save keeps the real
+text.
 """
 
 import argparse
@@ -46,7 +50,9 @@ from time import perf_counter
 
 import httpx
 
+from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
+from vaani.language import reply_language
 from vaani.persona import assemble
 from vaani.providers.base import Message, ProviderError
 from vaani.providers.chain import build_chain
@@ -200,6 +206,14 @@ async def ask(
     print(
         f"script: {devanagari} Devanagari, {latin} Latin letters, "
         f"other: {ascii_only(other) or 'none'}",
+        file=sys.stderr,
+    )
+    # The first chunk exactly as the server cuts it: the voice is locked on it.
+    chunker = ClauseChunker(settings.chunker)
+    first = (chunker.push(reply) or [chunker.flush() or ""])[0]
+    print(
+        f"language: {reply_language(first)} voice (first chunk), whole reply "
+        f"{reply_language(reply)}",
         file=sys.stderr,
     )
     print(

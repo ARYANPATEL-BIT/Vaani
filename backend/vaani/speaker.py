@@ -20,6 +20,13 @@ with no await in between, so after a cancel not one more frame goes out.
 
 Day 13: each chunk's play-out window is kept in `spoken`, so a barge-in can
 work out how much of the reply the user had heard (barge_in.heard_text).
+
+English replies (feat/english-voice): each persona has a voice per language
+("hi", "en"). The FIRST chunk's script picks one (language.reply_language)
+and it is locked for the whole reply: audio.start declares one sample rate
+per reply, and switching voices mid-reply would sound like a second speaker.
+A later chunk in the other script is still said by the locked voice, partly
+misread, and logged as drift.
 """
 
 import asyncio
@@ -29,6 +36,7 @@ from contextlib import suppress
 from time import perf_counter
 from typing import NamedTuple
 
+from vaani.language import reply_language
 from vaani.protocol import TurnState, audio_end, audio_start
 from vaani.telemetry import TTS_FIRST_AUDIO, Telemetry
 from vaani.tts import Synthesizer
@@ -55,7 +63,7 @@ class Speaker:
 
     def __init__(
         self,
-        synth: Synthesizer,
+        voices: dict[str, Synthesizer],
         frame_ms: int,
         turn_id: str,
         cancel: asyncio.Event,
@@ -65,11 +73,13 @@ class Speaker:
         send_bytes: SendBytes,
         move_to: MoveTo,
     ) -> None:
-        self._synth = synth
-        self._rate = synth.sample_rate
-        # Frames as long as the mic's (20 ms), at the VOICE's rate:
-        # 22050 * 20 / 1000 = 441 samples = 882 bytes.
-        self._frame_bytes = self._rate * frame_ms // 1000 * BYTES_PER_SAMPLE
+        self._voices = voices  # language ("hi", "en") -> that language's voice
+        self._frame_ms = frame_ms
+        # Set by the first chunk (_lock_voice): until then no voice is chosen.
+        self.language: str | None = None
+        self._synth: Synthesizer | None = None
+        self._rate = 0
+        self._frame_bytes = 0
         self._turn_id = turn_id
         self._cancel = cancel
         self._ended_at = ended_at  # turn_ended, for the first-audio log line
@@ -91,6 +101,19 @@ class Speaker:
         """Synthesise one chunk and send its frames. Raises TtsError."""
         if self._cancel.is_set():
             return  # do not start a synthesis nobody will hear
+        if self._synth is None:
+            self._lock_voice(text)
+        elif (language := reply_language(text)) != self.language:
+            # The model switched script mid-reply. The locked voice says it
+            # anyway (and partly misreads it): see the module docstring.
+            log.warning(
+                "session %s: turn %s script drift: %s chunk said by the %s voice",
+                self._telemetry.session_id,
+                self._turn_id,
+                language,
+                self.language,
+            )
+        assert self._synth is not None  # locked just above, on the first chunk
         began = perf_counter()
         pcm = await self._synth.synthesize(text, self._cancel)
         if not self._started:
@@ -142,6 +165,22 @@ class Speaker:
         if self._started and remaining > 0:
             with suppress(TimeoutError):
                 await asyncio.wait_for(self._cancel.wait(), timeout=remaining)
+
+    def _lock_voice(self, first_chunk: str) -> None:
+        """Pick this reply's voice from its first chunk's script, for good."""
+        self.language = reply_language(first_chunk)
+        self._synth = self._voices[self.language]
+        self._rate = self._synth.sample_rate
+        # Frames as long as the mic's (20 ms), at the VOICE's rate:
+        # 22050 * 20 / 1000 = 441 samples = 882 bytes.
+        self._frame_bytes = self._rate * self._frame_ms // 1000 * BYTES_PER_SAMPLE
+        log.info(
+            "session %s: turn %s speaks with the %s voice (%d Hz)",
+            self._telemetry.session_id,
+            self._turn_id,
+            self.language,
+            self._rate,
+        )
 
     async def _start(self) -> None:
         """First audio of the reply: now the agent is speaking."""

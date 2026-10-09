@@ -3,12 +3,13 @@
 The voices (.onnx, about 63 MB each) are too large to commit, so every
 machine that synthesises speech - a laptop, Samyak's, CI - fetches them with
 this script. Everything comes from [tts.piper]: the repository URL (pinned to
-one revision), the folder to save in, and per persona the voice name and the
-sha256 it must have. A voice two personas share is fetched once.
+one revision), the folder to save in, and per persona and language the voice
+name and the sha256 it must have. A voice two personas share is fetched once.
 
-Name persona keys to fetch only their voices. CI fetches only "default": the
-one voice its tests load (the other voices' tests read only the committed
-.onnx.json files), so a cold CI run downloads 63 MB, not every voice.
+Name persona keys to fetch only their voices (both languages). CI fetches
+only "default": the two voices its tests load, Hindi and English (the other
+voices' tests read only the committed .onnx.json files), so a cold CI run
+downloads about 127 MB, not every voice.
 
 Fails loud: a wrong hash exits with status 1 and deletes the download, so a
 corrupted or swapped file never sits where the server will load it. A file
@@ -92,8 +93,9 @@ def main(personas: list[str]) -> int:
     # (voice, sha256) pairs, each once, in config order.
     wanted = dict.fromkeys(
         (v.voice, v.sha256)
-        for persona, v in cfg.voices.items()
+        for persona, by_language in cfg.voices.items()
         if not personas or persona in personas
+        for v in by_language.values()
     )
     models_dir = BACKEND_ROOT / cfg.models_dir
     ok = True

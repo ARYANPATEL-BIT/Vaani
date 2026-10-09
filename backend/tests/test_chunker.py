@@ -55,6 +55,16 @@ def test_abbreviation_is_not_a_sentence_end() -> None:
     ]
 
 
+def test_an_english_time_is_not_a_sentence_end() -> None:
+    # English replies (feat/english-voice): "a.m." must not cut the sentence.
+    text = "Sure. I'll remind you at 8 a.m. tomorrow. Anything else?"
+    assert chunk(tokens(text)) == [
+        "Sure.",
+        "I'll remind you at 8 a.m. tomorrow.",
+        "Anything else?",
+    ]
+
+
 def test_first_chunk_is_shorter_than_later_chunks() -> None:
     text = (
         "Theek hai, main kal subah aath baje aapko yaad dila doongi. "

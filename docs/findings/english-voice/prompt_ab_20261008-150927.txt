@@ -1,0 +1,81 @@
+prompt_ab run at 2026-10-08 15:09:27
+commit 436cd16 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+persona msg provider prompt | ttft_ms first_chunk_ms | voice | dev lat | ok
+default en groq old | 396 396 | hi | 45 0 | NO
+    reply: ठीक है, मैं कल सुबह 8 बजे आपके मीटिंग के लिए याद दिला दूंगी।
+default en groq new | 166 166 | en | 0 46 | yes
+    reply: Done. I will remind you about your meeting tomorrow at 8 a.m.
+default hi groq new | 121 126 | hi | 40 8 | NO
+    reply: बिल्कुल, मैं कल सुबह 8 बजे आपको मीटिंग के लिए yaad dila दूँगी।
+default hi groq old | 169 170 | hi | 45 0 | yes
+    reply: ठीक है, मैं कल सुबह 8 बजे मीटिंग के लिए आपको याद दिला दूँगी।
+default mix groq old | 267 267 | hi | 47 0 | yes
+    reply: ठीक है, मैं कल सुबह 8 बजे आपकी मिटिंग के लिए रिमाइंड कर दूँगी।
+default mix groq new | 237 237 | hi | 41 0 | yes
+    reply: ठीक है, मैं कल सुबह 8 बजे मीटिंग के लिए याद दिला दूँगी।
+tutor en groq new | 148 153 | hi | 114 0 | NO
+    reply: नमस्ते। एक फ्रैक्शन वास्तव में रिकार्ड से भाग करता है। इसका मतलब है कि किसी पूरे चीज के सिर्फ कुछ हिस्से लेने की बात हो रही है। क्या यह समझ आ गया?
+tutor en groq old | 148 149 | hi | 61 0 | NO
+    reply: नमस्ते, एक फ्रैक्शन को समझें। यह 100 का 25 हिस्सा है। क्या आप इस हिस्से को समझते हैं?
+tutor hi groq old | 112 181 | hi | 110 0 | yes
+    reply: भिन्न वह संख्या होती है जो बाँटने के चिह्न के बराबर होती है। इसमें ऊपर का भाग अन्य और नीचे का भाग हर कहलाता है। क्या यह बस बात तुम्हें समझ आई?
+tutor hi groq new | 118 160 | hi | 104 0 | yes
+    reply: भिन्न वह होता है जो एक पूरे को दिखाने के लिए लिखा जाता है।
+
+उदाहरण के लिए आधा क़िस्तूरने के लिए हम डेढ़ लेखते हैं।
+
+क्या यह समझ में आया?
+tutor mix groq new | 139 140 | hi | 122 0 | yes
+    reply: अरे, कोई बात नहीं, मैं आपको सरल तरीके से समझाऊंगा।
+
+कल्पना कीजिए कि एक सेब को बराबर के दो टुकड़ों में काट लिया जाए।
+
+तो, सेब का एक टुकड़ा उसका आधा हिस्सा होगा।
+tutor mix groq old | 114 117 | hi | 65 0 | yes
+    reply: ठीक है। मैं आपको फ़्रैक्शन को खाने के टुकड़ों की तरह समझाऊँगा। क्या आप तैयार हैं?
+support en groq old | 104 130 | hi | 73 0 | NO
+    reply: कृपया अपना ऑर्डर नंबर बताइं, ताकि मैं की आने की स्थिति जाँच सकूँ और आपको उसका अपडेट दे सकूँ।
+support en groq new | 121 138 | en | 0 44 | yes
+    reply: Could you please provide your order tracking number?
+support hi groq new | 112 151 | hi | 63 0 | yes
+    reply: ठीक है, कृपया अपना ऑर्डर आयडी और फोन नंबर बताइए, जिससे मैं ट्रैकिंग चेक कर सकूँ।
+support hi groq old | 168 412 | hi | 59 0 | yes
+    reply: आपको कृपया अपने ऑर्डर नंबर का अपडेट भेजें ताकि मैं ट्रैकिंग दिखान सकूँ।
+support mix groq old | 104 114 | hi | 51 0 | yes
+    reply: नमस्ते, कृपया अपना ऑर्डर नंबर बताइए ताकि मैं उसकी जाँच कर सकूँ।
+support mix groq new | 115 147 | hi | 53 0 | yes
+    reply: मुझे कृपया अपना ऑर्डर नंबर बताइए, ताकि मैं उसकी स्थिति जाँच सकूँ।
+default en gemini new | 1519 1740 | en | 0 46 | yes
+    reply: Sure, I will remind you about your meeting tomorrow at 8 a.m.
+default en gemini old | 1039 1125 | hi | 47 0 | NO
+    reply: ज़रूर, मैं कल सुबह 8 बजे की मीटिंग के लिए आपको याद दिला दूँगी।
+default hi gemini old | 813 832 | hi | 41 0 | yes
+    reply: ठीक है, मैं कल सुबह 8 बजे मीटिंग के लिए याद दिला दूँगी।
+default hi gemini new | 1233 1273 | hi | 41 0 | yes
+    reply: ठीक है, मैं कल सुबह 8 बजे मीटिंग के लिए याद दिला दूँगी।
+default mix gemini new | 870 870 | hi | 34 0 | yes
+    reply: ठीक है, मैं आपको कल सुबह 8 बजे याद दिला दूँगी।
+default mix gemini old | 1049 1091 | hi | 34 0 | yes
+    reply: ज़रूर, मैं आपको कल सुबह 8 बजे याद दिला दूँगी।
+tutor en gemini old | 1014 1018 | hi | 188 0 | NO
+    reply: नमस्ते, फ़्रैक्शन किसी पूरी चीज़ का एक हिस्सा होता है। जैसे अगर हमारे पास एक पिज़्ज़ा है और हम उसके चार बराबर टुकड़े करते हैं, तो हर एक टुकड़ा एक फ़्रैक्शन है। क्या आप बता सकते हैं कि अगर आप चार में से दो टुकड़े खा लेंगे, तो उसे कैसे बोलेंगे?
+tutor en gemini new | 787 801 | en | 0 93 | yes
+    reply: A fraction is a part of a whole number. Think of it like cutting a pizza into equal pieces. Does this make sense to you?
+tutor hi gemini new | 896 912 | hi | 124 0 | yes
+    reply: भिन्न किसी चीज़ का एक हिस्सा होता है। जैसे, अगर एक रोटी के दो बराबर टुकड़े किए जाएँ, तो हर टुकड़ा आधा यानी भिन्न कहलाता है। क्या आप समझ गए कि भिन्न क्या होता है?
+tutor hi gemini old | 1095 1155 | hi | 132 0 | yes
+    reply: नमस्ते, मैं आपको भिन्न के बारे में समझाऊँगा। भिन्न किसी चीज़ का एक हिस्सा होता है, जैसे एक पूरी रोटी के चार टुकड़े करने पर एक टुकड़ा भिन्न कहलाता है। क्या आप यह समझ पाए?
+tutor mix gemini old | 781 897 | hi | 128 0 | yes
+    reply: नमस्ते, मैं फ़्रैक्शन्स को बहुत आसान तरीक़े से समझाऊँगा। फ़्रैक्शन्स का मतलब होता है किसी पूरी चीज़ का एक हिस्सा। क्या आप एक पिज़्ज़ा की मिसाल से समझ सकते हैं?
+tutor mix gemini new | 908 1006 | hi | 150 0 | yes
+    reply: फ़्रैक्शन का मतलब होता है किसी एक पूरी चीज़ का हिस्सा। जैसे मान लीजिए आपके पास एक पूरी रोटी है और आपने उसके दो बराबर टुकड़े कर लिए। क्या आप बता सकते हैं कि उनमें से एक टुकड़े को हम क्या कहेंगे?
+support en gemini new | 777 787 | en | 0 52 | yes
+    reply: Please share your order number so I can check the status for you.
+support en gemini old | 794 927 | hi | 85 0 | NO
+    reply: नमस्ते, चिंता मत कीजिए, मैं आपकी मदद करती हूँ। कृपया अपना ऑर्डर नंबर बता दीजिए ताकि मैं स्टेटस चेक कर सकूँ।
+support hi gemini old | 905 963 | hi | 65 0 | yes
+    reply: नमस्ते, चिंता मत कीजिए, कृपया मुझे अपना आर्डर नंबर बता दीजिए ताकि मैं चेक कर सकूँ।
+support hi gemini new | 1153 1159 | hi | 19 0 | yes
+    reply: अपना ऑर्डर नंबर बताइए।
+STOP: gemini ProvidersExhaustedError: all providers failed: gemini: RateLimitedError after 383 ms (gemini: HTTP 429 RESOURCE_EXHAUSTED: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usa)

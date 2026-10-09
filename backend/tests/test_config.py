@@ -6,6 +6,7 @@ string form.
 """
 
 from vaani.config import Settings
+from vaani.language import LANGUAGES
 
 
 def test_defaults_from_config_toml() -> None:
@@ -91,8 +92,11 @@ def test_gemini_key_only_from_env(monkeypatch) -> None:
     assert not any("key" in ln.split("=")[0].lower() for ln in assignments)
 
 
-def test_every_persona_has_a_voice() -> None:
-    """Day 15: [tts.piper.voices] covers exactly the [personas] keys, so the
-    committed config never stops the server with "persona has no voice"."""
+def test_every_persona_has_a_voice_per_language() -> None:
+    """Day 15: [tts.piper.voices] covers exactly the [personas] keys, and
+    (feat/english-voice) each one every language, so the committed config
+    never stops the server with "no [tts.piper.voices] entry"."""
     settings = Settings()
-    assert settings.tts.piper.voices.keys() == settings.personas.keys()
+    voices = settings.tts.piper.voices
+    assert voices.keys() == settings.personas.keys()
+    assert all(set(v) == set(LANGUAGES) for v in voices.values())

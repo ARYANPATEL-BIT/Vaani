@@ -149,7 +149,7 @@ class AsrSettings(BaseModel):
 
 
 class PersonaVoice(BaseModel):
-    """One persona's voice, under [tts.piper.voices.<persona>]."""
+    """One persona's voice in one language: [tts.piper.voices.<persona>.<lang>]."""
 
     voice: str  # Piper voice name, e.g. "hi_IN-priyamvada-medium"
     sha256: str  # of <voice>.onnx; checked at load and by fetch_models.py
@@ -166,8 +166,9 @@ class PiperSettings(BaseModel):
     # The piper-voices repository, pinned to one revision; fetch_models.py
     # appends the path it builds from each voice name.
     voices_url: str
-    # Persona key -> its voice. Every key of [personas] must have one.
-    voices: dict[str, PersonaVoice]
+    # Persona key -> language ("hi", "en") -> its voice. Every key of
+    # [personas] needs one per language in vaani/language.py's LANGUAGES.
+    voices: dict[str, dict[str, PersonaVoice]]
 
 
 class TtsSettings(BaseModel):
