@@ -46,14 +46,17 @@ jobs:
         run: uv run ruff format --check .
 
       # Piper voices (about 63 MB each) are not committed. CI fetches only
-      # the default persona's voice: it is the only one the tests load (the
-      # other voices are tested through their committed .onnx.json). Cached,
-      # keyed on the config that names it. The script verifies the hash
-      # either way and fails the build on a mismatch.
-      - name: Cache Piper voice
+      # the default persona's two voices, Hindi and English: they are the
+      # only ones the tests load (the other voices are tested through their
+      # committed .onnx.json). Cached, keyed on the config that names them.
+      # The script verifies the hashes either way and fails the build on a
+      # mismatch.
+      - name: Cache Piper voices
         uses: actions/cache@v4
         with:
-          path: backend/models/hi_IN-*.onnx
+          path: |
+            backend/models/hi_IN-*.onnx
+            backend/models/en_US-*.onnx
           key: piper-${{ hashFiles('backend/config.toml') }}
 
       - name: Fetch models

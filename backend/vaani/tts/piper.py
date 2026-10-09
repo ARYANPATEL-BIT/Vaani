@@ -16,10 +16,11 @@ stop is between sentences. The chunker hands it about one clause or sentence
 at a time, so in practice a cancelled chunk runs to its end on the thread
 and its audio is thrown away.
 
-Day 15: each persona has its own voice ([tts.piper.voices]). `build_piper`
-loads each voice FILE once, however many personas use it, and gives every
-persona's synthesiser the SAME thread pool, so [tts].max_concurrent still
-caps syntheses for the whole process, not per voice.
+Day 15: each persona has its own voice ([tts.piper.voices]); since
+feat/english-voice, one per language. `build_piper` loads each voice FILE
+once, however many personas use it, and gives every synthesiser the SAME
+thread pool, so [tts].max_concurrent still caps syntheses for the whole
+process, not per voice.
 """
 
 import asyncio
@@ -40,8 +41,9 @@ log = logging.getLogger("vaani.tts")
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def build_piper(cfg: TtsSettings) -> dict[str, "PiperSynthesizer"]:
-    """Persona key -> its synthesiser. Raises TtsError if a voice is bad."""
+def build_piper(cfg: TtsSettings) -> dict[str, dict[str, "PiperSynthesizer"]]:
+    """Persona key -> language -> its synthesiser. Raises TtsError if a voice
+    is bad."""
     # ONE pool for every voice: three pools of max_concurrent would allow
     # three times as many syntheses at once as config says.
     pool = ThreadPoolExecutor(max_workers=cfg.max_concurrent, thread_name_prefix="tts")
@@ -51,12 +53,16 @@ def build_piper(cfg: TtsSettings) -> dict[str, "PiperSynthesizer"]:
     # Keyed by name AND hash: two personas naming the same voice share one
     # load, and a typo in one of their hashes still fails the check.
     loaded: dict[tuple[str, str], PiperVoice] = {}
-    synths = {}
-    for persona, pv in cfg.piper.voices.items():
-        key = (pv.voice, pv.sha256)
-        if key not in loaded:
-            loaded[key] = _load(models_dir, pv)
-        synths[persona] = PiperSynthesizer(loaded[key], pv.length_scale, pool)
+    synths: dict[str, dict[str, PiperSynthesizer]] = {}
+    for persona, by_language in cfg.piper.voices.items():
+        synths[persona] = {}
+        for language, pv in by_language.items():
+            key = (pv.voice, pv.sha256)
+            if key not in loaded:
+                loaded[key] = _load(models_dir, pv)
+            synths[persona][language] = PiperSynthesizer(
+                loaded[key], pv.length_scale, pool
+            )
     return synths
 
 

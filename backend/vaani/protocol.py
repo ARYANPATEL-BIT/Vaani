@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.7. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.8. The same shapes are mirrored on the frontend.
 Version numbers come from docs/contracts.md, the source of truth; the
 history below repeats its version table, and only the PR that changes
 contracts.md bumps the version.
@@ -65,6 +65,12 @@ audio.flush can now come during thinking (no audio.start before it), after
 agent.done, or after audio.end (the audio was sent but is still playing), and
 the flush.ack for it arrives when a newer turn is already current: the server
 accepts it. dev.flush is removed: an unknown type now.
+
+v0.8 is ENGLISH REPLIES, and adds no message or field. A reply to an
+all-English message is written in Latin script and spoken by an English
+voice, so agent.text / agent.done can now be Latin script, and the
+sample_rate can change between replies of one session (each reply's voice is
+picked by its script). Every voice configured today is 22050 Hz.
 
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting

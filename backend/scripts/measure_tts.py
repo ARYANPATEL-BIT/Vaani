@@ -18,15 +18,18 @@
    Without --wavs only the timings are kept, so routine timing runs leave no
    audio in the repo.
 
-All text is in the reply format the persona asks for since fix/reply-script:
-every word in Devanagari, English words too (hinglish_C in
-docs/learning/backend-learning/12-chunking-tts.md section 5).
+All "hi" text is in the reply format the persona asks for since
+fix/reply-script: every word in Devanagari, English words too (hinglish_C in
+docs/learning/backend-learning/12-chunking-tts.md section 5). "en" text
+(--language en, feat/english-voice) is the same replies in plain English, for
+the persona's English voice.
 
 Everything printed is also written to docs/findings/reply-script/
 measure_tts_<timestamp>.txt (run_log.py), one file per run.
 
     uv run python scripts/measure_tts.py
     uv run python scripts/measure_tts.py --persona tutor
+    uv run python scripts/measure_tts.py --language en
     uv run python scripts/measure_tts.py --wavs      # also keep the prosody WAVs
 """
 
@@ -41,27 +44,44 @@ from run_log import OUT, RunLog  # scripts/ is on sys.path when run as a file
 
 from vaani.chunker import ClauseChunker
 from vaani.config import get_settings
+from vaani.language import LANGUAGES
 from vaani.tts import build_synthesizers
 
 # Day 12's Latin texts, written in Devanagari word for word. "जी," first
 # since day 14: replies open with it, and it is now a first chunk on its own.
-LENGTHS = [
-    "जी,",
-    "ठीक है,",
-    "मैं आपको याद दिला दूँगी।",
-    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी।",
-    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
-    "भी दे दूँगी ताकि आप टाइम पर निकल सकें।",
-    "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
-    "भी दे दूँगी ताकि आप टाइम पर निकल सकें, क्योंकि सुबह के समय हाईवे पर "
-    "बहुत भीड़ होती है और डेंटिस्ट का क्लिनिक दूर है।",
-]
+# "en": the same lengths in English, so the two voices compare like for like.
+LENGTHS = {
+    "hi": [
+        "जी,",
+        "ठीक है,",
+        "मैं आपको याद दिला दूँगी।",
+        "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी।",
+        "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
+        "भी दे दूँगी ताकि आप टाइम पर निकल सकें।",
+        "ठीक है, मैं कल सुबह आठ बजे आपको याद दिला दूँगी, और ट्रैफ़िक का अपडेट "
+        "भी दे दूँगी ताकि आप टाइम पर निकल सकें, क्योंकि सुबह के समय हाईवे पर "
+        "बहुत भीड़ होती है और डेंटिस्ट का क्लिनिक दूर है।",
+    ],
+    "en": [
+        "Sure,",
+        "All right,",
+        "I'll remind you.",
+        "All right, I'll remind you at eight tomorrow morning.",
+        "All right, I'll remind you at eight tomorrow morning, and give you a "
+        "traffic update so you can leave on time.",
+        "All right, I'll remind you at eight tomorrow morning, and give you a "
+        "traffic update so you can leave on time, because the highway is "
+        "crowded in the morning and the dentist's clinic is far away.",
+    ],
+}
 
 # First sentence: hinglish_C's text exactly. Second: day 12's second sentence.
-REPLY = (
-    "ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे "
-    "दूँगी। अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।"
-)
+REPLY = {
+    "hi": "ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे "
+    "दूँगी। अगर आप चाहें तो मैं डेंटिस्ट का एड्रेस भी भेज सकती हूँ।",
+    "en": "All right, I'll remind you at 8 a.m. tomorrow and give you a traffic "
+    "update too. If you like, I can also send you the dentist's address.",
+}
 
 
 def chunks_of(text: str, **cfg) -> list[str]:
@@ -74,15 +94,15 @@ def chunks_of(text: str, **cfg) -> list[str]:
     return out
 
 
-async def main(repeat: int, persona: str, wavs: bool) -> None:
+async def main(repeat: int, persona: str, language: str, wavs: bool) -> None:
     log = RunLog("measure_tts")
     tts = get_settings().tts
-    synth = build_synthesizers(tts)[persona]
+    synth = build_synthesizers(tts)[persona][language]
     rate = synth.sample_rate
-    pv = tts.piper.voices[persona]
+    pv = tts.piper.voices[persona][language]
     log(
-        f"persona {persona}: voice {pv.voice}, length_scale {pv.length_scale}, "
-        f"{rate} Hz, one synthesis at a time"
+        f"persona {persona} ({language}): voice {pv.voice}, length_scale "
+        f"{pv.length_scale}, {rate} Hz, one synthesis at a time"
     )
     log()
     cancel = asyncio.Event()
@@ -90,7 +110,7 @@ async def main(repeat: int, persona: str, wavs: bool) -> None:
 
     log(f"1. time to first byte (= synthesis time), median of {repeat}")
     log(f"{'chars':>5} {'audio s':>8} {'p50 ms':>7} {'max ms':>7} {'RTF':>6}")
-    for text in LENGTHS:
+    for text in LENGTHS[language]:
         times, pcm = [], b""
         for _ in range(repeat):
             started = perf_counter()
@@ -107,10 +127,11 @@ async def main(repeat: int, persona: str, wavs: bool) -> None:
 
     log()
     log("2. prosody: the same reply chunked three ways")
+    reply = REPLY[language]
     for name, chunks in [
-        ("aggressive", chunks_of(REPLY, first_min_chars=4)),
-        ("conservative", chunks_of(REPLY, first_min_chars=60, first_max_chars=200)),
-        ("whole", [REPLY]),
+        ("aggressive", chunks_of(reply, first_min_chars=4)),
+        ("conservative", chunks_of(reply, first_min_chars=60, first_max_chars=200)),
+        ("whole", [reply]),
     ]:
         started = perf_counter()
         first = await synth.synthesize(chunks[0], cancel) or b""
@@ -124,7 +145,7 @@ async def main(repeat: int, persona: str, wavs: bool) -> None:
                 f.writeframes(first + b"".join(rest))
         log(f"{name:>12}: first chunk {ttfb:.0f} ms, chunks {chunks}")
     # No WAV: only which of the three the committed config.toml matches.
-    log(f"{'committed':>12}: chunks {chunks_of(REPLY)}")
+    log(f"{'committed':>12}: chunks {chunks_of(reply)}")
     log()
     log(f"wrote {log.path.name}" + (f" and prosody_*_{log.stamp}.wav" if wavs else ""))
 
@@ -133,6 +154,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--persona", default="default", help="whose voice to time")
+    parser.add_argument("--language", default="hi", choices=LANGUAGES)
     parser.add_argument("--wavs", action="store_true", help="write the prosody WAVs")
     args = parser.parse_args()
-    asyncio.run(main(args.repeat, args.persona, args.wavs))
+    asyncio.run(main(args.repeat, args.persona, args.language, args.wavs))

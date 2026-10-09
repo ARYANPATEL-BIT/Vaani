@@ -17,6 +17,7 @@ from tests.test_asr_gateway import frame_rate_during_inference
 from tests.test_turn_llm import ScriptedLLM, reacks, speak, start
 from vaani.app import create_app
 from vaani.config import GatewaySettings, Settings
+from vaani.language import LANGUAGES
 
 FRAME_BYTES = SAMPLE_RATE * 20 // 1000 * 2  # 20 ms at the voice's rate: 882
 
@@ -184,7 +185,10 @@ def test_each_persona_speaks_with_its_own_voice_and_rate(persona, rate) -> None:
         "support": FakeSynthesizer(),
     }
     client = make_client(ScriptedLLM(("Theek hai.",)), voices["default"])
-    client.app.state.synthesizers = voices
+    # One stand-in per persona, speaking both of its languages.
+    client.app.state.synthesizers = {
+        p: dict.fromkeys(LANGUAGES, v) for p, v in voices.items()
+    }
     with client.websocket_connect("/ws/session") as ws:
         start(ws, persona)
         speak(ws)

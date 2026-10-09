@@ -65,7 +65,7 @@ class Responder:
     def __init__(
         self,
         chain: LLMProvider,
-        synth: Synthesizer | None,
+        voices: dict[str, Synthesizer] | None,
         settings: Settings,
         session: Session,
         telemetry: Telemetry,
@@ -74,7 +74,8 @@ class Responder:
         move_to: MoveTo,
     ) -> None:
         self._chain = chain
-        self._synth = synth  # None: [tts] disabled, the reply is text only
+        # The persona's voice per language; None: [tts] disabled, text only.
+        self._voices = voices
         self._chunker_cfg = settings.chunker
         self._frame_ms = settings.audio.frame_ms
         # Looked up once: the persona is fixed at session.start, and the
@@ -103,9 +104,9 @@ class Responder:
         """Begin replying in the background. Returns at once."""
         self._cancel = asyncio.Event()
         self.turn_id, self.transcript, self.speaker = turn_id, transcript, None
-        if self._synth is not None:
+        if self._voices is not None:
             self.speaker = Speaker(
-                self._synth,
+                self._voices,
                 self._frame_ms,
                 turn_id,
                 self._cancel,

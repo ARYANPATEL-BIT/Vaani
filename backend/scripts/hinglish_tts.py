@@ -67,8 +67,8 @@ def write_wav(path: Path, pcm: bytes, rate: int) -> None:
 
 def main(asr: bool) -> None:
     cfg = get_settings().tts.piper
-    # The default persona's voice: the one the day-12 verdict was given on.
-    model = BACKEND / cfg.models_dir / f"{cfg.voices['default'].voice}.onnx"
+    # The default persona's Hindi voice: the one the day-12 verdict was given on.
+    model = BACKEND / cfg.models_dir / f"{cfg.voices['default']['hi'].voice}.onnx"
     voice = PiperVoice.load(model)  # its .onnx.json sits beside it
     rate = voice.config.sample_rate
     known = set(voice.config.phoneme_id_map)

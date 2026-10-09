@@ -1,0 +1,21 @@
+measure_tts run at 2026-10-08 15:02:41
+commit 436cd16 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+persona default (en): voice en_US-kristin-medium, length_scale None, 22050 Hz, one synthesis at a time
+
+1. time to first byte (= synthesis time), median of 5
+chars  audio s  p50 ms  max ms    RTF
+    5     0.60      69      81  0.115
+   10     0.93      51      68  0.055
+   16     1.15      42      78  0.037
+   53     2.75      89     101  0.033
+  109     5.79     163     173  0.028
+  193     9.91     286     292  0.029
+
+2. prosody: the same reply chunked three ways
+  aggressive: first chunk 37 ms, chunks ['All right,', "I'll remind you at 8 a.m. tomorrow and give you a traffic update too.", "If you like, I can also send you the dentist's address."]
+conservative: first chunk 37 ms, chunks ['All right,', "I'll remind you at 8 a.m. tomorrow and give you a traffic update too.", "If you like, I can also send you the dentist's address."]
+       whole: first chunk 234 ms, chunks ["All right, I'll remind you at 8 a.m. tomorrow and give you a traffic update too. If you like, I can also send you the dentist's address."]
+   committed: chunks ['All right,', "I'll remind you at 8 a.m. tomorrow and give you a traffic update too.", "If you like, I can also send you the dentist's address."]
+
+wrote measure_tts_20261008-150241.txt

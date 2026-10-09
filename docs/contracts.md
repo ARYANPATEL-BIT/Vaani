@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.7.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.8.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -48,6 +48,7 @@ Only the PR that changes this file bumps the version.
 | v0.5 | `telemetry` for the Latency HUD (frontend proposal; the backend does not send it yet) | 2.6 |
 | v0.6 | `audio.start` carries `sample_rate`; `speaking` starts with the first audio frame; `TTS_FAILED` | 2.2, 2.3, 2.5 |
 | v0.7 | Barge-in. No new message. `dev.flush` removed; `audio.flush` can come during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` may name a turn that is no longer current; `cancelling` → `listening` with a new `turn_id` | 2.3, 2.5, 2.7 |
+| v0.8 | English replies. No new message or field. `agent.text` / `agent.done` can be Latin script; `audio.start.sample_rate` can change between replies of one session | 2.2, 2.5 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -81,7 +82,7 @@ every frame until the matching `audio.end`.
 |-----------------|----------------------------------------|
 | Message type    | Binary                                 |
 | Encoding        | Raw PCM, 16-bit signed little-endian (Int16LE) |
-| Sample rate     | The `sample_rate` in `audio.start`: the rate of the session persona's voice, 22050 for every voice configured today (Piper, one voice per persona: `[tts.piper.voices]` in `backend/config.toml`); 16000 for the dev echo. It can differ between sessions, so read it from every `audio.start` |
+| Sample rate     | The `sample_rate` in `audio.start`: the rate of the voice speaking that reply, 22050 for every voice configured today (Piper, one voice per persona and language: `[tts.piper.voices]` in `backend/config.toml`); 16000 for the dev echo. v0.8: each reply's voice is picked by the script it is written in, so the rate can change between replies of one session, not only between sessions. Read it from every `audio.start` |
 | Channels        | 1 (mono)                               |
 | Frame duration  | 20 ms at the declared rate (882 bytes at 22050 Hz, 640 at 16000 Hz). Do not rely on the size: decode any even length |
 | Bytes/sample    | 2                                      |
@@ -200,6 +201,10 @@ Backend notes:
   (the persona asks for it; the Hindi voice cannot read Latin-script
   Hinglish). The user's `transcript.final` stays in whatever script the
   recogniser produced, usually Latin.
+- **v0.8:** except a reply to an all-English message: it is written in
+  English, in **Latin script**, and spoken by the persona's English voice.
+  So `agent.text` / `agent.done` can be either script; render both. A Hindi
+  or mixed reply is still all Devanagari.
 - **v0.7:** the backend is no longer half-duplex: speech while the agent is
   thinking or speaking is a barge-in (§2.7). `cancelling` is always
   followed by `listening`; `cancelling → idle` no longer exists.
@@ -305,3 +310,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-06 | Aryan   | Shared protocol v0.7 (day 13, barge-in): no new message; `dev.flush` removed; `audio.flush` first on barge-in and possible during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` for a turn no longer current is accepted; `cancelling → listening` with a new `turn_id`, `cancelling → idle` removed; §2.7 with the corrected barge-in sequence diagram |
 | 2026-10-06 | Aryan   | Shared protocol v0.6: `audio.start.sample_rate` (§2.2 rate no longer fixed at 16000); `speaking` = first audio; `TTS_FAILED`; version table in §2; §2.3 brought in line with protocol.py (`flush.ack` shape, `audio.start`/`audio.end`/`audio.flush` with `turn_id`, `dev.flush`, all error codes); §2.5 stale day-11 notes replaced; §2.6 notes the backend does not send telemetry |
 | 2026-10-07 | Aryan   | Editorial, no version change (day 15, persona voices): §2.2 sample-rate note no longer names one voice; the rate is the session persona's voice |
+| 2026-10-08 | Aryan   | Shared protocol v0.8 (feat/english-voice), note-only: `agent.text` / `agent.done` can be Latin script (English replies, §2.5); `audio.start.sample_rate` can change between replies of one session (§2.2). No new message or field |

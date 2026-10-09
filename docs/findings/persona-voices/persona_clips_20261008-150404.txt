@@ -1,0 +1,17 @@
+persona_clips run at 2026-10-08 15:04:04
+commit 436cd16 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+default (hi): hi_IN-priyamvada-medium, length_scale None, 22050 Hz, 9.58 s audio in 689 ms -> persona_default_hi_IN-priyamvada-medium_ls1.0_20261008-150404.wav
+  text: जी, मैं कल सुबह 8 बजे आपको याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी। मीटिंग का लिंक भी मैं भेज सकती हूँ।
+default (en): en_US-kristin-medium, length_scale None, 22050 Hz, 6.39 s audio in 553 ms -> persona_default_en_US-kristin-medium_ls1.0_20261008-150404.wav
+  text: Sure, I'll remind you at 8 a.m. tomorrow and give you a traffic update too. I can send you the meeting link as well.
+tutor (hi): hi_IN-pratham-medium, length_scale None, 22050 Hz, 8.71 s audio in 779 ms -> persona_tutor_hi_IN-pratham-medium_ls1.0_20261008-150404.wav
+  text: ठीक है, मैं फ़्रैक्शन को एक पिज़्ज़ा से समझाऊँगा। अगर पिज़्ज़ा के 4 बराबर हिस्से हों, तो एक हिस्सा 1 बटा 4 है। क्या आप समझ गए?
+tutor (en): en_US-norman-medium, length_scale None, 22050 Hz, 8.19 s audio in 627 ms -> persona_tutor_en_US-norman-medium_ls1.0_20261008-150404.wav
+  text: All right, I'll explain fractions with a pizza. If a pizza has 4 equal slices, one slice is 1 out of 4, a quarter. Did that make sense?
+support (hi): hi_IN-priyamvada-medium, length_scale 1.15, 22050 Hz, 8.80 s audio in 703 ms -> persona_support_hi_IN-priyamvada-medium_ls1.15_20261008-150404.wav
+  text: जी, मैं आपकी परेशानी समझ सकती हूँ। कृपया अपना ऑर्डर नंबर बताइए, मैं अभी उसका स्टेटस चेक कर दूँगी।
+support (en): en_US-kristin-medium, length_scale 1.15, 22050 Hz, 6.20 s audio in 358 ms -> persona_support_en_US-kristin-medium_ls1.15_20261008-150404.wav
+  text: I understand the problem. Please tell me your order number, and I'll check its status right away.
+
+wrote persona_clips_20261008-150404.txt

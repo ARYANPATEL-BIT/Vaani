@@ -244,11 +244,14 @@ engine = "piper"
 max_concurrent = 2
 
 [tts.piper]
-# Each persona speaks with its own Piper voice (day 15). All three Hindi
-# voices in piper-voices output 22050 Hz, not our 16 kHz input rate. The
-# server never resamples: every audio.start declares the rate of the frames
-# that follow (sample_rate, shared protocol v0.6, docs/contracts.md 2.2), read
-# from the voice itself, so a voice at another rate needs no code change.
+# Each persona speaks with its own Piper voices (day 15): one per language,
+# "hi" and "en" (feat/english-voice). Each reply's first chunk picks one by
+# its script: any Devanagari -> "hi", none -> "en" (vaani/language.py); the
+# voice is then kept for the whole reply. Every voice used here outputs
+# 22050 Hz, not our 16 kHz input rate. The server never resamples: every
+# audio.start declares the rate of the frames that follow (sample_rate,
+# shared protocol v0.6, docs/contracts.md 2.2), read from the voice itself, so
+# a voice at another rate needs no code change.
 #
 # The .onnx files (about 63 MB each) are NOT committed: run
 #   uv run python scripts/fetch_models.py
@@ -257,31 +260,52 @@ max_concurrent = 2
 models_dir = "models"
 
 # The piper-voices repository pinned to one revision, so no file behind it
-# can change under us. fetch_models.py appends hi/hi_IN/<name>/<quality>/
-# <voice>.onnx, the layout piper's own downloader uses.
+# can change under us. fetch_models.py appends <family>/<locale>/<name>/
+# <quality>/<voice>.onnx (hi/hi_IN/..., en/en_US/...), the layout piper's own
+# downloader uses.
 voices_url = "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117"
 
-# One table per persona key of [personas]; a persona without one stops the
-# server at startup. sha256 is of the .onnx, checked by fetch_models.py and
-# again when the voice loads. LICENCE: both voices' MODEL_CARD (at the pinned
-# revision: hi/hi_IN/<name>/medium/MODEL_CARD under voices_url) gives CC
-# BY-NC-SA 4.0 (non-commercial, share-alike), listed under "Dataset".
-# hi_IN-rohan-medium is not used: its card points to IIT Madras' own licence
-# PDF instead, which nobody has read yet.
-[tts.piper.voices.default]
+# One table per persona key of [personas] AND language; a persona missing
+# either language stops the server at startup. sha256 is of the .onnx,
+# checked by fetch_models.py and again when the voice loads. LICENCE, from
+# each voice's MODEL_CARD at the pinned revision (<family>/<locale>/<name>/
+# medium/MODEL_CARD under voices_url), which names the DATASET's licence only:
+#   * hi: both voices CC BY-NC-SA 4.0 (non-commercial, share-alike).
+#     hi_IN-rohan-medium is not used: its card points to IIT Madras' own
+#     licence PDF instead, which nobody has read yet.
+#   * en: both voices public domain (LibriVox recordings), each "trained from
+#     scratch", so neither comes from en_US-lessac. Lessac, and every English
+#     voice finetuned from it, is excluded: its dataset (Blizzard 2013) is
+#     treated as research-only here.
+# Gender as each card states it. A persona's two voices share a gender, so
+# one persona is one speaker in either language.
+[tts.piper.voices.default.hi]
 voice = "hi_IN-priyamvada-medium"  # female
 sha256 = "aa63bcf2cd493b55a450f280e23cf77f03afc9af7015e6e5acd43b652f166c88"
 
-[tts.piper.voices.tutor]
+[tts.piper.voices.default.en]
+voice = "en_US-kristin-medium"  # female
+sha256 = "5849957f929cbf720c258f8458692d6103fff2f0e3d3b19c8259474bb06a18d4"
+
+[tts.piper.voices.tutor.hi]
 voice = "hi_IN-pratham-medium"  # male: the tutor prompt speaks as a man
 sha256 = "169964b0871667f6793416d4b35e97357a68ba1ad01df8580c28048989ee7693"
 
-[tts.piper.voices.support]
-# The default's voice, slower: length_scale stretches every sound, 1.15 =
-# about 15% longer. Calmer for support; a starting value for the day-15
-# listening verdict. Same voice file, so no second load.
+[tts.piper.voices.tutor.en]
+voice = "en_US-norman-medium"  # male
+sha256 = "b9739443232a80a59c7d18810dd856899bf16a7964725f5ab81ea49b1351cb71"
+
+# Support: the default's voices, slower. length_scale stretches every sound,
+# 1.15 = about 15% longer. Calmer for support; a starting value for the
+# day-15 listening verdict. Same voice files, so no second load.
+[tts.piper.voices.support.hi]
 voice = "hi_IN-priyamvada-medium"
 sha256 = "aa63bcf2cd493b55a450f280e23cf77f03afc9af7015e6e5acd43b652f166c88"
+length_scale = 1.15
+
+[tts.piper.voices.support.en]
+voice = "en_US-kristin-medium"
+sha256 = "5849957f929cbf720c258f8458692d6103fff2f0e3d3b19c8259474bb06a18d4"
 length_scale = 1.15
 
 [chunker]
@@ -305,7 +329,11 @@ first_max_chars = 60
 max_chars = 200
 
 # A "." after one of these words is not a sentence end. Matched without case.
-abbreviations = ["dr", "mr", "mrs", "ms", "prof", "st", "vs", "etc", "e.g", "i.e", "rs"]
+# "a.m" and "p.m" came with English replies: "at 8 a.m. tomorrow" would
+# otherwise be cut mid-sentence. The price: a sentence that really ends in
+# "a.m." runs on into the next one, as "Dr." already does. "no" is NOT here:
+# "No. I can't" is a real sentence end.
+abbreviations = ["dr", "mr", "mrs", "ms", "prof", "st", "vs", "etc", "e.g", "i.e", "rs", "a.m", "p.m"]
 
 # A chunk may be cut just BEFORE one of these words. "ki" is deliberately
 # absent: in Hinglish it is mostly possessive ("Ram ki kitaab"), not "that".
@@ -344,11 +372,16 @@ patterns = [
 # system prompt is re-sent with every turn, and replies are meant to be spoken,
 # so they must be brief.
 #
-# SCRIPT: every reply is written entirely in Devanagari, English words too.
-# The Hindi Piper voice reads Latin-script Hinglish with English spelling
-# rules and becomes unintelligible; all-Devanagari was the clip rated best
-# (docs/findings/tts-day12/hinglish_C.wav, docs/learning/backend-learning/
-# 12-chunking-tts.md section 5). The example sentence is that clip's text.
+# SCRIPT: a reply to an all-English message is written in English, in Latin
+# script, and is spoken by the persona's English voice (feat/english-voice).
+# Every other reply (Hindi, or Hindi mixed with English) is written entirely
+# in Devanagari, English words too: the Hindi Piper voice reads Latin-script
+# Hinglish with English spelling rules and becomes unintelligible;
+# all-Devanagari was the clip rated best (docs/findings/tts-day12/
+# hinglish_C.wav, docs/learning/backend-learning/12-chunking-tts.md section
+# 5). The Devanagari example sentence is that clip's text. The server picks
+# the voice from the script the reply is written in (vaani/language.py), so
+# the prompt decides the language and the script decides the voice.
 #
 # GENDER: Hindi verbs agree with the speaker's gender ("दूँगी" is a woman
 # saying "I will give", "दूँगा" a man). Each prompt's first-person forms must
@@ -361,35 +394,45 @@ patterns = [
 # it one. "You are Vaani" was dropped from all three (day 15): a name in the
 # prompt is a name the agent introduces itself with, and a woman's name did
 # not fit the male tutor. Each prompt says its role in Devanagari,
-# with the persona's gender: असिस्टेंट, ट्यूटर, सपोर्ट एजेंट. ask.py's
+# with the persona's gender: असिस्टेंट, ट्यूटर, सपोर्ट एजेंट, and in English
+# for an English reply ("I'm your tutor."). ask.py's
 # "self-name" line checks replies for it. The role is said ONLY when asked for
 # a name or an introduction (day 16): day 15's "if you introduce yourself, say
 # only your role" let the model decide to introduce itself, and "aaj tum kya
 # karoge?" got just the role back, on qwen and (support) on gemini
 # (docs/findings/groq-primary/).
 default ="""You are a friendly voice assistant. The user speaks Hindi, \
-English or a mix of both (Hinglish). Reply in the same mix of languages, but \
-write every word in Devanagari script, English words too: "traffic" is \
-ट्रैफ़िक and "update" is अपडेट. Write numbers as digits and end each \
-sentence with ।. Example: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और \
-ट्रैफ़िक का अपडेट भी दे दूँगी। You have no personal name and never give \
-yourself one. Mention your role only when the user asks your name or asks you \
-to introduce yourself, and then say just: मैं आपकी असिस्टेंट हूँ। To anything \
+English or a mix of both (Hinglish). If the user's latest message is entirely \
+English, reply in plain English written in the Latin alphabet, with no Hindi \
+words and no Devanagari. Judge by the words, not the alphabet: "kal meeting \
+hai" is Hindi written in Latin letters, not English. To any other message, \
+reply in the same mix of languages, but write every word in Devanagari \
+script, English words too: "traffic" is ट्रैफ़िक and "update" is अपडेट, and \
+end each sentence with ।. Example: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी \
+और ट्रैफ़िक का अपडेट भी दे दूँगी। Write numbers as digits. You have no \
+personal name and never give yourself one. Mention your role only when the \
+user asks your name or asks you to introduce yourself, and then say just: \
+मैं आपकी असिस्टेंट हूँ। (in English: I'm your assistant.) To anything \
 else, answer what was asked and do not mention your role. Greet the user only \
 in your first reply of the conversation, if at all; never start a later reply with a greeting. Your \
 reply will be spoken aloud: keep it to one or two short sentences, with no \
 lists, markdown or emoji."""
 
 tutor = """You are a patient tutor. The user speaks Hindi, English or \
-Hinglish; reply in the same mix of languages, but write every word in \
-Devanagari script, English words too: "traffic" is ट्रैफ़िक and "update" is \
-अपडेट. Write numbers as digits and end each sentence with ।. Example: ठीक \
-है, मैं कल सुबह 8 बजे याद दिला दूँगा और ट्रैफ़िक का अपडेट भी दे दूँगा। \
+Hinglish. If the user's latest message is entirely English, reply in plain \
+English written in the Latin alphabet, with no Hindi words and no Devanagari. \
+Judge by the words, not the alphabet: "kal meeting hai" is Hindi written in \
+Latin letters, not English. To any other message, reply in the same mix of \
+languages, but write every word in Devanagari script, English words too: \
+"traffic" is ट्रैफ़िक and "update" is अपडेट, and end each sentence with ।. \
+Example: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगा और ट्रैफ़िक का अपडेट भी दे \
+दूँगा। Write numbers as digits. \
 You speak as a man: always use masculine first-person forms such as करूँगा, \
 गया and दूँगा, never the feminine करूँगी, गई or दूँगी. \
 You have no personal name and never give yourself one. Mention your role \
 only when the user asks your name or asks you to introduce yourself, and then \
-say just: मैं आपका ट्यूटर हूँ। To anything else, answer what was asked and do \
+say just: मैं आपका ट्यूटर हूँ। (in English: I'm your tutor.) To anything \
+else, answer what was asked and do \
 not mention your role. \
 Greet the user only in your first reply of the conversation, if at all. \
 Explain one idea at a time in plain words, then check they followed. Your \
@@ -397,13 +440,18 @@ reply is spoken aloud: at most three short sentences, no lists, markdown or \
 emoji."""
 
 support = """You are a customer support agent. The user speaks Hindi, \
-English or Hinglish; reply in the same mix of languages, but write every word \
-in Devanagari script, English words too: "traffic" is ट्रैफ़िक and "update" \
-is अपडेट. Write numbers as digits and end each sentence with ।. Example: ठीक \
-है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी। \
+English or Hinglish. If the user's latest message is entirely English, reply \
+in plain English written in the Latin alphabet, with no Hindi words and no \
+Devanagari. Judge by the words, not the alphabet: "kal meeting hai" is Hindi \
+written in Latin letters, not English. To any other message, reply in the \
+same mix of languages, but write every word in Devanagari script, English \
+words too: "traffic" is ट्रैफ़िक and "update" is अपडेट, and end each sentence \
+with ।. Example: ठीक है, मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का \
+अपडेट भी दे दूँगी। Write numbers as digits. \
 You have no personal name and never give yourself one. Mention your role \
 only when the user asks your name or asks you to introduce yourself, and then \
-say just: मैं आपकी सपोर्ट एजेंट हूँ। To anything else, answer what was asked \
+say just: मैं आपकी सपोर्ट एजेंट हूँ। (in English: I'm your support agent.) \
+To anything else, answer what was asked \
 and do not mention your role. Greet the user only in your first reply of the conversation, if at all. Be \
 calm and practical: ask for the one detail you need, or give the one next \
 step. Your reply is spoken aloud: one or two short sentences, no lists, \
