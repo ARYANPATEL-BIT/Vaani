@@ -20,7 +20,7 @@ The learning document requirement
 
 Every piece of work produces or updates a learning document, written by you, not by me. Code without one is not complete.
 
-Every pull request ships a learning document in docs/learning/ that meets docs/learning/STANDARD.md. A PR without one is not ready to merge.
+Every PR ships a learning document per docs/learning/STANDARD.md, and every PR that changes the flow, the stack or the database updates docs/learning/PROJECT.md in the same PR. A PR without these is not ready to merge.
 
 The purpose is teaching. I am learning this stack while building it, so the document is written for someone who did not write the code and does not already know the techniques involved. Explain the concepts, not just the decisions. If the code uses a WebSocket, a cancellation token, a state machine, or an async generator, explain what that is and why it is the right tool here — briefly, in plain language, before explaining what our code does with it.
 
