@@ -1,0 +1,32 @@
+ask.py --persona support, provider order gemini only (env), prompt wording AFTER the fix, run at 20261008-103752
+commit 16904f2 + uncommitted changes (role rule reworded)
+
+Q: tumhara naam kya hai?
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1904 ms, total: 1917 ms
+script: 22 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+exit 0
+
+Q: apna introduction do, tum kaun ho?
+\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1622 ms, total: 1999 ms
+script: 28 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+exit 0
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0915\u0932 \u0938\u0941\u092c\u0939 7 \u092c\u091c\u0947 \u0906\u092a\u0915\u094b \u091c\u093c\u0930\u0942\u0930 \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u0940\u0964 \u0906\u092a \u0905\u092a\u0928\u093e \u0906\u091c \u0915\u093e \u0915\u093e\u092e \u092c\u0924\u093e\u0907\u090f \u0924\u093e\u0915\u093f \u092e\u0948\u0902 \u0909\u0938\u092e\u0947\u0902 \u0906\u092a\u0915\u0940 \u092e\u0926\u0926 \u0915\u0930 \u0938\u0915\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1468 ms, total: 1915 ms
+script: 84 Devanagari, 0 Latin letters, other: none
+first person: 1 feminine, 0 masculine
+self-name: 0 self-description(s), not a role: none
+
+exit 0

@@ -171,7 +171,11 @@ temperature = [0.0]
 # Language model providers, first choice first. If one is rate-limited, times
 # out or is unreachable BEFORE it has said anything, the next one is tried.
 # Every provider listed here must have its API key set, or startup fails.
-provider_order = ["gemini", "groq"]
+# Groq first (fix/groq-primary-complete): with [llm.groq]'s model its first
+# token came about 0.9 s sooner than Gemini's at p50, 788 vs 1702 ms
+# (docs/findings/llm-latency/measure_llm_20261008-101039.txt). Gemini stays
+# as the failover.
+provider_order = ["groq", "gemini"]
 
 # Per-process cap on paid LLM requests, shared by EVERY provider: a failover
 # is another counted request, not a way around the cap. Every call is counted
@@ -207,10 +211,12 @@ thinking_level = "minimal"
 [llm.groq]
 # Exact model ID, as returned by Groq's GET /openai/v1/models for our key.
 # Groq retires models: llama-3.1-8b-instant was gone by day 15 (HTTP 404).
-# Picked on day 16 by measured first token over 10 real prompts:
-# qwen3.8-27b p50 454 ms vs openai/gpt-oss-20b p50 788 ms
+# openai/gpt-oss-20b, picked for correctness over speed: on 6 tutor prompts
+# in Hindi, 4 of its replies were marked clean against 1 of qwen3.8-27b's
+# (docs/findings/groq-primary/tutor_hindi_20261008-113643.txt). It costs
+# about 330 ms of first token: p50 788 ms vs qwen's 454 ms
 # (docs/findings/llm-latency/measure_llm_20261008-101039.txt).
-model = "qwen/qwen3.8-27b"
+model = "openai/gpt-oss-20b"
 
 # Groq's OpenAI-compatible API root. The key comes only from the
 # VAANI_GROQ_API_KEY environment variable (or the gitignored backend/.env).
@@ -219,10 +225,10 @@ base_url = "https://api.groq.com/openai/v1"
 # Seconds to wait for each step of a request, as for Gemini.
 timeout_s = 10.0
 
-# How much the model reasons before its first token. "none" is the lowest
-# level qwen3.8-27b accepts (gpt-oss models start at "low"); thinking
-# happens before the first token, so it adds directly to time-to-first-token.
-reasoning_effort = "none"
+# How much the model reasons before its first token. "low" is the lowest
+# level gpt-oss models accept; thinking happens before the first token, so it
+# adds directly to time-to-first-token.
+reasoning_effort = "low"
 
 # Don't send the model's reasoning text back at all: groq.py never speaks it,
 # so streaming it would only add bytes before the answer.

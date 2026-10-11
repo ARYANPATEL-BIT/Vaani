@@ -1,0 +1,64 @@
+measure_turn run at 2026-10-08 10:33:20
+commit 16904f2 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+server: ws://127.0.0.1:8765/ws/session (groq only (VAANI_LLM__PROVIDER_ORDER=[groq]), qwen/qwen3.8-27b, cuda/large-v3/float16, piper cpu, port 8765; compare reply-script/measure_turn_20261006-120205.txt (gemini only))
+clip: speech_16k_mono.wav, 12 turns
+server: {'type': 'session.started', 'session_id': '59c68955d227452b82e682b8ea6145a4'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, यह वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट है।'
+  last voice -> final 3227 ms, -> first text 3664 ms, -> first audio 4243 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, यह वानी प्रोजेक्ट के लिए वॉइस埃क्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 3059 ms, -> first text 3448 ms, -> first audio 4021 ms
+turn 3:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, यह वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 2941 ms, -> first text 3160 ms, -> first audio 3744 ms
+turn 4:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, यह वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 3043 ms, -> first text 3256 ms, -> first audio 3859 ms
+turn 5:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, मैंने संदेश रासित किया है।'
+  last voice -> final 3101 ms, -> first text 3633 ms, -> first audio 4232 ms
+turn 6:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 3154 ms, -> first text 3472 ms, -> first audio 4062 ms
+turn 7:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, यह वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट है।'
+  last voice -> final 3051 ms, -> first text 3249 ms, -> first audio 3820 ms
+turn 8:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, मैं आपकी असिस्टेंट हूँ।'
+  last voice -> final 3173 ms, -> first text 3508 ms, -> first audio 4064 ms
+turn 9:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 3122 ms, -> first text 3323 ms, -> first audio 3895 ms
+turn 10:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 2669 ms, -> first text 3182 ms, -> first audio 3739 ms
+turn 11:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 3226 ms, -> first text 3580 ms, -> first audio 4167 ms
+turn 12:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'ठीक है, वानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन का टेस्ट चल रहा है।'
+  last voice -> final 2870 ms, -> first text 3124 ms, -> first audio 3662 ms
+
+over 12 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 3080  p95 3227 ms
+  -> first agent.text  p50 3386  p95 3664 ms
+  -> first audio frame p50 3958  p95 4243 ms
+per stage (client clock):
+  endpoint + ASR     p50  3080  p95  3227 ms
+  model first token  p50   327  p95   532 ms
+  first chunk + TTS  p50   576  p95   603 ms
+wrote measure_turn_20261008-103320.txt

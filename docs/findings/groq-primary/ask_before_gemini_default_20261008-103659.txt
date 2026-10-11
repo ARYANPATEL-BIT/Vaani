@@ -1,0 +1,11 @@
+ask.py --persona default, provider order gemini only (env), prompt wording BEFORE the fix, run at 20261008-103659
+commit 16904f2 + uncommitted changes
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+\u0939\u093e\u0901, \u092e\u0948\u0902 \u0906\u092a\u0915\u094b \u0915\u0932 \u0938\u0941\u092c\u0939 7 \u092c\u091c\u0947 \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u0940\u0964 \u092e\u0948\u0902 \u0924\u094b \u0939\u092e\u0947\u0936\u093e \u0906\u092a\u0915\u0940 \u092e\u0926\u0926 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0930\u0939\u0924\u0940 \u0939\u0942\u0901\u0964
+model: gemini-3.5-flash-lite (chain order: gemini)
+time to first token: 1682 ms, total: 1948 ms
+script: 71 Devanagari, 0 Latin letters, other: none
+first person: 2 feminine, 0 masculine
+self-name: 0 self-description(s), not a role: none
+

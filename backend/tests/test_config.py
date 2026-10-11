@@ -61,7 +61,7 @@ def test_llm_settings_from_config_toml() -> None:
     """Model, timeout and provider order come from config.toml."""
     settings = Settings(_env_file=None)
 
-    assert settings.llm.provider_order == ["gemini", "groq"]
+    assert settings.llm.provider_order == ["groq", "gemini"]
     assert settings.llm.gemini.model == "gemini-3.5-flash-lite"
     assert settings.llm.gemini.thinking_level == "minimal"
     assert settings.llm.groq.model  # set in config.toml, never in code

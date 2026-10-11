@@ -1,0 +1,75 @@
+ask.py on the committed config, one request per persona, run at 20261009-145842
+branch fix/groq-primary-complete, commit b0b85df + uncommitted changes (provider_order groq, gemini;
+  groq model openai/gpt-oss-20b, reasoning_effort low, include_reasoning false)
+power scheme Silent
+command, once per persona (default, tutor, support):
+  uv run python scripts/ask.py --simulate-429 gemini --persona <key> "<question>"
+  --simulate-429 gemini: the chain is still groq, gemini, but Gemini is a local mock that
+  answers 429 without touching the network, so a Groq failure could not turn into an
+  unapproved Gemini request. It was never reached: Groq answered all three.
+  ask.py itself was not changed. It was started through a scratch wrapper that only turns on
+  httpcore's DEBUG log, which prints the response headers (never our request headers).
+3 paid Groq requests, 0 Gemini requests. Each run is a fresh process, so each first token
+includes a new TLS connection (cold). No history: the persona prompt and the question only.
+The counts under each reply are ask.py's code checks, not a quality verdict.
+Mark each reply: clean or broken.
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+
+--- persona default (voice: female)
+  हाँ, मैं आपको कल सुबह 7 बजे याद दिला दूँगी। आज मैं आपकी मदद करने के लिए यहाँ रहूँगी।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 869 ms, total: 905 ms
+  script: 64 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  x-ratelimit-limit-requests: 1000
+  x-ratelimit-limit-tokens: 8000
+  x-ratelimit-remaining-requests: 999
+  x-ratelimit-remaining-tokens: 7324
+  x-ratelimit-reset-requests: 1m26.4s
+  x-ratelimit-reset-tokens: 5.07s
+  mark:
+
+--- persona tutor (voice: male)
+  कल सुबह 7 बजे मैं आपको याद दिलाऊँगा । आज मैं आपकी पूछी गयी किसी भी विषय पर सहायता करूँगा ।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 719 ms, total: 749 ms
+  script: 69 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 2 masculine
+  self-name: 0 self-description(s), not a role: none
+  x-ratelimit-limit-requests: 1000
+  x-ratelimit-limit-tokens: 8000
+  x-ratelimit-remaining-requests: 998
+  x-ratelimit-remaining-tokens: 7311
+  x-ratelimit-reset-requests: 2m52.8s
+  x-ratelimit-reset-tokens: 5.167s
+  mark:
+
+--- persona support (voice: female)
+  ठीक है, मैं कल सुबह 7 बजे आपकी याद दिलाऊँगी । आज मैं आपकी सहायता के लिए उपलब्ध रहूँगी ।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 540 ms, total: 545 ms
+  script: 66 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  x-ratelimit-limit-requests: 1000
+  x-ratelimit-limit-tokens: 8000
+  x-ratelimit-remaining-requests: 997
+  x-ratelimit-remaining-tokens: 7272
+  x-ratelimit-reset-requests: 4m19.2s
+  x-ratelimit-reset-tokens: 5.46s
+  mark:
+
+groq free-tier limits for openai/gpt-oss-20b, from the headers above
+  (Groq's headers: limit-requests is requests per DAY, limit-tokens is tokens per MINUTE)
+  requests per day:  1000
+  tokens per minute: 8000
+  The same two numbers as qwen/qwen3.8-27b (capacity_groq_20261008-103150.txt).
+  Not in the headers: requests per minute and tokens per day.
+  Turns per minute NOT re-derived: these requests had no history, so their token cost is
+  not a real turn's. capacity_summary_20261008.txt's 699 tokens a turn was measured on qwen,
+  whose tokenizer differs.

@@ -1,0 +1,105 @@
+tutor persona Hindi check, run at 20261008-113643
+commit 16904f2 + uncommitted changes (role rule reworded)
+scripts/ask.py --persona tutor, one request per prompt per model, groq only (env):
+  VAANI_LLM__PROVIDER_ORDER=[groq], VAANI_LLM__GROQ__MODEL and
+  VAANI_LLM__GROQ__REASONING_EFFORT set per model (qwen: none, gpt-oss: low,
+  as in llm-latency/measure_llm_20261008-101039); include_reasoning from config.toml.
+The counts under each reply are ask.py's code checks, not a quality verdict.
+Mark each reply: clean or broken.
+
+--- prompt 1: photosynthesis kya hota hai? simple words mein samjhao
+  [qwen/qwen3.8-27b]
+    फोटोसिंथेसिस वो प्रनलि है जिसमें पौधे अपने बनाए फलसोड़ से खाना बनाते है. इस में उें रोज़ी और जलमे के आलिस करते अहैं। समझा?
+    (time to first token: 287 ms, total: 485 ms)
+    (script: 97 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - nonsense words (फलसोड़, जलमे, आलिस)
+  [openai/gpt-oss-20b]
+    नमस्ते! पौधे सूरज की रोशनी, पानी और हवा से खाना बनाते हैं, जिसे हम फोटोसिंथेसिस कहते हैं। यह प्रक्रिया पौधे के पत्तों में होती है, जहाँ क्लोरोफ़िल नामक रंगद्रव्य प्रकाश को ऊर्जा में बदलता है। इस ऊर्जा से पौधा ग़ैस से कार्बन डाइऑक्साइड लेकर शर्करा बनाता है, और ऑक्सीजन को हवा में छोड़ता है। क्या आप समझ गए?
+    (time to first token: 547 ms, total: 667 ms)
+    (script: 242 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: clean
+
+--- prompt 2: 3/4 aur 2/3 mein kaun bada hai, aur kaise pata karein?
+  [qwen/qwen3.8-27b]
+    कोई भी अंक को प्रिय वाणी में लिखना चाहिए। 3/4 और 2/3 की तुलना हेतु हम इनके हर को 4 और 3 के लघुतम समापवर्त्य यानि 12 पर दूँगा। इससे 3/4 बड़ा है, आप समझ गये?
+    (time to first token: 300 ms, total: 424 ms)
+    (script: 105 Devanagari, 0 Latin letters, other: ///)
+    (first person: 0 feminine, 1 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - nonsense opening sentence and broken grammar, though 3/4 is correct
+  [openai/gpt-oss-20b]
+    3/4 और 2/3 की तुलना करने के लिए दोनों को समान हर (डिनॉमिनेटर) में बदलें। 3/4 को 9/12 और 2/3 को 8/12 किया जाता है। 9/12 बड़ा है, इसलिए 3/4 बड़ा है।
+    (time to first token: 550 ms, total: 598 ms)
+    (script: 85 Devanagari, 0 Latin letters, other: ////////)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: clean
+
+--- prompt 3: Newton ka third law ek daily life example ke saath batao
+  [qwen/qwen3.8-27b]
+    जैसे हम ज़मीन पर चलते हैं, तो पैर ज़मीन को पीछे धकेलते हैं। ज़मीन हमें आगे की ओर बराबर बल से धकेलती है। क्या आपको यह मशीन समझ आया?
+    (time to first token: 171 ms, total: 298 ms)
+    (script: 100 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - says "मशीन" instead of नियम
+  [openai/gpt-oss-20b]
+    जब हम फुटबॉल किक करते हैं तो गेंद आगे जाती है और हम पीछे धकेले जाते हैं । यह न्यूटन का तीसरा नियम है जो कहता है कि प्रत्येक क्रिया के बराबर और विपरीत प्रतिक्रिया होती है । उदाहरण के लिए, जब रॉकेट हवा में जाता है तो इंजन धुएँ को पीछे धकेलता है और रॉकेट आगे बढ़ता है ।
+    (time to first token: 583 ms, total: 671 ms)
+    (script: 206 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: clean
+
+--- prompt 4: kal mera maths ka exam hai aur bahut tension ho rahi hai, kya karun?
+  [qwen/qwen3.8-27b]
+    उत्कंठा स्वाभाविक है, पर संकेत बनाकर पढ़ना रोकता है। मैं कल सुबह आपको याद दिलाऊँगा और मुख्य सूत्रों का अपडेट भी दे दूँगा। ऐसा ठीक है?
+    (time to first token: 506 ms, total: 607 ms)
+    (script: 106 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 2 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - a nonsense clause, and it promises a reminder it can't give
+  [openai/gpt-oss-20b]
+    अभ्यास करूँगा तो भरोसा बढ़ेगा, महत्वपूर्ण सूत्र याद रखूँगा, और समय से पहले हल करूँगा। आराम भी जरूरी है, इसलिए रात में जल्दी सो जाऊँगा ताकि सुबह ताज़ा रहूँ। क्या तुमने पहले से कक्षा के नोट्स दोबारा देखे हैं?
+    (time to first token: 565 ms, total: 652 ms)
+    (script: 164 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 4 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - advises in first person as if it were the student, switches to तुम
+
+--- prompt 5: 'I have been working' ka matlab kya hai, aur ye tense kab use karte hain?
+  [qwen/qwen3.8-27b]
+    "मैं काम कर रहा हूँ" यानी पहले से शुरू हो चुका काम अभी भी चल रहा है। हम इस तेंस को ऐसे स्थिति में प्रयोग करते हैं जब कोई क्रिया प्रतिया अब तक जारी है। क्या आपको यह समझ आ गया?
+    (time to first token: 429 ms, total: 653 ms)
+    (script: 131 Devanagari, 0 Latin letters, other: none)
+    (first person: 0 feminine, 1 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: clean - minor typo
+  [openai/gpt-oss-20b]
+    'I have been working' का मतलब है कि मैं अभी तक काम कर रहा हूँ और काम शुरू हुआ था। यह वर्तमान परिपूर्ण चलती हुई रूप (present perfect continuous) है। जब आप यह दिखाना चाहें कि कोई क्रिया अभी भी चल रही है या कुछ समय से चल रही है, तब इस tense का उपयोग करते हैं।
+    (time to first token: 439 ms, total: 652 ms)
+    (script: 150 Devanagari, 45 Latin letters, other: none)
+    (first person: 0 feminine, 1 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - latin words the hindi voice will misread
+
+--- prompt 6: computer mein RAM aur hard disk mein kya fark hai?
+  [qwen/qwen3.8-27b]
+    राम एक पसीन होल्डर है जिसमें कम्प्यूटर काम के दौरान डेटा रखता है। हार्ड डिसก์ एक शीतल स्टोरेज है जहाँ आपकी फ़ाइलें लंबे समय के लिए सुरक्षित रहती हैं। क्या आपको यह अंतर समझ में आया?
+    (time to first token: 306 ms, total: 506 ms)
+    (script: 142 Devanagari, 0 Latin letters, other: \u0e01\u0e4c)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: broken - nonsense words, thai characters in "डिसก์"
+  [openai/gpt-oss-20b]
+    RAM और हार्ड डिस्क दोनों ही स्टोरेज के लिए हैं, पर अलग उद्देश्य से। RAM वह अस्थायी जगह है जहाँ कंप्यूटर चल रहे प्रोग्राम्स डेटा रखता है ताकि उसे जल्दी एक्सेस किया जा सके। हार्ड डिस्क दीर्घकालिक स्टोरेज है, जहाँ फ़ाइलें और प्रोग्राम्स तब भी रहते हैं जब कंप्यूटर बंद हो जाए।
+    (time to first token: 553 ms, total: 651 ms)
+    (script: 213 Devanagari, 6 Latin letters, other: none)
+    (first person: 0 feminine, 0 masculine)
+    (self-name: 0 self-description(s), not a role: none)
+    mark: clean - "RAM" in latin is minor
+

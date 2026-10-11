@@ -1,0 +1,43 @@
+compare_primaries run at 2026-10-08 11:06:11
+recomputed from run files only, no provider requests; nearest-rank p95 as telemetry.py
+
+gemini primary: reply-script\measure_turn_20261006-120205.txt  (power scheme not recorded)
+  full turn: last voice -> 1st audio n=12  p50  5628  p95  9386  max  9386 ms
+  last voice -> transcript.final     n=12  p50  2322  p95  3160  max  3160 ms
+    of which whisper decode (server) n=12  p50  1322  p95  2160  max  2160 ms
+  model first token (server)         n=12  p50  2150  p95  6145  max  6145 ms
+  final -> first agent.text          n=12  p50  2150  p95  6146  max  6146 ms
+  first agent.text -> first audio    n=12  p50   913  p95  3087  max  3087 ms
+  final -> first audio (no ASR)      n=12  p50  3281  p95  6249  max  6249 ms
+
+groq primary: groq-primary\measure_turn_20261008-103320.txt  (power scheme Silent)
+  full turn: last voice -> 1st audio n=12  p50  3958  p95  4243  max  4243 ms
+  last voice -> transcript.final     n=12  p50  3080  p95  3227  max  3227 ms
+    of which whisper decode (server) n=12  p50  2066  p95  2236  max  2236 ms
+  model first token (server)         n=12  p50   326  p95   531  max   531 ms
+  final -> first agent.text          n=12  p50   326  p95   532  max   532 ms
+  first agent.text -> first audio    n=12  p50   576  p95   603  max   603 ms
+  final -> first audio (no ASR)      n=12  p50   900  p95  1131  max  1131 ms
+
+gemini ask.py first token, single requests, 5 files:
+  time to first token                n=11  p50  2479  p95  7723  max  7723 ms
+groq ask.py first token, single requests, 4 files:
+  time to first token                n=12  p50   250  p95   383  max   383 ms
+
+earlier qwen sample: llm-latency\measure_llm_20261008-101039.txt
+  contestants: gemini, openai/gpt-oss-20b, qwen/qwen3.8-27b; 10 timed rounds + 1 warm-up each
+  groq reasoning_effort: qwen/qwen3.8-27b:none
+  gemini: cold first call 1958 ms (model gemini-3.5-flash-lite)
+  qwen/qwen3.8-27b: cold first call 364 ms (model qwen/qwen3.8-27b)
+  round  1 qwen/qwen3.8-27b        288 ms
+  round  2 qwen/qwen3.8-27b        327 ms
+  round  3 qwen/qwen3.8-27b        249 ms
+  round  4 qwen/qwen3.8-27b       1139 ms
+  round  5 qwen/qwen3.8-27b        738 ms
+  round  6 qwen/qwen3.8-27b        451 ms
+  round  7 qwen/qwen3.8-27b       1406 ms
+  round  8 qwen/qwen3.8-27b       1835 ms
+  round  9 qwen/qwen3.8-27b        458 ms
+  round 10 qwen/qwen3.8-27b        407 ms
+  gemini               p50   1702 ms   p95   2382 ms   min 1229  max 2382
+  qwen/qwen3.8-27b     p50    454 ms   p95   1835 ms   min 249  max 1835
