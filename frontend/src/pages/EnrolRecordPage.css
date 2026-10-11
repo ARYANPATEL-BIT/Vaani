@@ -1,0 +1,467 @@
+/**
+ * EnrolRecordPage.css — Reference recording page styles.
+ * Follows the Vaani glassmorphism / warm-cream design system.
+ */
+
+/* ── Page layout ─────────────────────────────────────────────────────── */
+.record-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-6) var(--sp-4) var(--sp-8);
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* ── Back button ─────────────────────────────────────────────────────── */
+.record-back-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--c-slate);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--sp-2) 0;
+  margin-bottom: var(--sp-4);
+  transition: color var(--t-fast);
+}
+
+.record-back-btn:hover {
+  color: var(--c-indigo);
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.record-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r-xl);
+  padding: var(--sp-8);
+  max-width: 580px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  animation: record-slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes record-slide-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.record-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.record-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--c-navy);
+  margin: 0 0 var(--sp-1);
+}
+
+.record-subtitle {
+  font-size: 0.875rem;
+  color: var(--c-slate);
+  margin: 0;
+}
+
+/* ── Status badge ─────────────────────────────────────────────────────── */
+.record-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status-idle       { background: rgba(100,116,139,0.12); color: var(--c-slate); }
+.status-requesting { background: rgba(96,165,250,0.15);  color: #3B82F6; }
+.status-recording  { background: rgba(239,68,68,0.12);   color: var(--c-red); }
+.status-completed  { background: rgba(34,197,94,0.12);   color: #16A34A; }
+.status-too-short  { background: rgba(245,158,11,0.12);  color: #B45309; }
+.status-failed     { background: rgba(239,68,68,0.12);   color: var(--c-red); }
+
+/* Pulsing recording dot */
+.recording-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-red);
+  animation: recording-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── Timer ────────────────────────────────────────────────────────────── */
+.record-timer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.record-timer-display {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.timer-elapsed {
+  font-size: 2.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--c-navy);
+  letter-spacing: -0.02em;
+  transition: color var(--t-fast);
+}
+
+.timer-active .timer-elapsed {
+  color: var(--c-red);
+}
+
+.timer-remaining {
+  font-size: 0.825rem;
+  color: var(--c-muted);
+  font-weight: 500;
+}
+
+/* Progress bar */
+.record-progress-track {
+  position: relative;
+  height: 8px;
+  background: rgba(100,116,139,0.15);
+  border-radius: var(--r-full);
+  overflow: visible;
+}
+
+.record-progress-fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  min-width: 0;
+}
+
+/* 30-second minimum marker */
+.record-progress-marker {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background: var(--c-violet);
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.record-progress-marker::after {
+  content: '30s';
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--c-violet);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.record-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--c-muted);
+  padding-top: var(--sp-3);
+  position: relative;
+}
+
+.record-min-label {
+  position: absolute;
+  left: calc(50% - 12px);
+}
+
+/* ── Level meter ──────────────────────────────────────────────────────── */
+.record-level-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.level-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--c-slate);
+}
+
+.level-label-text {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.level-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 36px;
+  padding: 0 2px;
+}
+
+.level-bar {
+  flex: 1;
+  border-radius: 2px;
+  background: rgba(100,116,139,0.15);
+  height: 100%;
+  transition: background 0.05s, height 0.05s;
+  min-height: 4px;
+}
+
+/* Bars get taller towards the middle for a VU-meter look */
+.level-bar:nth-child(n+5):nth-child(-n+16) {
+  /* slightly taller in the middle — purely decorative shape */
+}
+
+/* ── Mic visual ──────────────────────────────────────────────────────── */
+.record-mic-visual-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.record-mic-visual {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.08);
+  border: 2px solid rgba(79, 70, 229, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-indigo);
+  transition: background var(--t-med), box-shadow var(--t-med), color var(--t-med), border-color var(--t-med);
+}
+
+.record-mic-visual.mic-recording {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: var(--c-red);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  animation: mic-pulse 1.4s ease-out infinite;
+}
+
+.record-mic-visual.mic-requesting {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #3B82F6;
+}
+
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+
+/* ── Feedback banners ─────────────────────────────────────────────────── */
+.record-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.record-feedback-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #92400E;
+}
+[data-theme="dark"] .record-feedback-warning {
+  color: #FDE68A;
+}
+
+.record-feedback-error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #991B1B;
+}
+[data-theme="dark"] .record-feedback-error {
+  color: #FCA5A5;
+}
+
+.record-feedback-success {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #14532D;
+}
+[data-theme="dark"] .record-feedback-success {
+  color: #86EFAC;
+}
+
+/* ── Audio preview ────────────────────────────────────────────────────── */
+.record-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.record-preview-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--c-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.record-preview-audio {
+  width: 100%;
+  border-radius: var(--r-md);
+  outline: none;
+}
+
+/* ── Guidance list (idle state) ──────────────────────────────────────── */
+.record-guidance-list {
+  list-style: none;
+  padding: var(--sp-3) var(--sp-4);
+  margin: 0;
+  background: rgba(79, 70, 229, 0.04);
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.record-guidance-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.85rem;
+  color: var(--c-slate);
+}
+
+/* ── Control buttons ─────────────────────────────────────────────────── */
+.record-controls {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.record-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-full);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border: none;
+  transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast), opacity var(--t-fast);
+}
+
+.record-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.record-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.record-btn-start {
+  background: linear-gradient(135deg, var(--c-indigo), var(--c-violet));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3);
+}
+
+.record-btn-start:hover:not(:disabled) {
+  box-shadow: 0 6px 24px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1px);
+}
+
+.record-btn-stop {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
+.record-btn-stop:hover:not(:disabled) {
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.45);
+  transform: translateY(-1px);
+}
+
+.record-btn-rerecord {
+  background: transparent;
+  border: 1px solid rgba(100,116,139,0.3);
+  color: var(--c-slate);
+}
+
+.record-btn-rerecord:hover:not(:disabled) {
+  background: rgba(100,116,139,0.08);
+}
+
+/* ── Bottom note ─────────────────────────────────────────────────────── */
+.record-bottom-note {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .record-card {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .record-title {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .timer-elapsed {
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .timer-active .timer-elapsed {
+  color: #FCA5A5;
+}
+
+[data-theme="dark"] .level-bar {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .record-mic-visual {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.25);
+}
+
+[data-theme="dark"] .record-guidance-list {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.18);
+}

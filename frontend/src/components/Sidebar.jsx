@@ -5,13 +5,15 @@
 import { NavLink } from 'react-router-dom';
 import {
   Mic, Video, History, User, BarChart2, Settings,
-  ChevronRight, LogOut
+  ChevronRight, LogOut, UserCheck
 } from 'lucide-react';
 import './AppLayout.css';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Conversation', icon: Mic, end: true },
   { to: '/loopback', label: 'Studio', icon: Video },
+  // Week 3 Day 3: enrolment screens
+  { to: '/enrol', label: 'Enrol', icon: UserCheck },
   { to: '/history', label: 'History', icon: History, disabled: true },
   { to: '/identity', label: 'Identity', icon: User, disabled: true },
   { to: '/spend', label: 'Spend & Quota', icon: BarChart2, disabled: true },
