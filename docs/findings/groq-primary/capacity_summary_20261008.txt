@@ -1,0 +1,39 @@
+capacity summary, 2026-10-08 (no provider requests made for this file)
+free tiers only, one account per provider
+
+tokens one real turn costs (steady state: default persona, 6 exchanges of history)
+  groq   qwen/qwen3.8-27b      532 = 507 prompt + 25 completion   capacity_groq_20261008-103150.txt
+  gemini gemini-3.5-flash-lite 368 = 348 prompt + 20 completion   capacity_gemini_20261008-103157.txt
+  The same messages cost more on qwen: different tokenizer and chat template.
+  Groq's token bucket was 699 short right after that request (8000 - 7301,
+  refill 5.242 s at 8000/60 per s). Whether Groq charges an estimate at
+  admission or another request landed in that minute is not confirmed.
+
+groq limits for qwen/qwen3.8-27b
+  headers (capacity_groq): x-ratelimit-limit-requests 1000 = requests per DAY,
+                           x-ratelimit-limit-tokens 8000 = tokens per MINUTE
+                           (Groq docs: these two headers always mean RPD and TPM)
+  docs (console.groq.com/docs/rate-limits, read 2026-10-08): RPM 30, RPD 1K, TPM 8K, TPD 200K
+  RECORDED FIGURE (conservative, decided 2026-10-08): 699 tokens a turn, the
+  bucket deficit, until the 532 vs 699 gap is explained:
+  turns per minute = min(30 RPM, 8000 / 699 = 11.4)      = 11  (tokens bind)
+  turns per day    = min(1000 RPD, 200000 / 699 = 286.1) = 286 (tokens bind)
+  at the 532 tokens usage reports: 15 a minute, 375 a day.
+
+gemini limits for gemini-3.5-flash-lite
+  no rate-limit headers in the response
+  docs (ai.google.dev/gemini-api/docs/rate-limits, read 2026-10-08) no longer list
+  free-tier numbers: "can be viewed in Google AI Studio". RPD resets at midnight Pacific.
+  NOT RECORDED: RPM, TPM, RPD need reading from AI Studio by the account owner.
+  turns per minute = min(RPM, TPM / 368)
+  turns per day    = RPD
+
+context
+  measure_turn_20261008-103320 took about 13 s a turn (12 turns, 10:33:20 to
+  about 10:36), i.e. about 4-5 turns a minute for one live session, so Groq's
+  11/min fits about 2 sessions at once. 286 turns a day is about an hour of
+  continuous talk at that pace.
+  These limits belong to the API key, not to a person: everyone using the
+  key (both contributors, demos, soak runs) shares the one daily budget.
+  Past it, Groq answers HTTP 429 and the chain fails over to gemini.
+  config.toml [llm] max_requests_per_process = 200 caps one server process first.

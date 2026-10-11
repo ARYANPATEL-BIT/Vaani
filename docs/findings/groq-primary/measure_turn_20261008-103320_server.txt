@@ -1,0 +1,106 @@
+Server log lines for measure_turn_20261008-103320.txt (same run, port 8765).
+Started with VAANI_LLM__PROVIDER_ORDER=["groq"] VAANI_ASR__WHISPER__MODEL=large-v3
+VAANI_ASR__WHISPER__DEVICE=cuda VAANI_ASR__WHISPER__COMPUTE_TYPE=float16, everything else
+from config.toml. Filtered to model loads, timing lines, warnings and errors.
+Non-ASCII text is escaped by the server itself, as logged.
+
+INFO: vaani.vad: VAD model loaded in 39.7 ms
+INFO: vaani.asr: whisper large-v3 on cuda/float16 loaded and warmed up in 20.0 s (2 threads)
+INFO: vaani.tts: piper hi_IN-priyamvada-medium (22050 Hz) loaded and warmed up in 11.82 s
+INFO: vaani.tts: piper hi_IN-pratham-medium (22050 Hz) loaded and warmed up in 12.60 s
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2238 ms, decode 2236 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn fe3c2da0fd464458877826050cbd48dd first token: 430 ms 
+after request, turn_ended->first agent.text 2674 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 3236 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2041 ms, decode 2039 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 82dac299c4ee497d98a5db4e72fdd2f3 first token: 388 ms 
+after request, turn_ended->first agent.text 2429 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2974 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 1909 ms, decode 1908 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 25aff977ff71446ea94c9c7690f5df53 first token: 217 ms 
+after request, turn_ended->first agent.text 2127 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2684 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2052 ms, decode 2050 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn b911a57d51a3429da91ace682cd4d58a first token: 213 ms 
+after request, turn_ended->first agent.text 2266 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2846 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2083 ms, decode 2081 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn d40b25e2974b4d959a3537c8e8ea7a6c first token: 531 ms 
+after request, turn_ended->first agent.text 2615 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 3187 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2165 ms, decode 2164 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 907ede806d2c4af88cd765f4bd19ec88 first token: 317 ms 
+after request, turn_ended->first agent.text 2483 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 3047 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2003 ms, decode 2000 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 5dcfbddf5c144ef8acc558ce486524ac first token: 196 ms 
+after request, turn_ended->first agent.text 2200 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2742 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2188 ms, decode 2185 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 6b706187cf0240ffb1779b578ac1a088 first token: 334 ms 
+after request, turn_ended->first agent.text 2522 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 3057 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2102 ms, decode 2101 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 2daaf185b37b43af825e9c3471010a13 first token: 201 ms 
+after request, turn_ended->first agent.text 2303 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2851 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 1666 ms, decode 1665 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 3b1eb3c0d2c5432bbd7725855d289d1f first token: 512 ms 
+after request, turn_ended->first agent.text 2179 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2712 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 2226 ms, decode 2224 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn 216ed89e36bf44deac7cc4081adabf4b first token: 353 ms 
+after request, turn_ended->first agent.text 2579 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 3145 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: idle -> listening
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: listening -> thinking
+(turn_ended->final 1867 ms, decode 1865 ms): 'Hello, this is a short test of voice activity detection for the Vani 
+INFO: vaani.reply: session 59c68955d227452b82e682b8ea6145a4: turn c82b87b4e6db4b949ef485d670172cda first token: 253 ms 
+after request, turn_ended->first agent.text 2121 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: thinking -> speaking
+sent, turn_ended->first audio 2640 ms
+INFO: vaani.turns: session 59c68955d227452b82e682b8ea6145a4: speaking -> idle

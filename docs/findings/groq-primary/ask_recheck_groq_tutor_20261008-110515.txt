@@ -1,0 +1,34 @@
+ask.py --persona tutor, provider order groq only (env), prompt wording AFTER the fix, run at 20261008-110515
+commit 16904f2 + uncommitted changes (role rule reworded)
+re-check of the one cell that failed the self-name check in ask_after_groq_tutor_20261008-103752: 3 more samples, wording unchanged
+
+Q: apna introduction do, tum kaun ho?  (sample 1)
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 292 ms, total: 355 ms
+script: 54 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 1 masculine
+self-name: 1 self-description(s), not a role: none
+\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u091f\u094d\u092f\u0942\u091f\u0930 \u0939\u0942\u0901\u0964 \u092e\u0947\u0902 \u0906\u092a\u0915\u0940 \u092e\u0926\u0926 \u0915\u0930\u0942\u0901\u0917\u093e\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0902?
+
+exit 0
+
+Q: apna introduction do, tum kaun ho?  (sample 2)
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 227 ms, total: 302 ms
+script: 69 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 1 masculine
+self-name: 1 self-description(s), not a role: none
+\u0928\u093e\u092e \u0932\u0947\u0928\u0947 \u0915\u0940 \u091c\u093c\u0930\u0942\u0930\u0924 \u0928\u0939\u0940\u0902 \u0939\u0948, \u0915\u094d\u092f\u094b\u0902\u0915\u093f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u091f\u094d\u092f\u0942\u091f\u0930 \u0939\u0942\u0901\u0964 \u0906\u092a\u0915\u093e \u092e\u0948\u0902 \u0924\u0941\u092e\u094d\u0939\u0947\u0902 \u092e\u0926\u0926 \u0915\u0930\u0942\u0901\u0917\u093e\u0964
+
+exit 0
+
+Q: apna introduction do, tum kaun ho?  (sample 3)
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 333 ms, total: 358 ms
+script: 17 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+\u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u091f\u094d\u092f\u0942\u091f\u0930 \u0939\u0942\u0901\u0964
+
+exit 0
+

@@ -1,0 +1,14 @@
+capacity_groq run at 2026-10-08 10:31:50
+commit 16904f2 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+one steady-state turn: default persona, 6 exchanges of history
+model qwen/qwen3.8-27b
+HTTP 200
+  header x-ratelimit-limit-requests: 1000
+  header x-ratelimit-limit-tokens: 8000
+  header x-ratelimit-remaining-requests: 994
+  header x-ratelimit-remaining-tokens: 7301
+  header x-ratelimit-reset-requests: 8m38.4s
+  header x-ratelimit-reset-tokens: 5.242s
+reply: हाँ, लोनावाला एक अच्छा विकल्प है, लेकिन सड़क पर भीड़ होगी।
+usage: {"queue_time": 0.047169, "prompt_tokens": 507, "prompt_time": 0.03695621, "completion_tokens": 25, "completion_time": 0.047385634, "total_tokens": 532, "total_time": 0.084341844}

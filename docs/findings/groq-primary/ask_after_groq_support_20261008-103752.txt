@@ -1,0 +1,32 @@
+ask.py --persona support, provider order groq only (env), prompt wording AFTER the fix, run at 20261008-103752
+commit 16904f2 + uncommitted changes (role rule reworded)
+
+Q: tumhara naam kya hai?
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 256 ms, total: 264 ms
+script: 22 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+exit 0
+
+Q: apna introduction do, tum kaun ho?
+\u092e\u0948\u0902 \u0906\u092a\u0915\u0940 \u0938\u092a\u094b\u0930\u094d\u091f \u090f\u091c\u0947\u0902\u091f \u0939\u0942\u0901\u0964
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 243 ms, total: 276 ms
+script: 22 Devanagari, 0 Latin letters, other: none
+first person: 0 feminine, 0 masculine
+self-name: 1 self-description(s), not a role: none
+
+exit 0
+
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+\u0939\u093e\u0901, \u092e\u0948\u0902 \u0915\u0932 \u0938\u0941\u092c\u0939 7 \u092c\u091c\u0947 \u0906\u092a\u0915\u094b \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0942\u0901\u0917\u0940\u0964
+model: qwen/qwen3.8-27b (chain order: groq)
+time to first token: 211 ms, total: 258 ms
+script: 32 Devanagari, 0 Latin letters, other: none
+first person: 1 feminine, 0 masculine
+self-name: 0 self-description(s), not a role: none
+
+exit 0

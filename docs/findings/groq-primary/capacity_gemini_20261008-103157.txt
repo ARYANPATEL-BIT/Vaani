@@ -1,0 +1,8 @@
+capacity_gemini run at 2026-10-08 10:31:57
+commit 16904f2 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+one steady-state turn: default persona, 6 exchanges of history
+model gemini-3.5-flash-lite
+HTTP 200
+reply: वीकेंड पर लोनावला जाना बहुत अच्छा विचार है, वहाँ का मौसम सुहाना होगा।
+usage: {"promptTokenCount": 348, "candidatesTokenCount": 20, "totalTokenCount": 368, "promptTokensDetails": [{"modality": "TEXT", "tokenCount": 348}], "serviceTier": "standard"}
