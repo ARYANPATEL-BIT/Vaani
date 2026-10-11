@@ -93,10 +93,12 @@ The frontend decodes incoming bytes as `Int16Array`, scales to Float32
 gapless playback, **at the rate `audio.start` declared**. An `AudioBuffer`
 can be created at any rate; the browser resamples it to the output device.
 
-> **Frontend gap (2026-10-06)**: `usePlaybackQueue` plays every frame at the
-> fixed `AUDIO_SAMPLE_RATE = 16_000` (`frontend/src/config.js`) and does not
-> read `audio.start`. The agent's 22050 Hz audio would play about 27% slow and
-> low until it does.
+> **Frontend (gap closed 2026-10-06, PR #32)**: `ConversationPage.jsx` passes each
+> `audio.start`'s `sample_rate` to `usePlaybackQueue`'s
+> `setPlaybackSampleRate`, and every following frame is decoded at that rate
+> (fixed in `feat(frontend): add turn UI states and error handling`). Before
+> any `audio.start`, the queue falls back to `AUDIO_SAMPLE_RATE` (16000,
+> `frontend/src/config.js`).
 
 ### 2.3 Control Messages (Agreed)
 
@@ -311,3 +313,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-06 | Aryan   | Shared protocol v0.6: `audio.start.sample_rate` (§2.2 rate no longer fixed at 16000); `speaking` = first audio; `TTS_FAILED`; version table in §2; §2.3 brought in line with protocol.py (`flush.ack` shape, `audio.start`/`audio.end`/`audio.flush` with `turn_id`, `dev.flush`, all error codes); §2.5 stale day-11 notes replaced; §2.6 notes the backend does not send telemetry |
 | 2026-10-07 | Aryan   | Editorial, no version change (day 15, persona voices): §2.2 sample-rate note no longer names one voice; the rate is the session persona's voice |
 | 2026-10-08 | Aryan   | Shared protocol v0.8 (feat/english-voice), note-only: `agent.text` / `agent.done` can be Latin script (English replies, §2.5); `audio.start.sample_rate` can change between replies of one session (§2.2). No new message or field |
+| 2026-10-11 | Aryan   | Editorial, no version change (docs/drift): §2.2's stale "frontend gap" note replaced; the frontend has read `audio.start.sample_rate` since `feat(frontend): add turn UI states and error handling` |

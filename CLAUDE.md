@@ -2,11 +2,12 @@ Project
 
 Vaani — a real-time, interruptible voice agent with a studio that turns written context into a lip-synced video in the operator's cloned voice. Ten weeks, two contributors (Aryan, Samyak), mentor Narvin. Full specification is in docs/.
 
-Stack: FastAPI gateway with WebSockets, React frontend, PostgreSQL, Silero VAD, faster-whisper, Piper, hosted LLM providers behind an adapter, ElevenLabs and XTTS for cloning, HeyGen and fal for avatar video, ffmpeg for assembly.
+Stack today (built and merged on dev): FastAPI gateway with WebSockets, React frontend, Silero VAD, faster-whisper, Piper, hosted LLM providers behind an adapter (Groq primary, Gemini failover).
+Stack planned: SQLite database. Phase 2 (studio) is out of scope until phase 1 ships; its stack is not decided, so don't add phase 2 code, dependencies or directories.
 
 Non-negotiable constraints
 CPU by default. The committed config runs everything on CPU: ASR is cpu / int8 / small. GPU runs (e.g. cuda / float16 / large-v3) come only from local overrides in the gitignored backend/.env, never from committed config. VAD always stays on CPU.
-No vendor SDK is imported outside providers/, voice/synth/, or render/avatar/. Vendors are configuration values, never code dependencies.
+No vendor SDK is imported outside backend/vaani/providers/ (hosted LLMs), backend/vaani/asr/ (faster-whisper) or backend/vaani/tts/ (Piper). Today no vendor SDK is imported at all: Groq and Gemini are called over plain HTTP in providers/. Vendors are configuration values, never code dependencies.
 Latency is the primary quality bar. Any change to the conversation path carries a measured before/after. Target: P50 under 1,000 ms, mic-stop to first audible sample.
 Cancellation is first-class. Every provider call, tool call, and long-running operation takes a cancellation token and aborts the underlying HTTP stream cleanly.
 Nothing that makes a network call goes in the endpointing hot path.

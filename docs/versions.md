@@ -1,77 +1,59 @@
 # Pinned versions
 
 The learning documents cite this file for the exact version of every library
-and tool in use. These are the versions resolved into `backend/uv.lock` on
-2026-09-22. Regenerate this list after any `uv lock`.
+and tool in use. Generated 2026-10-11 from `backend/uv.lock` and
+`frontend/package-lock.json`: every version below is the one those lock files
+pin, nothing else. Regenerate this file after any `uv lock` or `npm install`
+that changes a lock file.
+
+Licences are not in the lock files. Backend licences come from each installed
+package's metadata (`License-Expression`, else `License`, else its licence
+classifier); frontend licences come from the `license` field that
+`package-lock.json` records for each package.
 
 ## Toolchain
 
-| Tool | Version | Notes |
+| Tool | Version | Where it is pinned |
 |---|---|---|
-| Python | 3.11 | Minimum `>=3.11`; local interpreter 3.11.9 |
-| uv | 0.11.28 | Package manager; pinned identically in CI |
-| Node.js | 18+ | Minimum `>=18`; local runtime v25.8.1 |
-| npm | 10+ | Package manager; local version 11.11.0 |
+| Python | 3.11 | `backend/.python-version`; `pyproject.toml` requires `>=3.11` |
+| uv | 0.11.28 | `.github/workflows/ci.yml` |
+| Node.js | `^20.19.0 \|\| ^22.13.0 \|\| >=24` | Not pinned. This is what the locked vite 8.3.0 (`^20.19.0 \|\| >=22.12.0`) and eslint 10.11.0 (`^20.19.0 \|\| ^22.13.0 \|\| >=24`) both accept |
+| npm | Not pinned | `package-lock.json` is lockfileVersion 3, which npm 7 and later read |
 
 ## Backend runtime dependencies (direct)
 
 | Package | Version | License | Why it is here |
 |---|---|---|---|
 | fastapi | 0.141.1 | MIT | Web framework: routing, validation, ASGI app |
-| uvicorn | 0.53.0 | BSD-3-Clause | ASGI server that runs the app |
+| uvicorn (`[standard]` extra) | 0.53.0 | BSD-3-Clause | ASGI server that runs the app; the extra adds WebSocket support |
 | pydantic-settings | 2.15.0 | MIT | Typed settings from TOML + environment |
-| onnxruntime | 1.30.0 | MIT | Runs the Silero VAD model on CPU (added 2026-09-27) |
-| numpy | 2.4.6 | BSD-3-Clause | Audio sample arrays for VAD (added 2026-09-27) |
-| faster-whisper | 1.2.1 | MIT | Speech recognition: Whisper on CTranslate2 (added 2026-10-02) |
+| httpx | 0.28.1 | BSD-3-Clause | Async HTTP client: the LLM providers' streaming calls, and FastAPI's TestClient |
+| onnxruntime | 1.30.0 | MIT | Runs the Silero VAD model on CPU |
+| numpy | 2.4.6 on Python 3.11 (2.5.3 on 3.12+) | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Audio sample arrays |
+| faster-whisper | 1.2.1 | MIT | Speech recognition: Whisper on CTranslate2 |
+| piper-tts | 1.8.0 | GPL-3.0-or-later | Speech synthesis: Piper voices on ONNX Runtime |
 
-## Backend optional `gpu` extra (`uv sync --extra gpu`, added 2026-10-02)
+## Backend optional `gpu` extra (`uv sync --extra gpu`)
 
 Only for `asr.whisper.device = "cuda"`. CI and CPU machines never install these.
 
 | Package | Version | License | Why it is here |
 |---|---|---|---|
-| nvidia-cublas-cu12 | 12.9.2.10 | NVIDIA proprietary (redistributable EULA) | GPU matrix maths for CTranslate2 |
-| nvidia-cudnn-cu12 | 9.27.0.42 | NVIDIA proprietary (redistributable EULA) | GPU neural-network kernels for CTranslate2 |
-| nvidia-cuda-nvrtc-cu12 | 12.9.86 | NVIDIA proprietary (redistributable EULA) | Runtime kernel compilation, needed by cuDNN |
+| nvidia-cublas-cu12 | 12.9.2.10 | LicenseRef-NVIDIA-Proprietary | GPU matrix maths for CTranslate2 |
+| nvidia-cudnn-cu12 | 9.27.0.42 | LicenseRef-NVIDIA-Proprietary | GPU neural-network kernels for CTranslate2 |
+| nvidia-cuda-nvrtc-cu12 | 12.9.86 | LicenseRef-NVIDIA-Proprietary | Runtime kernel compilation, needed by cuDNN |
 
-## Model files
-
-| Model | Version | License | Source / sha256 |
-|---|---|---|---|
-| Whisper small, CTranslate2 conversion (committed default) | HF `Systran/faster-whisper-small`, revision `536b0662742c02347bc0e980a01041f333bce120` | MIT | Downloaded on first use into the Hugging Face cache, not committed. The revision is what was downloaded, NOT pinned in config |
-| Whisper large-v3, CTranslate2 conversion (GPU override) | HF `Systran/faster-whisper-large-v3`, revision `edaa852ec7e145841d8ffdb056a99866b5f0a478` | MIT | As above |
-| Silero VAD (`backend/models/silero_vad.onnx`) | v6.2.3 | MIT | github.com/snakers4/silero-vad tag v6.2.3, `src/silero_vad/data/silero_vad.onnx`; sha256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3` |
-
-## Frontend runtime dependencies (direct)
-
-| Package | Version | License | Why it is here |
-|---|---|---|---|
-| react | 19.2.8 | MIT | Core UI library for declarative views |
-| react-dom | 19.2.8 | MIT | DOM renderer for React |
-| react-router-dom | 7.18.4 | MIT | Declarative client-side routing |
-
-## Backend dev/test dependencies (direct)
+## Backend dev/test dependencies (direct, `dev` group)
 
 | Package | Version | License | Why it is here |
 |---|---|---|---|
 | pytest | 9.1.1 | MIT | Test runner |
-| httpx | 0.28.1 | BSD-3-Clause | HTTP client; powers FastAPI's TestClient |
 | ruff | 0.16.8 | MIT | Linter and formatter |
-| sounddevice | 0.5.6 | MIT | Microphone capture in ad-hoc recording scripts (added 2026-10-02) |
-| soundfile | 0.14.0 | BSD-3-Clause | WAV read/write in ad-hoc scripts (added 2026-10-02) |
+| sounddevice | 0.5.6 | MIT | Microphone capture in ad-hoc recording scripts |
+| soundfile | 0.14.0 | BSD-3-Clause | WAV read/write in ad-hoc scripts |
+| websockets | 17.1 | BSD-3-Clause | WebSocket client in `scripts/fake_client.py` (uvicorn's `[standard]` extra also pulls it in) |
 
-## Frontend dev dependencies (direct)
-
-| Package | Version | License | Why it is here |
-|---|---|---|---|
-| vite | 8.3.0 | MIT | Frontend build tool and dev server |
-| @vitejs/plugin-react | 6.1.1 | MIT | React Fast Refresh and JSX support |
-| eslint | 10.10.0 | MIT | JavaScript linter |
-| globals | 17.12.0 | MIT | Global identifier definitions for ESLint |
-| eslint-plugin-react-hooks | 7.1.1 | MIT | Enforces Rules of Hooks |
-| eslint-plugin-react-refresh | 0.5.6 | MIT | Validates components for Fast Refresh |
-
-## Key transitive dependencies (pulled in automatically)
+## Key backend transitive dependencies (pulled in automatically)
 
 | Package | Version | Pulled in by |
 |---|---|---|
@@ -82,13 +64,45 @@ Only for `asr.whisper.device = "cuda"`. CI and CPU machines never install these.
 | python-dotenv | 1.2.3 | pydantic-settings |
 | protobuf | 7.36.2 | onnxruntime |
 | flatbuffers | 25.12.19 | onnxruntime |
-| ctranslate2 | 4.8.2 | faster-whisper (the inference engine; MIT) |
-| av | 18.1.0 | faster-whisper (audio file decoding; BSD-3, wheels bundle FFmpeg) |
+| ctranslate2 | 4.8.2 | faster-whisper (the inference engine) |
+| av | 18.1.0 on Python 3.11 (19.0.0 on 3.12+) | faster-whisper (audio file decoding; wheels bundle FFmpeg) |
 | tokenizers | 0.23.2 | faster-whisper (Whisper's text tokenizer) |
 | huggingface-hub | 1.33.0 | faster-whisper (model download) |
 
-Licenses above are the well-known licenses for these projects. Two need a
-note: the NVIDIA libraries are proprietary (free to redistribute under
-NVIDIA's EULA, not open source), and the `av` wheels bundle FFmpeg, which is
-LGPL; this has not been checked for our distribution case. Verify against each
-package's own metadata if a license question becomes important.
+## Frontend runtime dependencies (direct)
+
+| Package | Version | License | Why it is here |
+|---|---|---|---|
+| react | 19.3.0 | MIT | Core UI library for declarative views |
+| react-dom | 19.3.0 | MIT | DOM renderer for React |
+| react-router-dom | 7.18.4 | MIT | Client-side routing |
+| lucide-react | 1.52.0 | ISC | Icons |
+
+## Frontend dev dependencies (direct)
+
+| Package | Version | License | Why it is here |
+|---|---|---|---|
+| vite | 8.3.0 | MIT | Frontend build tool and dev server |
+| @vitejs/plugin-react | 6.1.1 | MIT | React Fast Refresh and JSX support |
+| eslint | 10.11.0 | MIT | JavaScript linter |
+| @eslint/js | 10.0.1 | MIT | ESLint's recommended rule set |
+| globals | 17.12.0 | MIT | Global identifier definitions for ESLint |
+| eslint-plugin-react-hooks | 7.1.1 | MIT | Enforces the Rules of Hooks |
+| eslint-plugin-react-refresh | 0.5.7 | MIT | Validates components for Fast Refresh |
+| @types/react | 19.3.0 | MIT | React type definitions, for the editor |
+| @types/react-dom | 19.3.0 | MIT | React DOM type definitions, for the editor |
+
+## Model files
+
+Not in either lock file. Pinned in `backend/config.toml` where a pin exists.
+
+| Model | Pinned by | License | Notes |
+|---|---|---|---|
+| Silero VAD (`backend/models/silero_vad.onnx`) | Committed file; sha256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3` in `[vad]` | MIT | github.com/snakers4/silero-vad tag v6.2.3 |
+| Piper voices: `hi_IN-priyamvada-medium`, `hi_IN-pratham-medium`, `en_US-kristin-medium`, `en_US-norman-medium` | `[tts.piper] voices_url` (piper-voices revision `c10ece1aade47bb51c153c893d14e5bf8e5b7117`) and a sha256 per voice in `[tts.piper.voices]` | Dataset licence per voice: see the comment above `[tts.piper.voices]` in `config.toml` | `.onnx` fetched by `scripts/fetch_models.py`; `.onnx.json` committed |
+| Whisper `small` (committed default), CTranslate2 conversion | **Not pinned.** `config.toml` names only `model = "small"`; faster-whisper downloads it from Hugging Face on first use | MIT | Whichever revision Hugging Face serves at download time |
+
+Two licences need a note: the NVIDIA libraries are proprietary (free to
+redistribute under NVIDIA's EULA, not open source), and the `av` wheels bundle
+FFmpeg, which is LGPL. piper-tts is GPL-3.0-or-later, a copyleft licence. None
+of these has been checked for our distribution case.

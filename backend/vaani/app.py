@@ -4,8 +4,9 @@ Builds the app with an "application factory" — `create_app()` returns a fresh
 FastAPI instance rather than creating one at import time. That keeps tests
 isolated (each test can build its own app) and keeps construction explicit.
 
-Exposes one route today: GET /health, a liveness check that reports status and
-version and DELIBERATELY exposes no configuration or secrets.
+Routes: GET /health here, a liveness check that reports status and version
+and DELIBERATELY exposes no configuration or secrets; and the /ws/session
+WebSocket, defined in gateway.py and added with include_router.
 """
 
 import logging

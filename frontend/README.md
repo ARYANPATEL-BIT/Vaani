@@ -5,7 +5,8 @@ and Hinglish. Built with Vite.
 
 ## Requirements
 
-- **Node.js 18+**
+- **Node.js 20.19+, 22.13+ or 24+**: what vite 8.3.0 and eslint 10.11.0,
+  pinned in `package-lock.json`, require
 - **npm** (ships with Node)
 
 ## Getting started
@@ -63,14 +64,15 @@ src/
 
 Routes are defined in `src/router.jsx` using react-router-dom v7.
 
-| Path | Page               | Status   |
-|------|--------------------|----------|
-| `/`  | ConversationPage   | Active   |
-| `*`  | NotFoundPage       | Active   |
+| Path           | Page             | What it is                                  |
+|----------------|------------------|---------------------------------------------|
+| `/`            | ConversationPage | The voice conversation                      |
+| `/loopback`    | LoopbackPage     | Loopback rig: speaker-to-mic delay          |
+| `/enrol`       | EnrolConsentPage | Enrolment: consent before recording         |
+| `/enrol/record`| EnrolRecordPage  | Enrolment: record the reference voice       |
+| `*`            | NotFoundPage     | 404 catch-all                               |
 
-Future routes (enrolment, profiles, settings) are commented in the
-router and will be added as lazy-loaded imports.
-Placeholder. The React frontend is owned by Samyak and lives here.
+Every route is a child of `AppLayout`.
 
-Nothing in this directory is built yet. See the repository root `README.md`
-for how to run the backend, and `docs/` for the project specification.
+Future routes (profiles, settings) are commented in the router and will
+be added as lazy-loaded imports.
