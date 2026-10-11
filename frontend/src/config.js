@@ -14,10 +14,6 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/** WebSocket URL for the real-time audio channel. */
-export const WS_URL =
-  import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/audio';
-
 /**
  * WebSocket URL for the session endpoint (backend/vaani/gateway.py).
  * This is the correct endpoint used from Day 2 onward per docs/contracts.md.

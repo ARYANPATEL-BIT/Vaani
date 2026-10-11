@@ -42,7 +42,7 @@ cp .env.example .env.local
 | Variable              | Default                          | Purpose                    |
 |-----------------------|----------------------------------|----------------------------|
 | `VITE_API_BASE_URL`   | `http://localhost:8000`          | Backend API base URL       |
-| `VITE_WS_URL`         | `ws://localhost:8000/ws/audio`   | WebSocket audio endpoint   |
+| `VITE_WS_SESSION_URL` | `ws://localhost:8000/ws/session` | WebSocket session endpoint |
 
 ## Project structure
 
