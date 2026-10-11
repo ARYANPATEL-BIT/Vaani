@@ -29,6 +29,7 @@ import {
   MIN_DURATION_S,
   MAX_DURATION_S,
 } from '../hooks/useReferenceRecorder.js';
+import { clientPreValidateRecording } from '../enrol/enrolValidationContracts.js';
 import './EnrolRecordPage.css';
 
 /* ── helpers ──────────────────────────────────────────────────────────── */
@@ -342,6 +343,30 @@ export default function EnrolRecordPage() {
             >
               <RefreshCw size={16} strokeWidth={2} />
               Record Again
+            </button>
+          )}
+
+          {isCompleted && (
+            <button
+              id="record-validate-btn"
+              type="button"
+              className="record-btn record-btn-validate"
+              onClick={() => {
+                const preCheck = clientPreValidateRecording({
+                  durationSeconds: elapsedSeconds,
+                  avgLevel: level,
+                  isConsentConfirmed: true,
+                });
+                if (!preCheck.valid) {
+                  navigate('/enrol/validation', { state: { error: preCheck.error } });
+                } else {
+                  navigate('/enrol/validation', { state: { reason: 'TOO_SHORT' } });
+                }
+              }}
+              aria-label="Check recording validation"
+            >
+              <CheckCircle2 size={16} strokeWidth={2} />
+              Check Validation Feedback
             </button>
           )}
         </div>

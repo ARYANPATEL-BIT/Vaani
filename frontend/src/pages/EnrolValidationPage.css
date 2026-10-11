@@ -1,0 +1,412 @@
+/**
+ * EnrolValidationPage.css — Styles for enrolment validation feedback screen.
+ * Follows the Vaani glassmorphism & warm-cream design tokens.
+ */
+
+.validation-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-6) var(--sp-4) var(--sp-8);
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* ── Back button ─────────────────────────────────────────────────────── */
+.validation-back-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--c-slate);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--sp-2) 0;
+  margin-bottom: var(--sp-4);
+  transition: color var(--t-fast);
+}
+
+.validation-back-btn:hover {
+  color: var(--c-indigo);
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.validation-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r-xl);
+  padding: var(--sp-8);
+  max-width: 620px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  animation: validation-slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes validation-slide-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.validation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.validation-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--c-navy);
+  margin: 0 0 var(--sp-1);
+}
+
+.validation-subtitle {
+  font-size: 0.875rem;
+  color: var(--c-slate);
+  margin: 0;
+}
+
+.validation-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--c-red);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  flex-shrink: 0;
+}
+
+.validation-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-red);
+}
+
+/* ── Rejection Box ───────────────────────────────────────────────────── */
+.rejection-box {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px solid;
+  transition: all var(--t-med);
+}
+
+.rejection-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rejection-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.rejection-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.rejection-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.rejection-spec-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--c-slate);
+  letter-spacing: 0.02em;
+}
+
+.rejection-message {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rejection-server-detail {
+  font-size: 0.8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.04);
+  margin-top: var(--sp-1);
+}
+
+.rejection-meta-tags {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.meta-tag {
+  font-size: 0.72rem;
+  color: var(--c-slate);
+}
+
+.meta-tag code {
+  font-family: monospace;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Category variants */
+.category-duration {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #B45309;
+}
+.category-duration .rejection-icon-wrap {
+  background: rgba(245, 158, 11, 0.18);
+  color: #D97706;
+}
+
+.category-audio_quality {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #DC2626;
+}
+.category-audio_quality .rejection-icon-wrap {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--c-red);
+}
+
+.category-speech {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #4F46E5;
+}
+.category-speech .rejection-icon-wrap {
+  background: rgba(99, 102, 241, 0.18);
+  color: #6366F1;
+}
+
+.category-compliance {
+  background: rgba(225, 29, 72, 0.08);
+  border-color: rgba(225, 29, 72, 0.3);
+  color: #BE123C;
+}
+.category-compliance .rejection-icon-wrap {
+  background: rgba(225, 29, 72, 0.18);
+  color: #E11D48;
+}
+
+.category-format, .category-general {
+  background: rgba(100, 116, 139, 0.08);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: var(--c-slate);
+}
+.category-format .rejection-icon-wrap, .category-general .rejection-icon-wrap {
+  background: rgba(100, 116, 139, 0.18);
+  color: var(--c-slate);
+}
+
+/* ── Remedy Section ──────────────────────────────────────────────────── */
+.remedy-section {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.remedy-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--c-navy);
+  margin: 0;
+}
+
+.remedy-heading-icon {
+  color: #16A34A;
+}
+
+.remedy-text {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--c-navy);
+  margin: 0;
+}
+
+.remedy-guidelines {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 580px) {
+  .remedy-guidelines {
+    grid-template-columns: 1fr;
+  }
+}
+
+.guideline-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.guideline-icon {
+  color: var(--c-indigo);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.guideline-card strong {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--c-navy);
+}
+
+.guideline-card span {
+  font-size: 0.72rem;
+  color: var(--c-slate);
+  line-height: 1.35;
+  display: block;
+  margin-top: 2px;
+}
+
+/* ── Validation Actions ──────────────────────────────────────────────── */
+.validation-actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 480px) {
+  .validation-actions {
+    flex-direction: column;
+  }
+}
+
+.validation-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 12px var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  border: none;
+}
+
+.validation-btn-primary {
+  background: var(--c-indigo);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.validation-btn-primary:hover {
+  background: var(--c-indigo-d);
+  transform: translateY(-1px);
+}
+
+.validation-btn-secondary {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--c-slate);
+}
+
+.validation-btn-secondary:hover {
+  background: rgba(100, 116, 139, 0.2);
+  color: var(--c-navy);
+}
+
+/* ── Reason Switcher (Inspector) ─────────────────────────────────────── */
+.reason-switcher-container {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.reason-switcher-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--c-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reason-switcher-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reason-chip {
+  font-size: 0.72rem;
+  font-family: monospace;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--c-slate);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.reason-chip:hover {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--c-indigo);
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+.reason-chip.active {
+  background: var(--c-indigo);
+  color: #FFFFFF;
+  border-color: var(--c-indigo);
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
+}

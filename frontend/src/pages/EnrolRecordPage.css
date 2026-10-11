@@ -426,6 +426,17 @@
   background: rgba(100,116,139,0.08);
 }
 
+.record-btn-validate {
+  background: linear-gradient(135deg, var(--c-indigo), var(--c-violet));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3);
+}
+
+.record-btn-validate:hover:not(:disabled) {
+  box-shadow: 0 6px 24px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1px);
+}
+
 /* ── Bottom note ─────────────────────────────────────────────────────── */
 .record-bottom-note {
   font-size: 0.78rem;

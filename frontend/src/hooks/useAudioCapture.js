@@ -35,11 +35,12 @@ export function useAudioCapture() {
   const isSessionReadyRef = useRef(false);
   const isIntentionalStopRef = useRef(false);
 
-  // Metrics tracking
+  // Metrics & barge-in tracking
   const frameCountRef = useRef(0);
   const lastFpsTimeRef = useRef(0);
   const framesSinceLastFpsRef = useRef(0);
   const fpsIntervalRef = useRef(null);
+  const isAudioFlushedRef = useRef(false);
 
   /**
    * Stop active capture pipeline and release all resources cleanly.
@@ -96,6 +97,7 @@ export function useAudioCapture() {
     }
 
     isSessionReadyRef.current = false;
+    isAudioFlushedRef.current = false;
     setIsCapturing(false);
 
     if (!options.preserveMicDenied) {
@@ -131,6 +133,7 @@ export function useAudioCapture() {
     }
 
     isIntentionalStopRef.current = false;
+    isAudioFlushedRef.current = false;
     setErrorMessage(null);
     setFramesSent(0);
     setFps(0);
@@ -223,6 +226,10 @@ export function useAudioCapture() {
 
       socket.onmessage = (event) => {
         if (event.data instanceof ArrayBuffer) {
+          // If the active turn's audio was flushed, discard stale in-flight frames
+          if (isAudioFlushedRef.current) {
+            return;
+          }
           if (typeof onBinaryMessage === 'function') {
             onBinaryMessage(event.data);
           }
@@ -235,7 +242,12 @@ export function useAudioCapture() {
             isSessionReadyRef.current = true;
             setSessionId(msg.session_id ?? null);
             setWsStatus('ready');
+          } else if (msg.type === 'audio.start') {
+            // New turn audio started: unmark flushed state
+            isAudioFlushedRef.current = false;
           } else if (msg.type === 'audio.flush') {
+            // Mark flushed to drop trailing frames belonging to this turn
+            isAudioFlushedRef.current = true;
             const flushTurnId = msg.turn_id;
             if (typeof onFlushCommand === 'function') {
               onFlushCommand();
@@ -245,7 +257,7 @@ export function useAudioCapture() {
                 socketRef.current.send(
                   JSON.stringify({
                     type: 'flush.ack',
-                    turn_id: flushTurnId,
+                    turn_id: typeof flushTurnId === 'string' ? flushTurnId : (flushTurnId ?? ''),
                     client_ts: performance.now(),
                   })
                 );
