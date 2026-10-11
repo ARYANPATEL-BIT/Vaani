@@ -1,7 +1,7 @@
 # Vaani: the whole system, as it is on `dev`
 
 This file describes the code on `dev` as it is today (after
-`fix/groq-primary-complete`). It is built from the code, not from older learning
+`fix/ws-url`, PR #42). It is built from the code, not from older learning
 documents. If this file and the code disagree, the code is right and this file
 needs fixing. Every PR that changes the flow, the stack or the database updates
 this file in the same PR.
@@ -28,6 +28,7 @@ this file in the same PR.
 | Voices | Piper voices from a pinned `piper-voices` revision; per persona, one Hindi and one English (`[tts.piper.voices]` in `config.toml`, `language.py`) | The reply's first chunk picks the voice by script: any Devanagari is Hindi, none is English; the voice is then kept for the whole reply | The script is what the voice has to read; checking it costs nothing | One multilingual voice (XTTS): a larger model meant for cloning, never measured on the reply path |
 | Frontend audio capture | Web Audio `AudioWorklet` (`frontend/public/audio-processor.js`, `src/hooks/useAudioCapture.js`) | Takes the mic at 16 kHz, builds 20 ms frames of 16-bit PCM, sends them as binary WebSocket messages | Runs on the audio thread, so UI work cannot drop audio | `ScriptProcessorNode`: runs on the main UI thread, drops frames under load, and is deprecated |
 | Frontend playback | Web Audio scheduling on the `AudioContext` clock (`src/hooks/usePlaybackQueue.js`) | Plays each received frame right after the previous one, at the rate `audio.start` declared | The audio clock is steady whatever JavaScript is doing, so there are no gaps | `setTimeout` timers: fire late when the page is busy, which makes audible gaps |
+| Frontend enrolment (PR #41) | `MediaRecorder` and an `AnalyserNode` level meter (`src/pages/EnrolConsentPage.jsx`, `EnrolRecordPage.jsx`, `src/hooks/useReferenceRecorder.js`) | At `/enrol` the user consents; at `/enrol/record` they record a reference voice of 30 to 60 s. The clip stays in browser memory: nothing uploads it and no backend endpoint exists for it yet | `MediaRecorder` encodes the clip into a file (Opus/WebM, or what the browser supports) with no code of ours | Reuse the conversation's `AudioWorklet` capture: it gives raw 16 kHz PCM, which we would have to package into a file ourselves, for a cloning step whose input format is not decided |
 | Testing | pytest with fakes for ASR, TTS and HTTP (`backend/tests/`); real Whisper only under `pytest -m slow`; frontend: plain Node test scripts (`npm test`) | Checks every stage without models, keys or network | The default run is fast and needs nothing downloaded | Real models in every test: a few hundred MB of download and seconds of CPU per test |
 | CI | GitHub Actions: ruff and pytest on every PR into `dev` or `main` (`.github/workflows/ci.yml`), slow ASR tests in `asr-slow.yml` | Installs the exact locked versions (`uv sync --frozen`), fetches the default persona's voices, lints, tests | Every PR is checked the same way on a clean machine | Slow ASR tests in every PR: they run only when ASR code, config or dependencies change, because of the model download and CPU time |
 
@@ -106,4 +107,8 @@ table lists every query the code sends:
 - Groq's free tier is shared by everyone using the key; past its limit it answers HTTP 429 and the chain fails over to Gemini. For `openai/gpt-oss-20b` the limits are 1000 requests a day and 8000 tokens a minute; how many turns a minute that allows was not measured (`backend-learning/15c-groq-primary.md`).
 - The browser plays any frame that arrives after `audio.flush`; it does not track flushed `turn_id`s as `contracts.md` asks. Today the server sends nothing after the flush, so this has not shown up.
 - The backend sends no `telemetry` message, so the frontend's latency panel has nothing to show.
-- Seen in the live demo (2026-10-08/09), not measured in a run file: long sentences hit the 5 s ASR timeout (15 s was used, as a local `.env` override only); noise or echo caused false barge-ins that produced short made-up Hindi transcripts; after `ASR_FAILED` the orb stayed on "thinking", and it said "tap connect" while already connected.
+- Seen in the live demo (2026-10-08/09), not measured in a run file: long sentences hit the 5 s ASR timeout (15 s was used, as a local `.env` override only); noise or echo caused false barge-ins that produced short made-up Hindi transcripts.
+- After `ASR_FAILED` the pill and the orb stayed on "thinking" (live demo 2026-10-08/09; not reproduced since).
+- The orb says "Tap connect to start talking" while connected: it is the subtitle of the connected `idle` state (`frontend/src/components/VoiceOrb/VoiceOrb.jsx`).
+- `TTS_FAILED` wipes the reply text already shown: on any `error`, `ConversationPage.jsx` calls `clearActivePartial` (`useTranscript.js`), which drops the streamed reply, and no `agent.done` follows a `TTS_FAILED` to keep it.
+- The "hmm after a barge-in" discard works only under a test override (`min_utterance_ms=300` in `test_barge_in.py`); at the default (40) a barge-in's turn always has enough voiced frames, so the "hmm" is answered (`backend-learning/14-tuning.md`).

@@ -18,7 +18,9 @@ piece of the project, from scratch, live in `docs/learning/`.
   backend. Install it once:
   - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
   - Windows (PowerShell): `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-- **Node.js 18+** and **npm** — runtime and package manager for the frontend.
+- **Node.js 20.19+, 22.13+ or 24+** and **npm** — runtime and package manager
+  for the frontend. These are the Node versions that vite 8.3.0 and eslint
+  10.11.0, pinned in `frontend/package-lock.json`, require.
 
 ## Running the backend
 
@@ -33,13 +35,33 @@ uv sync
 # instead, and ALWAYS pass --extra gpu (a plain `uv sync` removes the GPU libs):
 #   uv sync --extra gpu
 
-# (Optional) provide secrets. Copy the template and fill in values as needed.
-# .env is gitignored and never committed. No secret is required to run today.
+# Download the Piper voices named in config.toml (four voices, about 63 MB
+# each) and check their sha256. Required before the first start: the server
+# refuses to start if a voice file is missing. A file already present with
+# the right hash is skipped.
+uv run python scripts/fetch_models.py
+
+# API keys. Copy the template and set both keys in .env (gitignored, never
+# committed):
+#   VAANI_GROQ_API_KEY    Groq, the primary provider
+#   VAANI_GEMINI_API_KEY  Gemini, the failover
+# Both are required: config.toml lists provider_order = ["groq", "gemini"],
+# and the server refuses to start if a listed provider has no key.
+# VAANI_SECRET_KEY is read but nothing uses it; leave it blank.
 cp .env.example .env
 
-# Start the API server.
+# Start the API server. The first start also downloads the Whisper model
+# named in config.toml ([asr.whisper] model = "small") from Hugging Face.
 uv run uvicorn vaani.app:app --reload
 ```
+
+At startup, `create_app` in `backend/vaani/app.py` loads, in this order: the
+Silero VAD model (committed, sha256 checked), Whisper, the language model
+provider chain (fails if a provider in `provider_order` has no API key), and
+every persona's Piper voices (fails if a file is missing or its sha256 is
+wrong). Any failure stops the server; nothing falls back. To run with only one
+provider, remove the other from `[llm] provider_order` in `config.toml`; the
+startup error says the same.
 
 The server listens on <http://127.0.0.1:8000> by default. Check it is alive:
 

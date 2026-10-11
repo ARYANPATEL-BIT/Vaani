@@ -3,13 +3,10 @@
  *
  * Uses react-router-dom's createBrowserRouter for data-loading support
  * and future-proof navigation. Routes are defined declaratively so the
- * full route table is visible in one place.
+ * full route table is visible in one place. The table below is the full
+ * list of routes; it is not repeated in this comment.
  *
- * Today only two routes exist:
- *   /      → ConversationPage (the main voice interface)
- *   *      → NotFoundPage     (catch-all 404)
- *
- * Future routes (enrolment, profiles, settings) will be added here
+ * Future routes (profiles, settings) will be added here
  * as lazy-loaded imports when their pages are built.
  */
 

@@ -2,15 +2,16 @@
 
 A "span" here is the simplest possible unit of measurement: a *named point in
 time*, stamped with a high-resolution monotonic clock and tagged with the
-session (and, once we have turns, the turn) it belongs to. It is not a
+session and, when there is one, the turn it belongs to. It is not a
 duration on its own — a duration is the gap between two spans, e.g.
 frame_received -> echo_sent.
 
-Today seven spans are actually emitted (frame_received, echo_sent,
-vad_decision, turn_ended, asr_start, asr_partial, asr_final), but the
-names for the whole pipeline are defined now so that every later stage records
-against a fixed, agreed vocabulary instead of inventing strings ad hoc. See the
-learning doc for why the names are declared before the code that uses them.
+Every name below is recorded somewhere except playback_start: the browser,
+not the server, knows when audio starts playing. Some fire only when config
+turns their feature on: frame_received and echo_sent need
+[gateway].echo_enabled, asr_partial needs [asr].partial_interval_ms above 0.
+The names live in one place so every stage records against a fixed, agreed
+vocabulary instead of inventing strings ad hoc.
 
 A monotonic clock only ever moves forward and is unaffected by the wall clock
 being changed (NTP steps, daylight saving, a manual clock set). That makes it
@@ -32,8 +33,7 @@ from time import perf_counter
 
 # --- Span names -------------------------------------------------------------
 # Constants, not free strings, so every producer and reader spells them the
-# same way. Most are unused today; they are the fixed vocabulary the later
-# stages (VAD, ASR, LLM, TTS, playback) will record against.
+# same way. Which ones are recorded: see the module docstring.
 FRAME_RECEIVED = "frame_received"
 ECHO_SENT = "echo_sent"
 VAD_DECISION = "vad_decision"
