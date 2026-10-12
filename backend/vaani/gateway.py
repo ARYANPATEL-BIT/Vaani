@@ -25,6 +25,9 @@ dev.flush message, its stand-in since day 4, is gone (protocol v0.7).
 
 Push-to-talk (v0.9): session.start's mode is kept on the Session, and
 ptt.start / ptt.end go to the pipeline, in a ptt session only.
+
+Database (feat/database): how the session ended (end_reason) is decided here
+and handed to the pipeline's close, which records it (turn_log.py).
 """
 
 import asyncio
@@ -129,6 +132,8 @@ async def session_endpoint(websocket: WebSocket) -> None:
     telemetry: Telemetry | None = None
     pipeline: TurnPipeline | None = None
     log_task: asyncio.Task | None = None
+    # The session row's end_reason: changed below for session.end or a crash.
+    end_reason = "disconnect"
 
     try:
         while True:
@@ -233,6 +238,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     getattr(websocket.app.state, "recognizer", None),
                     getattr(websocket.app.state, "llm", None),
                     voices,
+                    getattr(websocket.app.state, "db", None),
                 )
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)
@@ -275,6 +281,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 continue
 
             if mtype == "session.end":
+                end_reason = "client_end"
                 # Close the open echo turn cleanly before we close the socket.
                 # (On a hard disconnect we cannot send this — the browser must
                 # treat a closed socket as an implicit audio.end.)
@@ -290,6 +297,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         # Client vanished mid-read; nothing to send, just fall through to cleanup.
         pass
+    except Exception:
+        end_reason = "error"
+        raise  # still a crash: recorded, never swallowed
     finally:
         # Stop the logger however we got here (clean end, disconnect, or error).
         if log_task is not None:
@@ -299,7 +309,7 @@ async def session_endpoint(websocket: WebSocket) -> None:
         # Abandon recognition in flight: a result for a closed socket must
         # never be sent, and must not keep a task alive.
         if pipeline is not None:
-            await pipeline.close()
+            await pipeline.close(end_reason)
         if session is not None:
             log.info(
                 "session %s closed: %d frames total, %d late frames dropped",

@@ -272,6 +272,17 @@ class GuardrailSettings(BaseModel):
         return patterns
 
 
+class DbSettings(BaseModel):
+    """The session and turn database, under [db] in config.toml."""
+
+    # When false no database is opened and nothing is recorded.
+    enabled: bool = True
+    # SQLite file; relative paths are resolved against backend/.
+    path: str = "data/vaani.db"
+    # At shutdown, how long to wait for queued rows to be written.
+    close_timeout_s: float = 2.0
+
+
 class Settings(BaseSettings):
     """The one typed settings object for the whole backend.
 
@@ -306,6 +317,7 @@ class Settings(BaseSettings):
     tts: TtsSettings
     chunker: ChunkerSettings
     guardrail: GuardrailSettings
+    db: DbSettings = DbSettings()
     # Persona key -> system prompt. session.start's "persona" must be a key.
     personas: dict[str, str]
 

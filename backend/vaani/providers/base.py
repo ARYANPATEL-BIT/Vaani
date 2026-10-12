@@ -30,10 +30,13 @@ class TextChunk:
 
     `model` is the model the provider says actually produced it (it can differ
     from the one we asked for), or None if the provider did not say.
+    `provider` is the provider's name in [llm].provider_order, set by the
+    ProviderChain (a provider used on its own leaves it None).
     """
 
     text: str
     model: str | None = None
+    provider: str | None = None
 
 
 # --- Errors -----------------------------------------------------------------

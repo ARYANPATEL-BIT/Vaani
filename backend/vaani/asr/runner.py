@@ -36,7 +36,7 @@ from vaani.asr.base import AsrError, Recognizer, Transcript
 from vaani.config import AsrSettings
 from vaani.endpoint import Endpointer, ms_to_frames
 from vaani.protocol import ErrorCode, error, transcript_final, transcript_partial
-from vaani.telemetry import ASR_FINAL, ASR_PARTIAL, ASR_START, Telemetry
+from vaani.telemetry import ASR_FAILED, ASR_FINAL, ASR_PARTIAL, ASR_START, Telemetry
 
 log = logging.getLogger("vaani.asr")
 
@@ -257,6 +257,7 @@ class AsrRunner:
         # Nobody is waiting for an abandoned turn's transcript, so its failure
         # is not news to the browser.
         if job.final and not job.abandoned and not self._closed:
+            self._telemetry.record(ASR_FAILED, job.turn_id)  # for the turn's row
             await self._send(
                 error(ErrorCode.ASR_FAILED, f"transcription failed: {reason}")
             )

@@ -8,6 +8,10 @@ browser about every change with turn.state.
 
 turns.py moves the state as turns open, end and are barged in on; reply.py
 and speaker.py move it as the agent answers. All go through `move_to`.
+
+feat/database: because every move goes through `move_to`, so does every
+turn's end (a move to idle or cancelling). `on_change`, when set, hears
+every move; TurnPipeline sets it to the turn log (turn_log.py).
 """
 
 import logging
@@ -19,6 +23,8 @@ from vaani.session import Session
 log = logging.getLogger("vaani.turns")
 
 SendJson = Callable[[dict], Awaitable[None]]
+# (old state, new state). Synchronous: runs inside move_to, before its send.
+OnChange = Callable[[TurnState, TurnState], None]
 
 # Every legal move, and nothing else. An unlisted move is a bug in the
 # caller, so it raises instead of quietly happening.
@@ -55,6 +61,9 @@ class TurnStateMachine:
         self._session = session
         self._send_json = send_json
         self.state = TurnState.IDLE
+        # Set after construction by TurnPipeline, once the turn log exists
+        # (it needs the Responder, which needs this machine's move_to).
+        self.on_change: OnChange | None = None
 
     async def move_to(self, new: TurnState) -> None:
         """The ONLY way the state changes: check, record, tell the browser.
@@ -66,4 +75,7 @@ class TurnStateMachine:
         old, self.state = self.state, new
         turn_id = None if new is TurnState.IDLE else self._session.current_turn_id
         log.info("session %s: %s -> %s", self._session.session_id, old, new)
+        if self.on_change is not None:
+            # No await before it: it sees the turn exactly as it ended.
+            self.on_change(old, new)
         await self._send_json(turn_state(turn_id, new))

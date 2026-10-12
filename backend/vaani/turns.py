@@ -39,6 +39,7 @@ from vaani.asr import Recognizer
 from vaani.asr.runner import AsrRunner
 from vaani.barge_in import BargeIn, join_speech, stop_reply
 from vaani.config import Settings
+from vaani.db import DbWriter
 from vaani.echo import Echo
 from vaani.endpoint import Endpointer, TurnEnded
 from vaani.protocol import TurnState
@@ -46,8 +47,9 @@ from vaani.providers.base import LLMProvider
 from vaani.ptt import PttBuffer
 from vaani.reply import Responder
 from vaani.session import Session
-from vaani.telemetry import TURN_ENDED, Telemetry
+from vaani.telemetry import SPEECH_END, TURN_ENDED, Telemetry
 from vaani.tts import Synthesizer
+from vaani.turn_log import TurnLog
 from vaani.turn_state import TurnStateMachine
 from vaani.vad import SpeechEvent, VadStream
 
@@ -71,6 +73,7 @@ class TurnPipeline:
         recognizer: Recognizer | None,
         chain: LLMProvider | None,
         voices: dict[str, Synthesizer] | None,  # language -> voice; None: no TTS
+        db: DbWriter | None = None,  # None: [db] disabled, nothing recorded
     ) -> None:
         self._session = session
         self._telemetry = telemetry
@@ -142,6 +145,11 @@ class TurnPipeline:
             else None
         )
         self._barge = BargeIn(settings.barge_in, settings.vad, self._frame_ms)
+        # Rows only for sessions that can reply: a turn is a question + answer.
+        self._log = None
+        if db is not None and self._responder is not None:
+            self._log = TurnLog(db, session, telemetry, self._responder)
+            self._machine.on_change = self._log.state_changed
         # perf_counter of the last turn_ended, for the first-token log line.
         self._ended_at = 0.0
         # Turns whose final transcript has been asked for and not yet come.
@@ -218,8 +226,9 @@ class TurnPipeline:
         """Clean session.end: close the open echo turn before the socket."""
         await self._echo.end()
 
-    async def close(self) -> None:
-        """Session over, cleanly or not. Sends nothing: the socket may be gone."""
+    async def close(self, reason: str = "disconnect") -> None:
+        """Session over, cleanly or not. Sends nothing: the socket may be gone.
+        `reason` is the session row's end_reason (client_end, disconnect, error)."""
         if self._responder is not None:
             self._responder.cancel()
             try:
@@ -233,6 +242,8 @@ class TurnPipeline:
             self._endpointer.close()
         if self._ptt is not None:
             self._ptt.close()
+        if self._log is not None:
+            self._log.session_closed(reason, self._machine.state)
 
     # --- Routing -------------------------------------------------------------
 
@@ -310,6 +321,7 @@ class TurnPipeline:
         turn_id = self._session.current_turn_id
         assert turn_id is not None  # a turn ends only after one opened
         self._telemetry.record(TURN_ENDED, turn_id)
+        self._telemetry.record(SPEECH_END, turn_id, at=turn.speech_ended_at or turn.at)
         self._ended_at = turn.at
         waited = (
             "forced"

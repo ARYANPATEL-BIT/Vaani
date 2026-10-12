@@ -7,15 +7,20 @@ isolated (each test can build its own app) and keeps construction explicit.
 Routes: GET /health here, a liveness check that reports status and version
 and DELIBERATELY exposes no configuration or secrets; and the /ws/session
 WebSocket, defined in gateway.py and added with include_router.
+
+The session and turn database (db.py) is opened here, at startup, and its
+writer thread is stopped on shutdown (the lifespan below).
 """
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from vaani import __version__
 from vaani.asr import Recognizer, build_recognizer
 from vaani.config import Settings, get_settings
+from vaani.db import DbWriter, open_db
 from vaani.gateway import router as gateway_router
 from vaani.language import LANGUAGES
 from vaani.providers.base import LLMProvider
@@ -64,7 +69,23 @@ def create_app(
     """
     settings = settings or get_settings()
     _configure_logging()
-    app = FastAPI(title=settings.app_name, version=__version__)
+    # The database first: a file that cannot be opened raises DbOpenError and
+    # the server refuses to start, its message naming [db].enabled = false.
+    db = None
+    if settings.db.enabled:
+        db = DbWriter(open_db(settings.db.path), settings.db.close_timeout_s)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        """Runs around the server's life: nothing at start, at shutdown the
+        database writer finishes its queue (for at most close_timeout_s)."""
+        yield
+        if db is not None:
+            db.close()
+
+    app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
+    # The writer, shared by every session (None: [db] disabled).
+    app.state.db = db
     # Stash settings so the WebSocket endpoint can read them off the app.
     app.state.settings = settings
     # Load the VAD model now, at startup, never per session or per frame.

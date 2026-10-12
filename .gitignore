@@ -29,6 +29,9 @@ Thumbs.db
 desktop.ini
 
 .claude/settings.local.json
+# --- The session and turn database (vaani/db.py): user transcripts, never commit ---
+backend/data/
+
 # --- Downloaded model weights (fetched by backend/scripts/fetch_models.py) ---
 # The small Silero VAD model is committed; voices are 60+ MB and are not.
 backend/models/*.onnx

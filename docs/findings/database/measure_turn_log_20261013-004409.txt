@@ -1,0 +1,9 @@
+measure_turn_log run at 2026-10-13 00:44:09
+commit 1eff99d + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+2000 turns x 3 runs; state_changed (row built + queued) on the loop
+  run 1: p50 2.2 us, p95 3.4 us
+  run 2: p50 2.2 us, p95 3.3 us
+  run 3: p50 2.3 us, p95 3.5 us
+writer thread: 6003 rows committed, 0.772 ms per row on average
+wrote measure_turn_log_20261013-004409.txt

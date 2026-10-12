@@ -26,6 +26,9 @@ state is then the canceller's to move, never `_answer`'s.
 Failure is never silence: any provider error sends LLM_FAILED and then idle;
 a synthesis error stops the reply and sends TTS_FAILED. agent.text already
 sent stays on screen, so the text can show more than was spoken.
+
+Each reply fills in a ReplyRecord (turn_log.py) as it goes: deltas,
+provider, error, what was heard. The turn's database row is built from it.
 """
 
 import asyncio
@@ -42,8 +45,9 @@ from vaani.providers.base import LLMProvider, ProviderError
 from vaani.session import Session
 from vaani.speaker import Speaker
 from vaani.spend import SpendCapExceededError
-from vaani.telemetry import LLM_FIRST_TOKEN, Telemetry
+from vaani.telemetry import LLM_FIRST_TOKEN, LLM_REQUEST, Telemetry
 from vaani.tts import Synthesizer, TtsError
+from vaani.turn_log import ReplyRecord
 
 log = logging.getLogger("vaani.reply")
 
@@ -99,11 +103,14 @@ class Responder:
         self.turn_id: str | None = None
         self.transcript = ""
         self.speaker: Speaker | None = None
+        # The latest reply's record, for the turn's database row.
+        self.record: ReplyRecord | None = None
 
     def start(self, turn_id: str, transcript: str, ended_at: float) -> None:
         """Begin replying in the background. Returns at once."""
         self._cancel = asyncio.Event()
         self.turn_id, self.transcript, self.speaker = turn_id, transcript, None
+        self.record = ReplyRecord(turn_id, transcript)
         if self._voices is not None:
             self.speaker = Speaker(
                 self._voices,
@@ -116,8 +123,10 @@ class Responder:
                 self._send_bytes,
                 self._move_to,
             )
+        # The record is passed in, like the token and the speaker, so a cut
+        # reply still winding down can never write into the next one's.
         task = asyncio.create_task(
-            self._answer(turn_id, transcript, self._cancel, ended_at, self.speaker)
+            self._answer(self.record, self._cancel, ended_at, self.speaker)
         )
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
@@ -132,8 +141,11 @@ class Responder:
             self._cancel.set()
 
     def remember(self, transcript: str, said: str) -> None:
-        """Record one exchange in history: `said` is what the user heard."""
+        """Record one exchange in history: `said` is what the user heard.
+        Called for the latest reply only (played in full, or cut)."""
         self._session.remember(transcript, said, self._history_turns)
+        if self.record is not None:
+            self.record.heard = said
 
     async def wait(self) -> None:
         """Wait for every reply task to end (after cancel: streams closed)."""
@@ -141,21 +153,21 @@ class Responder:
 
     async def _answer(
         self,
-        turn_id: str,
-        transcript: str,
+        record: ReplyRecord,  # this reply's turn, transcript, and what it did
         cancel: asyncio.Event,
         ended_at: float,
         speaker: Speaker | None,  # None: [tts] disabled, the reply is text only
     ) -> None:
         """Reply to one transcript. `ended_at` is the turn_ended perf_counter."""
         sid = self._session.session_id
+        turn_id, transcript = record.turn_id, record.transcript
         if cancel.is_set():
             return  # cancelled before this task even started running
         # 1. Guardrail, while the transcript is still a separate string.
         if looks_like_injection(transcript, self._patterns):
             log.warning("session %s: turn %s blocked by guardrail", sid, turn_id)
             await self._error_then_idle(
-                ErrorCode.INPUT_REJECTED, REJECTED_MESSAGE, cancel
+                ErrorCode.INPUT_REJECTED, REJECTED_MESSAGE, cancel, record
             )
             return
 
@@ -164,9 +176,9 @@ class Responder:
 
         # 3. Stream. aclosing: if we leave the loop early, the chain's stream
         # (and its HTTP connection) is closed at once, not at garbage collection.
-        parts: list[str] = []
+        parts = record.parts  # every delta, kept on the record for the row
         chunker = ClauseChunker(self._chunker_cfg)
-        requested_at = perf_counter()
+        requested_at = self._telemetry.record(LLM_REQUEST, turn_id).at
         # Each delta until the first chunk is cut: (ms after turn_ended, text).
         # Tells "waiting for tokens" from "waiting on synthesis" in debug logs.
         arrivals: list[tuple[float, str]] = []
@@ -178,6 +190,7 @@ class Responder:
                         return
                     if not parts:
                         self._first_token(turn_id, requested_at, ended_at)
+                        record.provider, record.model = chunk.provider, chunk.model
                     parts.append(chunk.text)
                     if not first_cut:
                         arrivals.append(
@@ -211,7 +224,9 @@ class Responder:
                 return
             # Full detail in the server log only; it can name vendors and codes.
             log.warning("session %s: turn %s reply failed: %s", sid, turn_id, exc)
-            await self._error_then_idle(ErrorCode.LLM_FAILED, FAILED_MESSAGE, cancel)
+            await self._error_then_idle(
+                ErrorCode.LLM_FAILED, FAILED_MESSAGE, cancel, record
+            )
             return
         except TtsError as exc:
             # aclosing has already closed the model's stream on the way out.
@@ -221,7 +236,7 @@ class Responder:
             assert speaker is not None  # only a speaker raises TtsError
             await speaker.end_audio()
             await self._error_then_idle(
-                ErrorCode.TTS_FAILED, SPEAK_FAILED_MESSAGE, cancel
+                ErrorCode.TTS_FAILED, SPEAK_FAILED_MESSAGE, cancel, record
             )
             return
 
@@ -231,7 +246,9 @@ class Responder:
             # The model said nothing at all (e.g. its output was filtered).
             # Silence is not an answer.
             log.warning("session %s: turn %s got an empty reply", sid, turn_id)
-            await self._error_then_idle(ErrorCode.LLM_FAILED, FAILED_MESSAGE, cancel)
+            await self._error_then_idle(
+                ErrorCode.LLM_FAILED, FAILED_MESSAGE, cancel, record
+            )
             return
 
         # 4. Complete.
@@ -247,13 +264,14 @@ class Responder:
         await self._move_to(TurnState.IDLE)
 
     async def _error_then_idle(
-        self, code: ErrorCode, message: str, cancel: asyncio.Event
+        self, code: ErrorCode, message: str, cancel: asyncio.Event, record: ReplyRecord
     ) -> None:
         """The protocol's failure ending: error, then turn.state idle.
 
         Callers have just checked `cancel`. It is checked again after the
         send's await: if a barge-in landed meanwhile, it now owns the state.
         """
+        record.error = code  # before idle: the turn's row is built at idle
         await self._send(error(code, message))
         if not cancel.is_set():
             await self._move_to(TurnState.IDLE)
