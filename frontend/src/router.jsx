@@ -15,6 +15,7 @@ import AppLayout from './components/AppLayout.jsx';
 import ConversationPage from './pages/ConversationPage.jsx';
 import EnrolConsentPage from './pages/EnrolConsentPage.jsx';
 import EnrolRecordPage from './pages/EnrolRecordPage.jsx';
+import EnrolValidationPage from './pages/EnrolValidationPage.jsx';
 import LoopbackPage from './pages/LoopbackPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
@@ -29,6 +30,8 @@ const router = createBrowserRouter([
       // Week 3 Day 3: enrolment — consent + reference voice recording
       { path: 'enrol', element: <EnrolConsentPage /> },
       { path: 'enrol/record', element: <EnrolRecordPage /> },
+      // Week 3 Day 5: enrolment validation feedback
+      { path: 'enrol/validation', element: <EnrolValidationPage /> },
       // Future routes:
       // { path: 'profiles', lazy: () => import('./pages/ProfilesPage.jsx') },
       // { path: 'settings', lazy: () => import('./pages/SettingsPage.jsx') },

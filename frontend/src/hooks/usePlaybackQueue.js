@@ -135,8 +135,8 @@ export function usePlaybackQueue() {
     
     source.start(startAt);
 
-    // Track the source and its gain node for flushing
-    const sourceData = { source, gainNode };
+    // Track the source, its gain node, and scheduled start time for flushing
+    const sourceData = { source, gainNode, startAt };
     activeSourcesRef.current.add(sourceData);
     
     // Clean up when the source finishes naturally
@@ -151,7 +151,8 @@ export function usePlaybackQueue() {
 
   /**
    * Stop all scheduled playback, clear the queue, and reset scheduling.
-   * Applies a 10 ms fade-out to avoid clicks.
+   * Applies a 10 ms fade-out to currently playing audio to avoid clicks,
+   * silences future-scheduled audio immediately, and resets scheduling cursor to 0.
    */
   const flushPlayback = useCallback(() => {
     if (!audioCtxRef.current) return;
@@ -160,14 +161,24 @@ export function usePlaybackQueue() {
     const fadeDuration = 0.01; // 10 ms fade-out
 
     // Stop all tracked sources
-    activeSourcesRef.current.forEach(({ source, gainNode }) => {
+    activeSourcesRef.current.forEach(({ source, gainNode, startAt }) => {
       try {
-        // Apply short fade-out
-        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-        gainNode.gain.linearRampToValueAtTime(0, now + fadeDuration);
-        
-        // Stop after fade
-        source.stop(now + fadeDuration);
+        if (typeof startAt === 'number' && startAt > now) {
+          // Chunk was scheduled in the future and has not yet started playing:
+          // Silence gain immediately and cancel node without waiting.
+          gainNode.gain.setValueAtTime(0, now);
+          try {
+            source.stop(Math.max(now, startAt));
+          } catch {
+            source.stop(0);
+          }
+        } else {
+          // Chunk is currently playing:
+          // Smoothly ramp gain down to 0 over 10 ms to eliminate pops/clicks.
+          gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+          gainNode.gain.linearRampToValueAtTime(0, now + fadeDuration);
+          source.stop(now + fadeDuration);
+        }
       } catch {
         // Ignore if already stopped or invalid state
       }

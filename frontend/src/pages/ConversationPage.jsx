@@ -121,7 +121,7 @@ export default function ConversationPage() {
 
     // Audio flush command (cancellation)
     if (msg.type === 'audio.flush') {
-      interruptAgentTurn('Flushed');
+      interruptAgentTurn('Interrupted');
     }
 
     // Server error report (provider failure, safety guardrail, recognizer, etc.)
