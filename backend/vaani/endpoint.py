@@ -257,6 +257,7 @@ class Endpointer:
         frames = self._buffer.take(speech_frames)
         self._start_frame = self._ended_frame = self._ended_at = None
 
+        # PttBuffer.release (ptt.py) applies the same rule: keep them in sync.
         if voiced < self._min_frames and not forced:
             log.info(
                 "session %s: utterance of %d ms, %d ms voiced, ignored "

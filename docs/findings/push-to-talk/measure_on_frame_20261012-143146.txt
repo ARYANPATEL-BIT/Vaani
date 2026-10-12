@@ -1,0 +1,10 @@
+measure_on_frame run at 2026-10-12 14:31:46
+commit 3bd8050 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+vaani imported from C:\Users\Aryan Patel\Desktop\Vaani-OJT\backend\vaani
+2800 frames x 3 runs per path; on_frame p50 / p95 in us
+  idle silent  102.0 / 130.2, 101.3 / 129.7, 102.4 / 129.3
+  idle speech  102.8 / 125.0, 102.9 / 126.8, 102.5 / 131.6
+  busy silent  104.3 / 134.8, 103.7 / 127.1, 103.0 / 128.7
+
+wrote measure_on_frame_20261012-143146.txt

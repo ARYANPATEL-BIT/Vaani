@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.8. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.9. The same shapes are mirrored on the frontend.
 Version numbers come from docs/contracts.md, the source of truth; the
 history below repeats its version table, and only the PR that changes
 contracts.md bumps the version.
@@ -72,6 +72,12 @@ voice, so agent.text / agent.done can now be Latin script, and the
 sample_rate can change between replies of one session (each reply's voice is
 picked by its script). Every voice configured today is 22050 Hz.
 
+v0.9 is PUSH-TO-TALK. session.start gains `mode`: "vad" (hands-free, the
+default) or "ptt", fixed for the session; session.started repeats the mode in
+force. A ptt session adds ptt.start (speak pressed) and ptt.end (stop
+pressed): the client sends audio frames only between them, and ptt.end after
+the last one. ptt.start or ptt.end in a vad session is BAD_MESSAGE.
+
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
 a malformed message through.
@@ -134,6 +140,9 @@ class SessionStart(BaseModel):
 
     type: Literal["session.start"]
     persona: str = "default"
+    # v0.9: "vad" (hands-free) or "ptt" (push-to-talk). Anything else fails
+    # validation, which the gateway answers with BAD_MESSAGE.
+    mode: Literal["vad", "ptt"] = "vad"
     audio: AudioParams
 
 
@@ -142,6 +151,20 @@ class SessionEnd(BaseModel):
     socket with a normal (1000) close code."""
 
     type: Literal["session.end"]
+
+
+class PttStart(BaseModel):
+    """Push-to-talk (v0.9): the user pressed speak. Opens a turn, or barges
+    in on the agent's. Valid only in a ptt session."""
+
+    type: Literal["ptt.start"]
+
+
+class PttEnd(BaseModel):
+    """Push-to-talk (v0.9): the user pressed stop, sent after the press's
+    last audio frame. Ends the turn at once. Valid only in a ptt session."""
+
+    type: Literal["ptt.end"]
 
 
 class FlushAck(BaseModel):
@@ -166,6 +189,7 @@ class SessionStarted(BaseModel):
 
     type: Literal["session.started"] = "session.started"
     session_id: str
+    mode: Literal["vad", "ptt"]  # v0.9: the session's input mode
 
 
 class ErrorMessage(BaseModel):
@@ -256,9 +280,9 @@ class AgentDone(BaseModel):
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
-def session_started(session_id: str) -> dict:
+def session_started(session_id: str, mode: str) -> dict:
     """Build the session.started payload for `websocket.send_json`."""
-    return SessionStarted(session_id=session_id).model_dump(mode="json")
+    return SessionStarted(session_id=session_id, mode=mode).model_dump(mode="json")
 
 
 def error(code: ErrorCode, message: str) -> dict:

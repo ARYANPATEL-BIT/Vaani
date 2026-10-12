@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.8.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.9.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -49,6 +49,7 @@ Only the PR that changes this file bumps the version.
 | v0.6 | `audio.start` carries `sample_rate`; `speaking` starts with the first audio frame; `TTS_FAILED` | 2.2, 2.3, 2.5 |
 | v0.7 | Barge-in. No new message. `dev.flush` removed; `audio.flush` can come during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` may name a turn that is no longer current; `cancelling` → `listening` with a new `turn_id` | 2.3, 2.5, 2.7 |
 | v0.8 | English replies. No new message or field. `agent.text` / `agent.done` can be Latin script; `audio.start.sample_rate` can change between replies of one session | 2.2, 2.5 |
+| v0.9 | Push-to-talk. `session.start.mode` (`"vad"` default, or `"ptt"`); `session.started.mode`; `ptt.start`, `ptt.end`; `BAD_MESSAGE` also for a ptt message in a vad session | 2.3, 2.8 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -108,8 +109,10 @@ Control messages use JSON text frames (not binary).
 
 | Type             | Payload                                                   | When                                             |
 |------------------|-----------------------------------------------------------|--------------------------------------------------|
-| `session.start`  | `{ "type": "session.start", "persona": "default", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects                         |
+| `session.start`  | `{ "type": "session.start", "persona": "default", "mode": "vad", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects. `mode` (v0.9) is optional: `"vad"` (hands-free, the default) or `"ptt"` (push-to-talk, §2.8). Fixed for the whole session |
 | `session.end`    | `{ "type": "session.end" }`                               | User ends conversation                           |
+| `ptt.start`      | `{ "type": "ptt.start" }`                                 | v0.9, `ptt` sessions only: the user pressed speak (§2.8) |
+| `ptt.end`        | `{ "type": "ptt.end" }`                                   | v0.9, `ptt` sessions only: the user pressed stop, sent after the press's last audio frame (§2.8) |
 | `flush.ack`      | `{ "type": "flush.ack", "turn_id": "<string>", "client_ts": <number> }` | As soon as the flushed turn's audio has stopped. `client_ts` is the browser's `performance.now()`; the server logs it but never subtracts it from its own clock. v0.7: by then a newer turn is usually current (a barge-in opens one at once); ack the flushed `turn_id` anyway |
 
 `dev.flush` was removed in v0.7: barge-in replaced it. It now gets
@@ -117,13 +120,16 @@ Control messages use JSON text frames (not binary).
 
 `persona` must be one of `default`, `tutor`, `support` (config.toml
 `[personas]`); anything else gets `BAD_MESSAGE`. `audio` must be exactly
-`16000` / `1` / `20`; anything else gets `UNSUPPORTED_FORMAT`.
+`16000` / `1` / `20`; anything else gets `UNSUPPORTED_FORMAT`. `mode` must be
+`"vad"` or `"ptt"`; anything else gets `BAD_MESSAGE`. A second
+`session.start` on a live session changes nothing, its `mode` included: it is
+answered with the same `session.started`.
 
 #### Server → Client
 
 | Type             | Payload                                               | When                              |
 |------------------|-------------------------------------------------------|-----------------------------------|
-| `session.started`| `{ "type": "session.started", "session_id": "..." }`  | Backend accepted session.start    |
+| `session.started`| `{ "type": "session.started", "session_id": "...", "mode": "vad" }`  | Backend accepted session.start. `mode` (v0.9) is the session's input mode, the one in force even if a later `session.start` asked for another |
 | `error`          | `{ "type": "error", "code": "<code>", "message": "..." }` | A problem report. Non-fatal: the connection stays open. Codes below |
 | `audio.start`    | `{ "type": "audio.start", "turn_id": "<string>", "sample_rate": <number> }` | Before a turn's first audio frame. Every frame until the matching `audio.end` belongs to `turn_id` and is at `sample_rate` (v0.6) |
 | `audio.end`      | `{ "type": "audio.end", "turn_id": "<string>" }`      | After a turn's last audio frame   |
@@ -140,7 +146,7 @@ on `code`.
 | `SESSION_NOT_STARTED` | Audio or a message arrived before `session.start` | Nothing; send `session.start` |
 | `UNSUPPORTED_FORMAT` | `session.start`'s audio settings are not 16000 / 1 / 20 | No `session.started` |
 | `BAD_FRAME_SIZE` | A binary frame is not 640 bytes | The frame is dropped |
-| `BAD_MESSAGE` | Not valid JSON, no `type`, a malformed known message, or an unknown persona | The message is dropped |
+| `BAD_MESSAGE` | Not valid JSON, no `type`, a malformed known message, an unknown persona or `mode`, or (v0.9) `ptt.start` / `ptt.end` in a `vad` session | The message is dropped |
 | `UNKNOWN_MESSAGE_TYPE` | A `type` the server does not handle | The message is dropped |
 | `ASR_FAILED` | The turn's final transcript could not be produced (recogniser error, or the `[asr].timeout_s` timeout) | No `transcript.final`; `turn.state idle` |
 | `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be shown to the user, never silence. The backend does **not** yet speak an apology; text only |
@@ -288,6 +294,67 @@ The spec's diagram ("Sequence -- Conversation turn with barge-in", complete
 documentation PDF, p. 23) draws "Stop playback" last, after "Cancel stream"
 and "Flush queue". This diagram supersedes it; the PDF has not been edited.
 
+### 2.8 Push-to-talk — SHARED PROTOCOL v0.9 (Proposed — pending Samyak)
+
+A session is in one of two input modes, chosen by `session.start.mode` and
+fixed until the socket closes:
+
+- `vad` (the default): hands-free, as before v0.9. Speech opens a turn, 700 ms
+  of silence ends it, speech over the agent is judged as a barge-in (§2.7).
+- `ptt`: the user's presses open and end turns. The server's endpointing and
+  speech-judged barge-in are off.
+
+**The client's rule in `ptt` mode:** send audio frames **only** between
+`ptt.start` and `ptt.end`, and send `ptt.end` **after** the press's last
+frame, so the end of the speech still in the AudioWorklet is not cut off.
+Frames on one WebSocket arrive in the order they were sent, so every frame
+sent before `ptt.end` is part of the turn.
+
+What the server does:
+
+1. `ptt.start` while `idle`: `turn.state listening` with a new `turn_id`.
+   The turn's audio starts at the first frame after `ptt.start`; there is no
+   pre-roll.
+2. `ptt.start` while `thinking` or `speaking`: a barge-in, the same messages
+   in the same order as §2.7 (`audio.flush` first, then `cancelling`, then
+   `listening` with a new `turn_id`). It happens on the press, not after
+   200 ms of speech.
+3. `ptt.end`: the turn ends at once, with no 700 ms silence wait. Then the
+   usual turn: `thinking`, `transcript.final`, `agent.text`, audio, `idle`.
+   `transcript.final.duration_ms` is the length of the press.
+4. An **empty press** (less voiced audio than `[endpoint].min_utterance_ms`,
+   40 ms in config.toml, or no frames at all) is not transcribed:
+   `turn.state idle`, with no error. One exception, as in `vad` mode: if that
+   press cut off a reply the user had heard none of, the cut question is
+   answered now, so the state goes `thinking` and later `idle`.
+5. A press longer than `[endpoint].max_utterance_ms` (30 s) ends as if
+   `ptt.end` had come at that moment.
+
+Every other case:
+
+| Case | What the server does |
+|---|---|
+| `ptt.end` with no press open | Ignored (logged). Nothing is sent |
+| `ptt.start` while a press is open (a key held down repeats `keydown`) | Ignored (logged). The open press goes on |
+| Audio frames outside `ptt.start` … `ptt.end` | Dropped, no error. The client should not send them |
+| Socket closed during a press | The press's audio is discarded; nothing is transcribed |
+| `ptt.start` / `ptt.end` in a `vad` session | `BAD_MESSAGE`; the session carries on in `vad` mode |
+| A second `session.start` | Nothing changes, `mode` included: the same `session.started` again |
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant T as Server (turns.py / ptt.py)
+    U->>B: presses speak (agent speaking)
+    B->>T: ptt.start
+    T->>B: audio.flush (agent turn), cancelling, listening (new turn_id)
+    B->>T: mic frames, only while pressed
+    U->>B: presses stop
+    B->>T: last frame, then ptt.end
+    T->>B: thinking, transcript.final, agent.text, audio ..., idle
+```
+
 ---
 
 ## 3. Future Contracts (Planned)
@@ -314,3 +381,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-07 | Aryan   | Editorial, no version change (day 15, persona voices): §2.2 sample-rate note no longer names one voice; the rate is the session persona's voice |
 | 2026-10-08 | Aryan   | Shared protocol v0.8 (feat/english-voice), note-only: `agent.text` / `agent.done` can be Latin script (English replies, §2.5); `audio.start.sample_rate` can change between replies of one session (§2.2). No new message or field |
 | 2026-10-11 | Aryan   | Editorial, no version change (docs/drift): §2.2's stale "frontend gap" note replaced; the frontend has read `audio.start.sample_rate` since `feat(frontend): add turn UI states and error handling` |
+| 2026-10-12 | Aryan   | Shared protocol v0.9 (feat/push-to-talk1): `session.start.mode` (`vad` default, `ptt`) and `session.started.mode`; `ptt.start` / `ptt.end`; `BAD_MESSAGE` also for an unknown `mode` and for a ptt message in a `vad` session; §2.8 push-to-talk, with the client's rule (frames only between `ptt.start` and `ptt.end`, `ptt.end` after the last frame) |

@@ -26,6 +26,8 @@ what other min_speech_ms and threshold values would have done.
 
 When it is one, turns.py calls `stop_reply` (steps 1 to 3 below), then
 closes the agent's turn and opens the user's (steps 4 and 5, turns.py).
+In a push-to-talk session (v0.9) the judge is not used: pressing speak while
+the agent is busy calls the same `stop_reply`, with the press as the onset.
 
 `heard_text` is the other half of a cut: from the play-out estimate of each
 chunk sent (speaker.py), which part of the reply had the user heard when
@@ -155,7 +157,7 @@ async def stop_reply(
     session: Session,
     telemetry: Telemetry,
     send_json: SendJson,
-    onset: SpeechEvent,
+    onset_at: float,  # perf_counter of speech_started, or of a ptt.start
     state: TurnState,
 ) -> str:
     """Steps 1 to 3 of a barge-in on the current turn's reply.
@@ -184,14 +186,14 @@ async def stop_reply(
     heard = heard_text(spoken, cut_at)
     log.info(
         "session %s: barge-in on turn %s while %s, %d chars heard. SERVER-SIDE "
-        "only, not PERF-3: speech_started -> audio.flush sent %.1f ms "
+        "only, not PERF-3: onset -> audio.flush sent %.1f ms "
         "(judging %.1f ms, stopping %.1f ms)",
         session.session_id,
         turn_id,
         state,
         len(heard),
-        (cut_at - onset.at) * 1000,
-        (triggered - onset.at) * 1000,
+        (cut_at - onset_at) * 1000,
+        (triggered - onset_at) * 1000,
         (cut_at - triggered) * 1000,
     )
     if not started:

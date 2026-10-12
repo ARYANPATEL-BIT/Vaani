@@ -22,6 +22,9 @@ send_bytes as the echo did (speaker.py, called from reply.py).
 Day 13: barge-in. It is decided frame by frame inside TurnPipeline.on_frame
 (turns.py, barge_in.py), so nothing here changes except that the dev-only
 dev.flush message, its stand-in since day 4, is gone (protocol v0.7).
+
+Push-to-talk (v0.9): session.start's mode is kept on the Session, and
+ptt.start / ptt.end go to the pipeline, in a ptt session only.
 """
 
 import asyncio
@@ -188,7 +191,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 # A second session.start on a live session is idempotent: just
                 # re-acknowledge the existing session id, don't make a new one.
                 if session is not None:
-                    await websocket.send_json(session_started(session.session_id))
+                    await websocket.send_json(
+                        session_started(session.session_id, session.mode)
+                    )
                     continue
                 if not _audio_matches(start.audio, audio_cfg):
                     await websocket.send_json(
@@ -204,7 +209,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
                         )
                     )
                     continue
-                session = Session(session_id=uuid.uuid4().hex, persona=start.persona)
+                session = Session(
+                    session_id=uuid.uuid4().hex, persona=start.persona, mode=start.mode
+                )
                 telemetry = Telemetry(session.session_id)
                 # Fresh per-session VAD / endpointing / ASR / reply state. The
                 # models (VAD, Whisper) and the LLM chain are built once per
@@ -230,7 +237,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 log_task = asyncio.create_task(
                     _log_frames(session, telemetry, interval_s, vad_enabled)
                 )
-                await websocket.send_json(session_started(session.session_id))
+                await websocket.send_json(
+                    session_started(session.session_id, session.mode)
+                )
                 continue
 
             # Every other control message requires a live session first.
@@ -251,6 +260,18 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 # Acks for turns never flushed, or acked twice, are logged and
                 # ignored inside the session.
                 session.handle_flush_ack(ack, telemetry)
+                continue
+
+            if mtype in ("ptt.start", "ptt.end"):
+                # No field but "type", so nothing more to validate.
+                if session.mode != "ptt":
+                    await websocket.send_json(
+                        error(ErrorCode.BAD_MESSAGE, f"{mtype} needs a ptt session")
+                    )
+                elif mtype == "ptt.start":
+                    await pipeline.on_ptt_start()
+                else:
+                    await pipeline.on_ptt_end()
                 continue
 
             if mtype == "session.end":

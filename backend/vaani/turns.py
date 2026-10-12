@@ -24,6 +24,11 @@ BARGE-IN (day 13): while the agent is thinking or speaking, frames go to
 barge_in.py. Speech it judges an interruption stops the reply and opens the
 user's next turn (`_barge_in`). Words of a turn cut before any of its reply
 was heard are CARRIED: the next reply answers them with the new turn.
+
+PUSH-TO-TALK (protocol v0.9, ptt.py): in a "ptt" session the user's presses
+replace step 2. ptt.start opens a turn (or barges in, through the same
+`_interrupt` that speech uses), ptt.end ends it at once, and VAD only counts
+voiced frames. There is no Endpointer and no speech-judged barge-in.
 """
 
 import logging
@@ -38,6 +43,7 @@ from vaani.echo import Echo
 from vaani.endpoint import Endpointer, TurnEnded
 from vaani.protocol import TurnState
 from vaani.providers.base import LLMProvider
+from vaani.ptt import PttBuffer
 from vaani.reply import Responder
 from vaani.session import Session
 from vaani.telemetry import TURN_ENDED, Telemetry
@@ -81,7 +87,9 @@ class TurnPipeline:
         )
         # Each stage needs the one before it: no VAD, no endpointing; no
         # endpointing (no utterances), nothing to transcribe; no transcript
-        # (or no model), nothing to answer.
+        # (or no model), nothing to answer. A ptt session swaps the
+        # Endpointer for a PttBuffer: presses, not silences, end its turns.
+        ptt = session.mode == "ptt"
         self._vad = (
             VadStream(vad_model, settings.vad, settings.audio)
             if settings.vad.enabled
@@ -94,7 +102,17 @@ class TurnPipeline:
                 settings.vad.threshold,
                 session.session_id,
             )
-            if self._vad is not None and settings.endpoint.enabled
+            if self._vad is not None and settings.endpoint.enabled and not ptt
+            else None
+        )
+        self._ptt = (
+            PttBuffer(
+                settings.endpoint,
+                self._frame_ms,
+                settings.vad.threshold,
+                session.session_id,
+            )
+            if self._vad is not None and ptt
             else None
         )
         self._asr = (
@@ -106,7 +124,7 @@ class TurnPipeline:
                 telemetry,
                 self._on_final,
             )
-            if self._endpointer is not None and recognizer is not None
+            if (self._endpointer or self._ptt) is not None and recognizer is not None
             else None
         )
         self._responder = (
@@ -150,7 +168,11 @@ class TurnPipeline:
                     speech_event.frame_index,
                     (speech_event.frame_index + 1) * self._frame_ms / 1000,
                 )
-        if self._endpointer is not None:
+        if self._ptt is not None:
+            # Push-to-talk: the frame joins the open press, if there is one.
+            if self._ptt.push(data, self._vad.probability):
+                await self._release()  # held past max_utterance_ms
+        elif self._endpointer is not None:
             # THE ROUTING SEAM: who gets the user's speech right now.
             if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
                 await self._watch(data, speech_event)
@@ -162,6 +184,35 @@ class TurnPipeline:
                         await self._endpoint(frame, event, probability)
                 await self._endpoint(data, speech_event, self._vad.probability)
         await self._echo.frame(data)
+
+    async def on_ptt_start(self) -> None:
+        """ptt.start: the user pressed speak (ptt sessions only)."""
+        sid = self._session.session_id
+        if self._ptt is None:
+            log.warning("session %s: ptt.start ignored, VAD is off", sid)
+            return
+        if self._ptt.holding:
+            # A key held down repeats its keydown, so this is normal.
+            log.info("session %s: ptt.start ignored, press already open", sid)
+            return
+        if self._machine.state in (TurnState.THINKING, TurnState.SPEAKING):
+            await self._interrupt(perf_counter())
+        else:
+            await self._open_turn()
+        # No frame can arrive before these two lines run: the gateway handles
+        # one message at a time. The client sent no frames since the last
+        # press, so VAD's memory is of old audio: start it clean.
+        assert self._vad is not None  # a PttBuffer is built only with VAD
+        self._vad.reset()
+        self._ptt.press()
+
+    async def on_ptt_end(self) -> None:
+        """ptt.end: the user pressed stop. The turn ends now, no silence wait."""
+        if self._ptt is None or not self._ptt.holding:
+            sid = self._session.session_id
+            log.info("session %s: ptt.end ignored, no press open", sid)
+            return
+        await self._release()
 
     async def on_session_end(self) -> None:
         """Clean session.end: close the open echo turn before the socket."""
@@ -180,6 +231,8 @@ class TurnPipeline:
             await self._asr.close()
         if self._endpointer is not None:
             self._endpointer.close()
+        if self._ptt is not None:
+            self._ptt.close()
 
     # --- Routing -------------------------------------------------------------
 
@@ -220,24 +273,30 @@ class TurnPipeline:
 
     async def _barge_in(self) -> None:
         """The user is talking over the agent: stop it, then open their turn."""
-        assert self._responder is not None and self._barge.started is not None
+        assert self._barge.started is not None
+        await self._interrupt(self._barge.started.at)
+        # 5. The speech so far, pre-roll included, as if endpointed live.
+        for frame, event, probability in self._barge.take():
+            await self._endpoint(frame, event, probability)
+
+    async def _interrupt(self, onset_at: float) -> None:
+        """Steps 1 to 4 of a barge-in, by speech (_barge_in) or by a press
+        (on_ptt_start). `onset_at`: perf_counter of the speech or the press."""
+        assert self._responder is not None  # thinking and speaking need one
         # 1-3 (barge_in.py): silence first, then stream, synthesis, history.
         carried = await stop_reply(
             self._responder,
             self._session,
             self._telemetry,
             self._send_json,
-            self._barge.started,
+            onset_at,
             self._machine.state,
         )
         self._carried = join_speech(self._carried, carried)
         self._answer_carried = False  # the new turn answers carried words
-        # 4. Close the agent's turn; the new turn_id comes from this speech.
+        # 4. Close the agent's turn; the new turn_id is the user's.
         await self._machine.move_to(TurnState.CANCELLING)
         await self._open_turn()
-        # 5. The speech so far, pre-roll included, as if endpointed live.
-        for frame, event, probability in self._barge.take():
-            await self._endpoint(frame, event, probability)
 
     # --- Turn lifecycle ----------------------------------------------------
 
@@ -280,6 +339,15 @@ class TurnPipeline:
             self._awaiting_final.add(turn_id)
         if self._asr is not None:
             self._asr.request_final(turn_id, turn.audio, turn.duration_ms, turn.at)
+
+    async def _release(self) -> None:
+        """Close the open press: a turn, or a discarded one if it was empty."""
+        assert self._ptt is not None
+        turn = self._ptt.release()
+        if turn is None:
+            await self._discard_turn()  # listening -> idle (or carried words)
+        else:
+            await self._end_turn(turn)
 
     async def _discard_turn(self) -> None:
         turn_id = self._session.current_turn_id

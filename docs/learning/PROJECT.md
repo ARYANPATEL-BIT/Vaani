@@ -11,7 +11,7 @@ this file in the same PR.
 1. Vaani is a voice agent: you speak Hindi, English or a mix of both (Hinglish) in a browser and it answers out loud.
 2. The browser streams the microphone to a Python server over one WebSocket (a connection that stays open so both sides can send at any time).
 3. The server detects speech, decides when you have finished, transcribes it, asks a hosted language model for a reply and speaks the reply with a local voice.
-4. You can interrupt it (barge-in): once 200 ms of your speech is heard over it, it goes silent and listens to you.
+4. You can interrupt it (barge-in): once 200 ms of your speech is heard over it, it goes silent and listens to you. In push-to-talk mode (section d2) you press "speak" and "stop" instead, and a press interrupts it.
 5. The studio in the spec (cloned voice, lip-synced video) and the database are not built yet.
 
 ## b. The stack
@@ -21,6 +21,7 @@ this file in the same PR.
 | WebSocket server | FastAPI on uvicorn (`backend/vaani/app.py`, `gateway.py`) | Serves `/ws/session` and `/health`; one coroutine owns each connection | Async, so one process can read audio from many sockets while it waits on the network | Flask: synchronous, a poor fit for long-lived real-time sockets |
 | Voice activity detection (VAD) | Silero VAD v6.2.3, ONNX file run with onnxruntime on CPU (`vad.py`) | Says, for each 20 ms frame, whether it holds speech, and turns that into `speech_started` / `speech_ended` | A small neural model, accurate on noise, no PyTorch needed | WebRTC VAD: fast, but marks much noise and music as speech |
 | Endpointing | Our own rule, counted in frames (`endpoint.py`) | Decides the user's turn is over after 700 ms of silence following `speech_ended` | No timers and no I/O, so it is exact in tests and safe in the hot path | Semantic endpointing (a model reads the words): needs a transcript first and usually a network call, which is banned in the endpointing hot path |
+| Push-to-talk turns (protocol v0.9) | Our own press buffer (`ptt.py`), used instead of endpointing when `session.start` says `"mode": "ptt"` | Keeps the frames between `ptt.start` and `ptt.end` and counts the voiced ones, so an empty press is dropped before Whisper | No wait at all: the stop press ends the turn | Drive the `Endpointer` with fake events: three special cases inside endpointing (ignore VAD's own end, no pre-roll, the cap's reopen) |
 | Speech recognition (ASR) | faster-whisper (Whisper weights on CTranslate2); committed default `small` / `cpu` / `int8` (`asr/whisper.py`) | Turns each finished utterance into text, on its own thread pool | Several times faster than the original Whisper and needs no PyTorch | The original PyTorch Whisper: slower and pulls in PyTorch |
 | LLM providers | Groq `openai/gpt-oss-20b` first, Gemini `gemini-3.5-flash-lite` as failover, both over REST with httpx (`providers/`) | Streams the reply text; fails over to the next provider only before the first word | Plain HTTP lets us close the stream ourselves on a barge-in; vendors stay config values | The vendors' Python SDKs: they hide the HTTP stream, so we could not be sure a cancel closes the connection |
 | Chunking | Our own clause chunker (`chunker.py`) | Cuts the streaming reply into pieces to speak: the first piece at the earliest sentence or clause end, later ones at sentence ends | Speech starts while the model is still writing | Cut by time ("no token for N ms"): a model pauses mid-sentence for its own reasons and the cut would split a phrase |
@@ -74,6 +75,26 @@ The user talks while the agent is `thinking` or `speaking`.
 7. **New turn.** Files: `turns.py`, `turn_state.py`. What: moves to `cancelling`, then `listening` with a new `turn_id`, and replays the held frames into the endpointer, so the new turn starts at the user's first sound. From here it is a normal turn (section c, step 7). If the new speech is too short to be a turn but words were carried, those words are answered. When: straight after the stop. Database query: none, database not integrated yet.
 8. **Ack.** File: `session.py`. What: `flush.ack` is matched to the flushed turn and the round trip is logged (`flush_acked` span). When: when the ack arrives, usually after the new turn is current. Database query: none, database not integrated yet.
 
+## d2. Push-to-talk (protocol v0.9)
+
+Sections c and d are the hands-free mode (`"vad"`). A session can instead be
+push-to-talk (`"ptt"`). The protocol details are in `contracts.md` section 2.8.
+
+**The mode switch.** File: `gateway.py`, then `session.py` and `turns.py`. What: `session.start` may carry `"mode": "ptt"` (default `"vad"`). The gateway stores it on the `Session` and `session.started` sends it back. `TurnPipeline` then builds a `PttBuffer` (`ptt.py`) in place of the `Endpointer`, so endpointing and the speech-judged barge-in never run in that session. A second `session.start` changes nothing. `ptt.start` or `ptt.end` in a vad session gets `BAD_MESSAGE`. When: once, at `session.start`. Database query: none, database not integrated yet.
+
+One ptt turn (where it differs from section c):
+
+1. **Speak pressed.** Files: browser (not built yet), `gateway.py`, `turns.py` (`on_ptt_start`), `vad.py`, `ptt.py`. What: the browser sends `ptt.start` and only then starts sending mic frames. The server opens a turn (`listening`, new `turn_id`), wipes Silero's memory of the previous press (`VadStream.reset`) and opens the press. A second `ptt.start` while pressed is ignored. When: on the press. Database query: none, database not integrated yet.
+2. **While pressed.** Files: `turns.py` (`on_frame`), `vad.py`, `ptt.py`. What: every frame runs through Silero; `PttBuffer` keeps it and counts it voiced if its speech probability reaches `[vad].threshold`. Silence does not end the turn. A press that reaches `max_utterance_ms` (30 s) ends as if stop were pressed. Frames with no press open are dropped. When: every frame of the press. Database query: none, database not integrated yet.
+3. **Stop pressed.** Files: browser, `gateway.py`, `turns.py` (`on_ptt_end`, `_release`), `ptt.py`. What: the browser sends its last frame, then `ptt.end`. The press closes at once. Fewer voiced frames than `[endpoint].min_utterance_ms` means an empty press: `_discard_turn`, then `idle` with no transcription. Otherwise `_end_turn` records `turn_ended` and moves to `thinking`, and steps 8 to 15 of section c run unchanged. `ptt.end` with no press open is ignored. When: on the stop press. Database query: none, database not integrated yet.
+4. **Socket closed mid-press.** File: `turns.py` (`close`), `ptt.py`. What: the press's audio is thrown away and logged; nothing is transcribed. When: on disconnect. Database query: none, database not integrated yet.
+
+One ptt interruption:
+
+1. **Speak pressed while the agent is busy.** Files: `turns.py` (`on_ptt_start`, `_interrupt`). What: in `thinking` or `speaking`, `ptt.start` is a barge-in at once, with no speech judging. When: on the press. Database query: none, database not integrated yet.
+2. **Stop the reply.** Files: `barge_in.py` (`stop_reply`), `reply.py`, `session.py`. What: exactly steps 3, 4 and 6 of section d: the reply's token is set, `audio.flush` is the first message out, the model stream closes, synthesis in flight is discarded, history keeps what was heard (or the words are carried). When: straight after the press. Database query: none, database not integrated yet.
+3. **New turn.** Files: `turns.py`, `turn_state.py`, `vad.py`, `ptt.py`. What: `cancelling`, then `listening` with a new `turn_id`; VAD is reset and the press opens. From here it is a ptt turn (above, step 2). An empty press after a cut that the user heard none of answers the cut question (`thinking`, later `idle`), as in hands-free mode. When: straight after the stop. Database query: none, database not integrated yet.
+
 ## e. Where the conversation context lives today
 
 - **Where:** `Session.history` in `backend/vaani/session.py`: a list in the server's memory, one per WebSocket connection. Nothing is shared between sessions and nothing is written to disk.
@@ -111,4 +132,6 @@ table lists every query the code sends:
 - After `ASR_FAILED` the pill and the orb stayed on "thinking" (live demo 2026-10-08/09; not reproduced since).
 - The orb says "Tap connect to start talking" while connected: it is the subtitle of the connected `idle` state (`frontend/src/components/VoiceOrb/VoiceOrb.jsx`).
 - `TTS_FAILED` wipes the reply text already shown: on any `error`, `ConversationPage.jsx` calls `clearActivePartial` (`useTranscript.js`), which drops the streamed reply, and no `agent.done` follows a `TTS_FAILED` to keep it.
+- Push-to-talk (v0.9) has no frontend yet: there is no speak/stop button and no mode choice in the UI, so it runs only in `backend/tests/test_ptt.py`. Stop press to first audible sample was not measured.
+- Files over the ~300-line limit: `backend/vaani/turns.py` (399), `protocol.py` (338), `gateway.py` (309). `turns.py` is to be split in a follow-up PR, not in `feat/push-to-talk1`.
 - The "hmm after a barge-in" discard works only under a test override (`min_utterance_ms=300` in `test_barge_in.py`); at the default (40) a barge-in's turn always has enough voiced frames, so the "hmm" is answered (`backend-learning/14-tuning.md`).
