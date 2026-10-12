@@ -40,6 +40,9 @@ class Session:
 
     session_id: str
     persona: str
+    # "vad" (hands-free) or "ptt" (push-to-talk), from session.start (v0.9).
+    # Fixed for the session: turns.py builds its pipeline from it once.
+    mode: str = "vad"
     # monotonic() is a clock that only moves forward and is immune to system
     # time changes — correct for measuring elapsed time, not wall-clock dates.
     created_at: float = field(default_factory=monotonic)

@@ -155,15 +155,27 @@ class VadStream:
             raise ValueError("Silero VAD needs 16 kHz mono audio")
         self._model = model
         self._threshold = vad.threshold
-        self._hysteresis = Hysteresis(vad.start_frames, vad.end_frames)
+        self._cfg = vad
+        self._sr = np.array(MODEL_SAMPLE_RATE, dtype=np.int64)
+        self._frame_index = -1
+        self.reset()
+
+    def reset(self) -> None:
+        """Forget all audio heard so far, as if the stream had just begun.
+
+        Push-to-talk calls it on every press (turns.py): its client sends no
+        frames between presses, so the memory left from the last press is of
+        audio that ended seconds ago and would colour the new press's first
+        probabilities. Hands-free mode never calls it: its stream is continuous.
+        The frame index is NOT reset: it numbers the session's frames.
+        """
+        self._hysteresis = Hysteresis(self._cfg.start_frames, self._cfg.end_frames)
         self._state = np.zeros(STATE_SHAPE, dtype=np.float32)
         self._context = np.zeros((1, CONTEXT_SAMPLES), dtype=np.float32)
-        self._sr = np.array(MODEL_SAMPLE_RATE, dtype=np.int64)
         # Samples received but not yet fed to the model (always < 512 between
         # calls to push).
         self._pending = np.zeros(0, dtype=np.float32)
         self._probability = 0.0  # latest model output; 0 until the first chunk
-        self._frame_index = -1
 
     @property
     def probability(self) -> float:
