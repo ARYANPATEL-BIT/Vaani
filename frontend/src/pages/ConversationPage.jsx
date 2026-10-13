@@ -11,6 +11,9 @@
  *     3. Provider failure
  * - Preserves existing visual direction (warm cream canvas, central VoiceOrb,
  *   real personas, collapsible latency HUD, bottom controls).
+ * - Push-to-talk (docs/contracts.md §2.8): a mode choice before connect, sent
+ *   as session.start's mode, and a Speak/Stop control (PttButton) in a
+ *   session the server confirmed as "ptt".
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,6 +25,7 @@ import { useLatencyTelemetry } from '../hooks/useLatencyTelemetry.js';
 import { VoiceOrb } from '../components/VoiceOrb/VoiceOrb.jsx';
 import { TranscriptView } from '../components/TranscriptView.jsx';
 import { LatencyHud } from '../components/LatencyHud.jsx';
+import { PttButton } from '../components/PttButton.jsx';
 import './ConversationPage.css';
 
 /**
@@ -33,8 +37,17 @@ const PERSONAS = [
   { id: 'support', label: 'Support', desc: 'Concise & practical help' },
 ];
 
+/**
+ * Input modes of session.start (protocol v0.9, docs/contracts.md §2.8).
+ */
+const MODES = [
+  { id: 'vad', label: 'Hands-free', desc: 'Just talk; a pause ends your turn' },
+  { id: 'ptt', label: 'Push-to-talk', desc: 'Press Speak to talk, Stop when done' },
+];
+
 export default function ConversationPage() {
   const [selectedPersona, setSelectedPersona] = useState('default');
+  const [selectedMode, setSelectedMode] = useState('vad');
   const [showTelemetry, setShowTelemetry] = useState(false);
 
   // Playback queue: gapless PCM scheduling + dynamic sample rate handling
@@ -78,6 +91,10 @@ export default function ConversationPage() {
     clearError,
     startCapture,
     stopCapture,
+    sessionMode,
+    pressState,
+    pttStart,
+    pttStop,
   } = useAudioCapture();
 
   const isTransitioning = wsStatus === 'connecting' || wsStatus === 'connected';
@@ -106,27 +123,33 @@ export default function ConversationPage() {
     if (msg.type === 'turn.state') {
       processTurnMessage(msg);
       if (msg.state === 'cancelling') {
-        interruptAgentTurn('Interrupted');
+        interruptAgentTurn('Interrupted', msg.turn_id);
       }
     }
 
-    // Streaming agent replies
+    // Streaming agent replies. The turn_id is kept on the entry, so a later
+    // audio.flush for that turn can still mark it interrupted.
     if (msg.type === 'agent.text') {
       processTurnMessage(msg);
-      appendAgentDelta(msg.delta);
+      appendAgentDelta(msg.delta, msg.turn_id);
     } else if (msg.type === 'agent.done') {
       processTurnMessage(msg);
-      finalizeAgentTurn(msg.text);
+      finalizeAgentTurn(msg.text, msg.turn_id);
     }
 
-    // Audio flush command (cancellation)
+    // Audio flush command (cancellation). Also marks a reply that was
+    // already complete (agent.done) but still playing.
     if (msg.type === 'audio.flush') {
-      interruptAgentTurn('Interrupted');
+      interruptAgentTurn('Interrupted', msg.turn_id);
     }
 
     // Server error report (provider failure, safety guardrail, recognizer, etc.)
+    // The reply text already streamed is KEPT as a transcript line: after
+    // TTS_FAILED (or LLM_FAILED mid-reply) no agent.done follows to keep it,
+    // and the banner says what went wrong. Only the user's partial is cleared.
     if (msg.type === 'error') {
-      clearActivePartial();
+      finalizeAgentTurn();
+      updatePartial(null);
     }
 
     // Pipeline telemetry
@@ -139,7 +162,6 @@ export default function ConversationPage() {
     appendAgentDelta,
     finalizeAgentTurn,
     interruptAgentTurn,
-    clearActivePartial,
     processTelemetryMessage,
   ]);
 
@@ -151,7 +173,7 @@ export default function ConversationPage() {
     resetTranscript();
     resetTelemetry();
     resetTurnState();
-    startCapture(enqueue, flushPlayback, selectedPersona, handleServerMessage);
+    startCapture(enqueue, flushPlayback, selectedPersona, handleServerMessage, selectedMode);
   }, [
     isCapturing,
     resetTranscript,
@@ -162,7 +184,20 @@ export default function ConversationPage() {
     flushPlayback,
     selectedPersona,
     handleServerMessage,
+    selectedMode,
   ]);
+
+  /**
+   * Speak pressed (button or Space). If it cut the agent off, the hook has
+   * already stopped playback; here the cut reply is marked interrupted at
+   * once, without waiting for the server's audio.flush.
+   */
+  const handleSpeak = useCallback(() => {
+    const cutTurnId = pttStart();
+    if (cutTurnId) {
+      interruptAgentTurn('Interrupted', cutTurnId);
+    }
+  }, [pttStart, interruptAgentTurn]);
 
   /**
    * Disconnect: cleanly end session and release microphone.
@@ -210,6 +245,25 @@ export default function ConversationPage() {
                   title={p.desc}
                 >
                   {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Input mode selector (fixed for the session, like the persona) */}
+          <div className="persona-picker" title={isCapturing ? 'Mode is fixed for active session' : 'Choose input mode'}>
+            <span className="persona-picker-label">Mode:</span>
+            <div className="persona-options">
+              {MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={`persona-chip ${selectedMode === m.id ? 'active' : ''}`}
+                  onClick={() => !isCapturing && setSelectedMode(m.id)}
+                  disabled={isCapturing}
+                  title={m.desc}
+                >
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -317,6 +371,7 @@ export default function ConversationPage() {
             // keeps showing the live turn state.
             errorMessage={isMicDenied || isConnectionDropped || wsStatus === 'error' ? errorMessage : null}
             onClick={!isConnected ? handleConnect : undefined}
+            mode={sessionMode}
           />
         </section>
 
@@ -380,20 +435,25 @@ export default function ConversationPage() {
               </span>
             </button>
           ) : (
-            <button
-              type="button"
-              id="disconnect-btn"
-              className="control-btn disconnect-btn"
-              onClick={handleDisconnect}
-              aria-label="End conversation session"
-            >
-              <div className="btn-icon-wrapper disconnect-icon-wrapper">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <span className="btn-label">End Conversation</span>
-            </button>
+            <>
+              {isConnected && sessionMode === 'ptt' && (
+                <PttButton pressState={pressState} onSpeak={handleSpeak} onStop={pttStop} />
+              )}
+              <button
+                type="button"
+                id="disconnect-btn"
+                className="control-btn disconnect-btn"
+                onClick={handleDisconnect}
+                aria-label="End conversation session"
+              >
+                <div className="btn-icon-wrapper disconnect-icon-wrapper">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <span className="btn-label">End Conversation</span>
+              </button>
+            </>
           )}
         </div>
       </div>
