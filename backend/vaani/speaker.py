@@ -38,7 +38,7 @@ from typing import NamedTuple
 
 from vaani.language import reply_language
 from vaani.protocol import TurnState, audio_end, audio_start
-from vaani.telemetry import TTS_FIRST_AUDIO, Telemetry
+from vaani.telemetry import TTS_FIRST_AUDIO, TTS_START, Telemetry
 from vaani.tts import Synthesizer
 
 log = logging.getLogger("vaani.speaker")
@@ -181,6 +181,8 @@ class Speaker:
             self.language,
             self._rate,
         )
+        # Once per reply, just before its first synthesis begins.
+        self._telemetry.record(TTS_START, self._turn_id)
 
     async def _start(self) -> None:
         """First audio of the reply: now the agent is speaking."""

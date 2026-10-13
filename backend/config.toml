@@ -347,6 +347,23 @@ abbreviations = ["dr", "mr", "mrs", "ms", "prof", "st", "vs", "etc", "e.g", "i.e
 # written in (lekin, kyunki, toh).
 conjunctions = ["but", "because", "so", "and", "lekin", "kyunki", "toh", "लेकिन", "क्योंकि", "तो"]
 
+[db]
+# The SQLite database that records every session and turn: text and numbers,
+# never audio (vaani/db.py, vaani/turn_log.py). Nothing reads it back into a
+# conversation; scripts/turn_stats.py reads it for latency statistics.
+# When false no database is opened and nothing is recorded. When true and the
+# file cannot be opened, the server refuses to start.
+enabled = true
+
+# Relative paths are resolved against backend/. backend/data/ is gitignored:
+# the file holds what users said, so it must never be committed.
+path = "data/vaani.db"
+
+# At shutdown, the writer gets this long to finish the rows still queued.
+# Past it, shutdown goes on and the count of rows not written is logged:
+# a stuck disk must never hang the server's exit.
+close_timeout_s = 2.0
+
 [guardrail]
 # Input guardrail. Each pattern is a regular expression matched,
 # case-insensitively, against the user's TRANSCRIPT before it is placed in a

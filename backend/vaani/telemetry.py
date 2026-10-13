@@ -23,6 +23,10 @@ Windows `time.monotonic` is backed by GetTickCount64 and only ticks every
 15.6 ms, so any gap shorter than that reads as 0.0 ms. `perf_counter` uses
 QueryPerformanceCounter (sub-microsecond) on Windows and is at least as fine
 everywhere else.
+
+feat/database: every span recorded WITH a turn_id is also kept, per turn,
+latest stamp per name, until `pop_turn` hands them over. turn_log.py turns
+them into the five per-stage timings of the turn's database row.
 """
 
 from collections import deque
@@ -37,6 +41,9 @@ from time import perf_counter
 FRAME_RECEIVED = "frame_received"
 ECHO_SENT = "echo_sent"
 VAD_DECISION = "vad_decision"
+# The user's speech ended: VAD's speech_ended in hands-free mode, the ptt.end
+# in push-to-talk, the turn's end if it was forced (max_utterance_ms).
+SPEECH_END = "speech_end"
 # The endpointer decided the user's turn is over.
 TURN_ENDED = "turn_ended"
 # Speech recognition: one inference handed to a worker thread, then the
@@ -44,7 +51,13 @@ TURN_ENDED = "turn_ended"
 ASR_START = "asr_start"
 ASR_PARTIAL = "asr_partial"
 ASR_FINAL = "asr_final"
+# A turn's final transcript failed (ASR_FAILED was sent).
+ASR_FAILED = "asr_failed"
+# The reply's request went to the provider chain; its first text came back.
+LLM_REQUEST = "llm_request"
 LLM_FIRST_TOKEN = "llm_first_token"
+# The reply's first chunk started synthesis; its first frame was sent.
+TTS_START = "tts_start"
 TTS_FIRST_AUDIO = "tts_first_audio"
 PLAYBACK_START = "playback_start"
 # Barge-in: the user's speech was judged an interruption (barge_in.py).
@@ -136,23 +149,38 @@ class Telemetry:
         # Timestamp of the most recent frame_received still awaiting its
         # echo_sent. None between a completed pair and the next frame.
         self._pending_frame_at: float | None = None
+        # turn_id -> {span name: its latest `at`}, until pop_turn takes it.
+        self._turns: dict[str, dict[str, float]] = {}
 
-    def record(self, name: str, turn_id: str | None = None) -> Span:
-        """Stamp a span at 'now' and, for the echo pair, update the window.
+    def record(
+        self, name: str, turn_id: str | None = None, at: float | None = None
+    ) -> Span:
+        """Stamp a span at 'now' (or at `at`, a perf_counter reading taken
+        earlier) and, for the echo pair, update the window.
 
         frame_received remembers its timestamp; the next echo_sent closes the
         pair and appends (echo_sent.at - frame_received.at) to the window. Any
         other span name is just stamped and returned (used by later stages).
+        A span with a turn_id is also kept for that turn's database row.
         """
         span = Span(
-            name=name, at=perf_counter(), session_id=self.session_id, turn_id=turn_id
+            name=name,
+            at=perf_counter() if at is None else at,
+            session_id=self.session_id,
+            turn_id=turn_id,
         )
+        if turn_id is not None:
+            self._turns.setdefault(turn_id, {})[name] = span.at
         if name == FRAME_RECEIVED:
             self._pending_frame_at = span.at
         elif name == ECHO_SENT and self._pending_frame_at is not None:
             self._echo.add(span.at - self._pending_frame_at)
             self._pending_frame_at = None
         return span
+
+    def pop_turn(self, turn_id: str) -> dict[str, float]:
+        """Hand over (and forget) every span kept for `turn_id`, by name."""
+        return self._turns.pop(turn_id, {})
 
     def record_vad_decision(self, started_at: float) -> Span:
         """Stamp vad_decision now and add its cost (now - started_at) to the window.

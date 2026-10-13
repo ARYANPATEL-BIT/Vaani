@@ -20,6 +20,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import aclosing
+from dataclasses import replace
 from time import perf_counter
 
 import httpx
@@ -76,7 +77,9 @@ class ProviderChain(LLMProvider):
                 async with aclosing(provider.stream(messages, cancel)) as chunks:
                     async for chunk in chunks:
                         yielded = True
-                        yield chunk
+                        # Tagged with which provider answered, for the turn's
+                        # database row (turn_log.py).
+                        yield replace(chunk, provider=name)
                 # The provider finished normally OR was cancelled (a cancelled
                 # provider ends quietly). Either way, we are done.
                 return
