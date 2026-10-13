@@ -51,6 +51,9 @@ export function useTranscript() {
   // once, synchronously, so each commit happens exactly once.
   const userPartialRef = useRef(null);
   const agentPartialRef = useRef(null);
+  // The turn_id of the streaming agent reply, so its entry can be found
+  // again if a barge-in flushes that turn after agent.done.
+  const agentTurnIdRef = useRef(null);
 
   /**
    * Update the currently active partial transcript from the user.
@@ -93,23 +96,31 @@ export function useTranscript() {
   /**
    * Append delta to streaming agent reply progressively.
    */
-  const appendAgentDelta = useCallback((delta) => {
+  const appendAgentDelta = useCallback((delta, turnId = null) => {
     if (!delta) return;
+    if (turnId) agentTurnIdRef.current = turnId;
     agentPartialRef.current = (agentPartialRef.current ?? '') + delta;
     setCurrentAgentPartial(agentPartialRef.current);
   }, []);
 
   /**
    * Finalize the agent's turn normally with complete text.
+   * Called with no text to keep what has streamed so far (an error ended the
+   * reply: TTS_FAILED or LLM_FAILED after some agent.text).
+   *
+   * @param {string} [text] - The full reply; if omitted, the streamed text.
+   * @param {string} [turnId] - The reply's turn_id; if omitted, the streamed one.
    */
-  const finalizeAgentTurn = useCallback((text) => {
+  const finalizeAgentTurn = useCallback((text, turnId = null) => {
     const finalText = text !== undefined && text !== null ? text : agentPartialRef.current;
+    const entryTurnId = turnId ?? agentTurnIdRef.current;
     agentPartialRef.current = null;
+    agentTurnIdRef.current = null;
     setCurrentAgentPartial(null);
     if (typeof finalText === 'string' && finalText.trim()) {
       setFinalTranscriptEntries((prev) => [
         ...prev,
-        makeEntry('agent', finalText, { interrupted: false }),
+        makeEntry('agent', finalText, { interrupted: false, turnId: entryTurnId }),
       ]);
     }
   }, []);
@@ -118,17 +129,37 @@ export function useTranscript() {
    * Mark an in-flight agent turn as interrupted (e.g. on audio.flush or state cancelling).
    * Preserves whatever text was received so far and labels it clearly as interrupted.
    *
+   * If nothing is streaming but the reply of `turnId` was already committed
+   * (agent.done came, the audio was still playing when the cut landed), that
+   * entry is marked interrupted instead.
+   *
    * @param {string} [reason='Interrupted'] - Description of cancellation cause.
+   * @param {string} [turnId] - The flushed turn, from audio.flush or cancelling.
    */
-  const interruptAgentTurn = useCallback((reason = 'Interrupted') => {
+  const interruptAgentTurn = useCallback((reason = 'Interrupted', turnId = null) => {
     const partial = agentPartialRef.current;
+    const partialTurnId = agentTurnIdRef.current;
     agentPartialRef.current = null;
+    agentTurnIdRef.current = null;
     setCurrentAgentPartial(null);
     if (typeof partial === 'string' && partial.trim()) {
       setFinalTranscriptEntries((prev) => [
         ...prev,
-        makeEntry('agent', partial, { interrupted: true, interruptedReason: reason }),
+        makeEntry('agent', partial, {
+          interrupted: true,
+          interruptedReason: reason,
+          turnId: partialTurnId ?? turnId,
+        }),
       ]);
+    } else if (turnId) {
+      // A pure updater (map, no append): safe under StrictMode's double call.
+      setFinalTranscriptEntries((prev) =>
+        prev.map((entry) =>
+          entry.role === 'agent' && entry.turnId === turnId && !entry.interrupted
+            ? { ...entry, interrupted: true, interruptedReason: reason }
+            : entry,
+        ),
+      );
     }
   }, []);
 
@@ -139,6 +170,7 @@ export function useTranscript() {
   const clearActivePartial = useCallback(() => {
     userPartialRef.current = null;
     agentPartialRef.current = null;
+    agentTurnIdRef.current = null;
     setCurrentPartialTranscript(null);
     setCurrentAgentPartial(null);
   }, []);
@@ -151,6 +183,7 @@ export function useTranscript() {
     setFinalTranscriptEntries([]);
     userPartialRef.current = null;
     agentPartialRef.current = null;
+    agentTurnIdRef.current = null;
     setCurrentPartialTranscript(null);
     setCurrentAgentPartial(null);
   }, []);

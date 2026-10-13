@@ -16,9 +16,10 @@ import { useMemo } from 'react';
 import './VoiceOrb.css';
 
 const STATE_CONFIG = {
+  // Connected and idle. "Tap connect" belongs only to the disconnected orb.
   idle: {
     title: 'Ready',
-    subtitle: 'Tap connect to start talking',
+    subtitle: 'Start speaking whenever you like',
     badge: 'Idle',
   },
   listening: {
@@ -43,12 +44,20 @@ const STATE_CONFIG = {
   },
 };
 
+// Push-to-talk (contracts.md 2.8): the user's presses, not silence, end a
+// turn, so the two states the user acts in say which control to use.
+const PTT_SUBTITLES = {
+  idle: 'Press Speak, or hold Space, to talk',
+  listening: "Press Stop, or let go of Space, when you're done",
+};
+
 export function VoiceOrb({
   turnState = 'idle',
   isConnected = false,
   isTransitioning = false,
   errorMessage = null,
   onClick = null,
+  mode = 'vad', // the session's input mode: 'vad' | 'ptt'
 }) {
   // Determine effective state
   const effectiveState = useMemo(() => {
@@ -76,8 +85,12 @@ export function VoiceOrb({
         subtitle: 'Tap connect to start conversation',
       };
     }
-    return STATE_CONFIG[turnState] || STATE_CONFIG.idle;
-  }, [errorMessage, isConnected, isTransitioning, turnState]);
+    const meta = STATE_CONFIG[turnState] || STATE_CONFIG.idle;
+    if (mode === 'ptt' && PTT_SUBTITLES[turnState]) {
+      return { ...meta, subtitle: PTT_SUBTITLES[turnState] };
+    }
+    return meta;
+  }, [errorMessage, isConnected, isTransitioning, turnState, mode]);
 
   // Generate 24 equalizer bar elements with varying animation delays
   const equalizerBars = useMemo(() => {

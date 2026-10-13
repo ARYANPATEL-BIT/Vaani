@@ -501,3 +501,45 @@
     justify-content: space-between;
   }
 }
+
+/* Push-to-talk Speak/Stop button (PttButton.jsx), left of End Conversation */
+.floating-controls-bar {
+  gap: 8px;
+}
+
+.ptt-btn {
+  background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.35);
+}
+
+.ptt-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.ptt-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* While a press is open: red, like a recording light */
+.ptt-btn.ptt-holding {
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
+}
+
+.ptt-btn.ptt-holding .ptt-icon-wrapper {
+  animation: pulseAnim 1.2s ease-in-out infinite;
+}
+
+.ptt-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .ptt-hint {
+    display: none;
+  }
+}

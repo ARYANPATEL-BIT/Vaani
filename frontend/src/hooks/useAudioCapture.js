@@ -11,11 +11,24 @@
  * 7. Routing binary server messages to playback queue.
  * 8. Error handling: microphone denied, connection dropped, provider errors (nothing fails silently).
  * 9. Clean teardown and resource deallocation on stop or unmount.
+ * 10. Flushed turns (turnFilter.js): frames and reply messages that still
+ *     arrive for a flushed turn are dropped here, before the page sees them.
+ * 11. Push-to-talk (docs/contracts.md §2.8): in a "ptt" session the mic stays
+ *     open, but frames are sent only during a press (pttPress.js).
+ *     pttStart() also stops local playback at once when the agent is busy,
+ *     without waiting for the server's audio.flush round trip.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { AUDIO_SAMPLE_RATE, AUDIO_FRAME_MS, WS_SESSION_URL } from '../config.js';
+import {
+  AUDIO_SAMPLE_RATE,
+  AUDIO_FRAME_MS,
+  WS_SESSION_URL,
+  PTT_END_FALLBACK_MS,
+} from '../config.js';
 import { formatServerError } from '../turnState/turnContracts.js';
+import { createTurnFilter } from '../turnState/turnFilter.js';
+import { createPttPress, PRESS_STATES } from '../ptt/pttPress.js';
 
 export function useAudioCapture() {
   const [isCapturing, setIsCapturing] = useState(false);
@@ -25,6 +38,9 @@ export function useAudioCapture() {
   const [framesSent, setFramesSent] = useState(0);
   const [fps, setFps] = useState(0);
   const [errorMessage, setErrorMessage] = useState(null);
+  // The session's input mode as the SERVER confirmed it in session.started.
+  const [sessionMode, setSessionMode] = useState('vad'); // 'vad' | 'ptt'
+  const [pressState, setPressState] = useState(PRESS_STATES.IDLE);
 
   // References to active hardware / network resources for reliable teardown
   const mediaStreamRef = useRef(null);
@@ -40,7 +56,19 @@ export function useAudioCapture() {
   const lastFpsTimeRef = useRef(0);
   const framesSinceLastFpsRef = useRef(0);
   const fpsIntervalRef = useRef(null);
-  const isAudioFlushedRef = useRef(false);
+  // Flushed turns, so their late frames are dropped (one per session).
+  const turnFilterRef = useRef(null);
+
+  // Push-to-talk. Refs, not state: the worklet and socket handlers read them
+  // on every frame, and must see the latest value without a re-render.
+  const sessionModeRef = useRef('vad');
+  const pressRef = useRef(null); // createPttPress(...) for this session
+  // The agent's turn while it is thinking or speaking (from turn.state),
+  // so a press can flush it locally. null when the agent is not busy.
+  const busyTurnIdRef = useRef(null);
+  const flushPlaybackRef = useRef(null); // the page's flushPlayback
+  // { turnId, at }: a local stop, waiting for the server's audio.flush.
+  const localStopRef = useRef(null);
 
   /**
    * Stop active capture pipeline and release all resources cleanly.
@@ -97,7 +125,14 @@ export function useAudioCapture() {
     }
 
     isSessionReadyRef.current = false;
-    isAudioFlushedRef.current = false;
+    // An open press dies with the socket; the server discards its audio.
+    if (pressRef.current) pressRef.current.reset();
+    pressRef.current = null;
+    turnFilterRef.current = null;
+    sessionModeRef.current = 'vad';
+    busyTurnIdRef.current = null;
+    localStopRef.current = null;
+    setSessionMode('vad');
     setIsCapturing(false);
 
     if (!options.preserveMicDenied) {
@@ -126,14 +161,19 @@ export function useAudioCapture() {
    * @param {function(): void} [onFlushCommand] - callback for audio.flush.
    * @param {string} [persona='default'] - persona name for session.start.
    * @param {function(object): void} [onServerMessage] - callback for JSON messages.
+   * @param {'vad'|'ptt'} [mode='vad'] - input mode for session.start (v0.9).
    */
-  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage) => {
+  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage, mode = 'vad') => {
     if (isCapturing) {
       return;
     }
 
     isIntentionalStopRef.current = false;
-    isAudioFlushedRef.current = false;
+    // Local consts as well as refs: this session's handlers keep using THEIR
+    // filter even if a later session has replaced the ref.
+    const filter = createTurnFilter();
+    turnFilterRef.current = filter;
+    flushPlaybackRef.current = onFlushCommand;
     setErrorMessage(null);
     setFramesSent(0);
     setFps(0);
@@ -209,12 +249,28 @@ export function useAudioCapture() {
       socket.binaryType = 'arraybuffer';
       socketRef.current = socket;
 
+      // One push-to-talk press at a time; used only if the server confirms
+      // a "ptt" session.
+      const press = createPttPress({
+        send: (message) => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(message));
+          }
+        },
+        // The worklet answers with its last frame, then { type: 'last-frame' }.
+        requestLastFrame: () => workletNode.port.postMessage('flush'),
+        fallbackMs: PTT_END_FALLBACK_MS,
+        onChange: setPressState,
+      });
+      pressRef.current = press;
+
       socket.onopen = () => {
         setWsStatus('connected');
         socket.send(
           JSON.stringify({
             type: 'session.start',
             persona,
+            mode,
             audio: {
               sample_rate: AUDIO_SAMPLE_RATE,
               channels: 1,
@@ -226,8 +282,9 @@ export function useAudioCapture() {
 
       socket.onmessage = (event) => {
         if (event.data instanceof ArrayBuffer) {
-          // If the active turn's audio was flushed, discard stale in-flight frames
-          if (isAudioFlushedRef.current) {
+          // A frame of a flushed turn (by audio.flush, or by a local
+          // push-to-talk stop) is stale: discard it.
+          if (filter.dropFrame()) {
             return;
           }
           if (typeof onBinaryMessage === 'function') {
@@ -238,17 +295,33 @@ export function useAudioCapture() {
 
         try {
           const msg = JSON.parse(event.data);
+          // audio.start/end and agent.text/done of a flushed turn never
+          // reach the page (turnFilter.js says which messages).
+          if (filter.dropMessage(msg)) {
+            return;
+          }
           if (msg.type === 'session.started') {
             isSessionReadyRef.current = true;
             setSessionId(msg.session_id ?? null);
+            // The server's mode wins: an older server answers without one,
+            // and then the session is hands-free whatever we asked for.
+            const confirmedMode = msg.mode === 'ptt' ? 'ptt' : 'vad';
+            sessionModeRef.current = confirmedMode;
+            setSessionMode(confirmedMode);
             setWsStatus('ready');
-          } else if (msg.type === 'audio.start') {
-            // New turn audio started: unmark flushed state
-            isAudioFlushedRef.current = false;
           } else if (msg.type === 'audio.flush') {
-            // Mark flushed to drop trailing frames belonging to this turn
-            isAudioFlushedRef.current = true;
             const flushTurnId = msg.turn_id;
+            filter.flush(flushTurnId);
+            const localStop = localStopRef.current;
+            if (localStop && localStop.turnId === flushTurnId) {
+              // How much sooner the speaker went quiet than it would have
+              // waiting for the server: local stop -> this audio.flush.
+              console.info(
+                `[useAudioCapture] ptt local stop -> audio.flush: ${Math.round(performance.now() - localStop.at)} ms`,
+              );
+              localStopRef.current = null;
+            }
+            // Stops playback even if a local stop already did (harmless).
             if (typeof onFlushCommand === 'function') {
               onFlushCommand();
             }
@@ -271,12 +344,18 @@ export function useAudioCapture() {
             const formatted = formatServerError(msg.code, msg.message);
             setErrorMessage(msg.code ? `${msg.code}: ${formatted}` : formatted);
             console.warn('[useAudioCapture] Server error:', msg.code, msg.message);
-          } else if (msg.type === 'turn.state' && msg.state === 'listening') {
-            // Every error code is non-fatal (contracts.md 2.3). Once the user
-            // starts a new turn, the previous turn's error is stale: clear it.
-            // Connection and mic errors cannot arrive here (the socket is open
-            // and audio is flowing), so this never hides one of those.
-            setErrorMessage(null);
+          } else if (msg.type === 'turn.state') {
+            // Remember the agent's turn while it is busy: a speak press
+            // flushes exactly that turn locally (pttStart).
+            busyTurnIdRef.current =
+              msg.state === 'thinking' || msg.state === 'speaking' ? msg.turn_id : null;
+            if (msg.state === 'listening') {
+              // Every error code is non-fatal (contracts.md 2.3). Once the user
+              // starts a new turn, the previous turn's error is stale: clear it.
+              // Connection and mic errors cannot arrive here (the socket is open
+              // and audio is flowing), so this never hides one of those.
+              setErrorMessage(null);
+            }
           }
 
           if (typeof onServerMessage === 'function') {
@@ -297,6 +376,7 @@ export function useAudioCapture() {
         const wasSessionActive = isSessionReadyRef.current;
         setWsStatus('disconnected');
         isSessionReadyRef.current = false;
+        press.reset(); // nothing more can be sent on this socket
         setIsCapturing(false);
 
         // If closed unexpectedly while active, report connection dropped
@@ -308,6 +388,22 @@ export function useAudioCapture() {
       // Step F: Listen for frames from AudioWorklet and stream over WebSocket
       workletNode.port.onmessage = (event) => {
         const frameBuffer = event.data;
+
+        // Not a frame: the worklet's answer to a push-to-talk stop. Every
+        // frame of the press was handled before this message (port order),
+        // so ptt.end can go now.
+        if (!(frameBuffer instanceof ArrayBuffer)) {
+          if (frameBuffer && frameBuffer.type === 'last-frame') {
+            press.lastFrameSent();
+          }
+          return;
+        }
+
+        // Push-to-talk: frames only while a press is open (contracts.md 2.8).
+        // The mic stays open between presses; those frames are just not sent.
+        if (sessionModeRef.current === 'ptt' && !press.sendsFrames()) {
+          return;
+        }
 
         if (
           socketRef.current &&
@@ -348,6 +444,42 @@ export function useAudioCapture() {
     }
   }, [isCapturing, stopCapture]);
 
+  /**
+   * Speak pressed (push-to-talk sessions only).
+   *
+   * If the agent is thinking or speaking, its turn is flushed HERE, before
+   * ptt.start goes out: playback stops now, not one server round trip later,
+   * and frames of that turn still on the wire are dropped by the filter. The
+   * server then barges in on the press and sends audio.flush as usual.
+   *
+   * @returns {string|null} the agent turn cut locally, or null if none was.
+   */
+  const pttStart = useCallback(() => {
+    const press = pressRef.current;
+    if (sessionModeRef.current !== 'ptt' || !press || press.state !== PRESS_STATES.IDLE) {
+      return null;
+    }
+    const cutTurnId = busyTurnIdRef.current;
+    if (cutTurnId) {
+      turnFilterRef.current.flush(cutTurnId);
+      localStopRef.current = { turnId: cutTurnId, at: performance.now() };
+    }
+    // Always: even after the server says idle, the browser may still be
+    // playing the end of a reply, and the user wants to talk now.
+    if (typeof flushPlaybackRef.current === 'function') {
+      flushPlaybackRef.current();
+    }
+    press.start();
+    return cutTurnId;
+  }, []);
+
+  /** Stop pressed: ptt.end follows once the worklet's last frame is sent. */
+  const pttStop = useCallback(() => {
+    if (pressRef.current) {
+      pressRef.current.stop();
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       stopCapture();
@@ -365,5 +497,9 @@ export function useAudioCapture() {
     clearError,
     startCapture,
     stopCapture,
+    sessionMode,
+    pressState,
+    pttStart,
+    pttStop,
   };
 }

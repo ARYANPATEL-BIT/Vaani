@@ -34,3 +34,13 @@ export const AUDIO_FRAME_MS = 20;
  * 16 000 samples/s × 0.020 s = 320 samples.
  */
 export const AUDIO_FRAME_SAMPLES = AUDIO_SAMPLE_RATE * (AUDIO_FRAME_MS / 1000);
+
+// --- Push-to-talk (docs/contracts.md §2.8) ---
+
+/**
+ * How long, after stop is pressed, to wait for the AudioWorklet to hand over
+ * the press's last frame before sending ptt.end anyway (src/ptt/pttPress.js).
+ * The worklet answers within one render quantum (8 ms at 16 kHz) when the
+ * audio thread is running; 300 ms only matters if that thread has stalled.
+ */
+export const PTT_END_FALLBACK_MS = 300;

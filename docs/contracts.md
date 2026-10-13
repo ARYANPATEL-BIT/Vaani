@@ -294,7 +294,7 @@ The spec's diagram ("Sequence -- Conversation turn with barge-in", complete
 documentation PDF, p. 23) draws "Stop playback" last, after "Cancel stream"
 and "Flush queue". This diagram supersedes it; the PDF has not been edited.
 
-### 2.8 Push-to-talk — SHARED PROTOCOL v0.9 (Proposed — pending Samyak)
+### 2.8 Push-to-talk — SHARED PROTOCOL v0.9 (Implemented: backend #46, frontend fix/frontend-demo)
 
 A session is in one of two input modes, chosen by `session.start.mode` and
 fixed until the socket closes:
@@ -382,3 +382,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-08 | Aryan   | Shared protocol v0.8 (feat/english-voice), note-only: `agent.text` / `agent.done` can be Latin script (English replies, §2.5); `audio.start.sample_rate` can change between replies of one session (§2.2). No new message or field |
 | 2026-10-11 | Aryan   | Editorial, no version change (docs/drift): §2.2's stale "frontend gap" note replaced; the frontend has read `audio.start.sample_rate` since `feat(frontend): add turn UI states and error handling` |
 | 2026-10-12 | Aryan   | Shared protocol v0.9 (feat/push-to-talk1): `session.start.mode` (`vad` default, `ptt`) and `session.started.mode`; `ptt.start` / `ptt.end`; `BAD_MESSAGE` also for an unknown `mode` and for a ptt message in a `vad` session; §2.8 push-to-talk, with the client's rule (frames only between `ptt.start` and `ptt.end`, `ptt.end` after the last frame) |
+| 2026-10-13 | Aryan   | Editorial, no version change (fix/frontend-demo): §2.8 status "Proposed, pending Samyak" changed to "Implemented: backend #46, frontend fix/frontend-demo"; the browser now sends `session.start.mode`, `ptt.start` and `ptt.end` |
