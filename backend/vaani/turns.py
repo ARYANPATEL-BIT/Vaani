@@ -294,6 +294,10 @@ class TurnPipeline:
         """Steps 1 to 4 of a barge-in, by speech (_barge_in) or by a press
         (on_ptt_start). `onset_at`: perf_counter of the speech or the press."""
         assert self._responder is not None  # thinking and speaking need one
+        # The new turn answers carried words. Reset BEFORE stop_reply's first
+        # await: an older cut turn's final arriving while audio.flush is sent
+        # must not start a reply for the turn being cut (_on_final).
+        self._answer_carried = False
         # 1-3 (barge_in.py): silence first, then stream, synthesis, history.
         carried = await stop_reply(
             self._responder,
@@ -304,7 +308,6 @@ class TurnPipeline:
             self._machine.state,
         )
         self._carried = join_speech(self._carried, carried)
-        self._answer_carried = False  # the new turn answers carried words
         # 4. Close the agent's turn; the new turn_id is the user's.
         await self._machine.move_to(TurnState.CANCELLING)
         await self._open_turn()
@@ -392,11 +395,22 @@ class TurnPipeline:
         if self._responder is None:
             return  # no model: the turn already went idle
         self._awaiting_final.discard(turn_id)
-        if turn_id != self._session.current_turn_id:
-            # A turn a barge-in cut while it was still being transcribed.
+        current = self._session.current_turn_id
+        if turn_id != current or self._session.is_flushed(turn_id):
+            # A turn a barge-in cut while it was still being transcribed: the
+            # next turn is open, or (flushed) the barge-in is still sending
+            # audio.flush or cancelling and has not opened it yet. Its words
+            # (none if it failed) are carried, never answered as this turn.
+            if turn_id == current:
+                log.info(
+                    "session %s: final for turn %s arrived during its barge-in, "
+                    "carried",
+                    self._session.session_id,
+                    turn_id,
+                )
             self._carried = join_speech(self._carried, text)
             if self._answer_carried and not self._awaiting_final:
-                await self._reply(self._session.current_turn_id)
+                await self._reply(current)
             return
         await self._reply(turn_id, text)
 

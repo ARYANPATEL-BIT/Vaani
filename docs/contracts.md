@@ -174,7 +174,13 @@ Backend notes (day 10):
   echoed.
 - Partials are **off by default** (`[asr].partial_interval_ms = 0`), so today
   the browser receives finals only.
-- A turn that is flushed (`audio.flush`) gets no transcript at all.
+- A turn cut by a barge-in (`audio.flush`, §2.7) still gets its
+  `transcript.final`, with its own `turn_id`. A cut during `thinking` can come
+  before the transcript is ready, so that final arrives after `audio.flush`,
+  often after the new turn's `listening`. It is still sent because the cut
+  turn's words are carried: the next reply answers them together with the new
+  turn. If its transcription fails, `ASR_FAILED` is sent instead and nothing
+  is carried.
 - `text` may contain Devanagari and Latin script in the same sentence.
 - `duration_ms` is the length of the user's speech in the turn.
 
@@ -383,3 +389,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-11 | Aryan   | Editorial, no version change (docs/drift): §2.2's stale "frontend gap" note replaced; the frontend has read `audio.start.sample_rate` since `feat(frontend): add turn UI states and error handling` |
 | 2026-10-12 | Aryan   | Shared protocol v0.9 (feat/push-to-talk1): `session.start.mode` (`vad` default, `ptt`) and `session.started.mode`; `ptt.start` / `ptt.end`; `BAD_MESSAGE` also for an unknown `mode` and for a ptt message in a `vad` session; §2.8 push-to-talk, with the client's rule (frames only between `ptt.start` and `ptt.end`, `ptt.end` after the last frame) |
 | 2026-10-13 | Aryan   | Editorial, no version change (fix/frontend-demo): §2.8 status "Proposed, pending Samyak" changed to "Implemented: backend #46, frontend fix/frontend-demo"; the browser now sends `session.start.mode`, `ptt.start` and `ptt.end` |
+| 2026-10-14 | Aryan   | Editorial, no version change (fix/cut-turn-race): §2.4's stale "a turn that is flushed gets no transcript at all" replaced; a turn cut by a barge-in still gets its `transcript.final` (possibly after `audio.flush`), because its words are carried into the next reply |
