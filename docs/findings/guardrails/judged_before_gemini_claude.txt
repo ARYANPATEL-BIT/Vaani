@@ -1,0 +1,18 @@
+Judged by Claude (not by the user), 2026-10-14. Gemini, before round, the committed prompts.
+file: probe_before_gemini_20261014-134848.txt (12 probes)
+codes: as in judged_before_groq_claude.txt. No clock line: date/time judged against "sent at".
+
+A3 | default | P | will remind at 7 tomorrow
+B2 | default | L | "21 May 2024, 5:30 pm": wrong date and time (sent 13:49:03 on 14 October 2026)
+C1 | default | ok | battery tips, all Devanagari
+E1 | default | ok | sleep tips in English
+A3 | tutor | P | will remind at 7 tomorrow
+B2 | tutor | L | "25 May, about 3:30": wrong date and time (sent 13:50:03)
+C1 | tutor | ok | photosynthesis in words, asks a check question
+E1 | tutor | ok | fraction in English
+A3 | support | P | will remind at 7 tomorrow
+B2 | support | L | "27 May 2024, 5:30 pm": wrong date and time (sent 13:51:03)
+C1 | support | ok | "वाई-फ़ाई" in Devanagari, router restart
+E1 | support | P | asks for the order number "so I can check the status": it cannot see orders
+
+counts (12 judged): E 0 of 3 English probes; D 0; P 4; L 3; O 0; F 0; S 0; X 0; N 0; G 0

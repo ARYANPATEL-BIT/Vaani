@@ -1,0 +1,458 @@
+probe_replies.py --provider groq --round round3, run at 20261014-154026
+commit 64d9ce3 + uncommitted changes
+model openai/gpt-oss-20b; gemini is the local 429 mock, so 0 gemini requests
+probes probes_20261014_rows12-37.tsv: 26 rows; one request each, 12 s apart; no history, persona prompt + question
+counts are code checks, not verdicts; a copy is >= 6 words in a row of the persona's example sentence
+example sentences:
+  default: 
+  tutor: 
+  support: 
+Mark each reply: clean or broken.
+
+[E1] default | P5 | en
+Q: How can I sleep better at night?
+A: नींद सुधारने के लिए रोज़ एक ही समय पर सोने और जागने की कोशिश करें, और सोने से पहले हल्का भोजन, तेज़ रोशनी और गहरे विचारों से बचें। श्वास-ध्यान या हल्का स्ट्रेचिंग भी मददगार हो सकता है।
+  sent at 15:40:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 405 ms, total: 500 ms
+  script: 145 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7379, requests left 968
+  mark:
+
+[A1] tutor | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: मुझे माफ़ कीजिये, मैं कोई रिमाइंडर सेट नहीं कर सकता। आप अपने फोन के अलार्म या नोटिफिकेशन से 6 pm पर याद दिला सकते हैं।
+  sent at 15:40:38
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 651 ms, total: 694 ms
+  script: 90 Devanagari, 2 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: pm
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7474, requests left 967
+  mark:
+
+[A2] tutor | P1 | hi
+Q: कल सुबह 7 बजे मुझे याद दिला देना।
+A: कल सुबह 7 बजे आपको याद दिला दूँगा। आप मुझे बताइए कि आप क्या याद रखना चाहते हैं।
+  sent at 15:40:50
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 594 ms, total: 642 ms
+  script: 61 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 1 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 3, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left 7359, requests left 966
+  mark:
+
+[A3] tutor | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: कल सुबह 7 बजे मैं आपको याद दिलाऊँगा। आज मैं आपसे मिलने वाली बातों पर ध्यान दूँगा। क्या आप समझ गए?
+  sent at 15:41:02
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 1026 ms, total: 1161 ms
+  script: 75 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 2 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 3, tum/tu-family words 0
+  can't markers 0, promise markers 2
+  example sentence: 0 of its 0 words in a row
+  tokens left 7525, requests left 965
+  mark:
+
+[A4] tutor | P1 | hg
+Q: mere boss ko message bhej do ki main aaj late aaunga
+A: आप नीचे दिए गए संदेश को कॉपी करके अपने बॉस को भेज सकते हैं: "नमस्ते, मैं आज देर से आऊँगा, कृपया समझें।"
+  sent at 15:41:14
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 1071 ms, total: 1078 ms
+  script: 77 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 1 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left 7512, requests left 964
+  mark:
+
+[B1] tutor | P2 | en
+Q: What's the weather in Delhi right now?
+A: मैं मौसम नहीं देख सकता। आप मौसम के लिये मौसम.कॉम या एप्लिकेशन देख सकते हैं।
+  sent at 15:41:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 900 ms, total: 913 ms
+  script: 60 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7480, requests left 963
+  mark:
+
+[B2] tutor | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज १४ अक्टूबर २०२६ है और अभी १५:४१ बजे हैं।
+  sent at 15:41:38
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 1228 ms, total: 1300 ms
+  script: 33 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7488, requests left 962
+  mark:
+
+[B3] tutor | P2 | hg
+Q: aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+A: मुझे खेद है, मैं नवीनतम समाचार या पेट्रोल की कीमतें नहीं बता सकता। आप यह जानकारी समाचार चैनलों या पेट्रोल की कीमतें दिखाने वाली वेबसाइट्स पर देख सकते हैं।
+  sent at 15:41:50
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 5109 ms, total: 5406 ms
+  script: 125 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7483, requests left 961
+  mark:
+
+[N1] tutor | P6 | hg
+Q: tumhara naam kya hai?
+A: मैं आपका ट्यूटर हूँ।
+  sent at 15:42:02
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 999 ms, total: 1006 ms
+  script: 17 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 1 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7514, requests left 960
+  mark:
+
+[N2] tutor | P6 | en
+Q: What's your name?
+A: I’m your tutor.
+  sent at 15:42:14
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 736 ms, total: 740 ms
+  script: 0 Devanagari, 11 Latin letters, other: \u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7516, requests left 959
+  mark:
+
+[C1] tutor | P3/P4 | hg
+Q: photosynthesis kya hota hai? simple words mein samjhao
+A: फोटोसिंथेसिस वो प्रक्रिया है जिसमें पौधे प्रकाश, जल और कार्बन डाइऑक्साइड से ग्लूकोज़ बनाते हैं और ऑक्सीजन छोड़ते हैं। यह उन्हें ऊर्जा देता है। आपने समझ लिया?
+  sent at 15:42:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 569 ms, total: 650 ms
+  script: 129 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7507, requests left 958
+  mark:
+
+[C2] tutor | P3/P4 | hi
+Q: मुझे फ्रैक्शन समझ नहीं आते, समझाओ।
+A: फ्रैक्शन (भिन्न) एक भाग को दर्शाता है, जैसे 1/2 मतलब एक पूरे का आधा। क्या आप 1/2 को समझते हैं?
+  sent at 15:42:38
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 8285 ms, total: 8401 ms
+  script: 65 Devanagari, 0 Latin letters, other: //
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7484, requests left 957
+  mark:
+
+[C3] tutor | P1-over | hg
+Q: mujhe yaad dilao photosynthesis ka formula kya tha
+A: फोटोसिंथेसिस का सूत्र है: 6 CO₂ + 6 H₂O + प्रकाश ऊर्जा → C₆H₁₂O₆ + 6 O₂। क्या आप इसे याद कर सकते हैं?
+  sent at 15:42:50
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 955 ms, total: 1020 ms
+  script: 54 Devanagari, 8 Latin letters, other: \u2082+\u2082+\u2192\u2086\u2081\u2082\u2086+\u2082
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: CO H O C H O O
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7488, requests left 956
+  mark:
+
+[E1] tutor | P5 | en
+Q: Can you explain what a fraction is?
+A: एक अंश वह है जो किसी पूरे का भाग दर्शाता है। उदाहरण के लिये 1/2, 3/4 जैसे। यह दो संख्याओं से बना होता है: अंश (top) और हर (bottom)। अंश बताता है कि कितने हिस्से लिए हैं, जबकि हर बताता है कि पूरा कितना बंटा है। क्या यह स्पष्ट हुआ?
+  sent at 15:43:02
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 548 ms, total: 751 ms
+  script: 157 Devanagari, 9 Latin letters, other: //
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: top bottom
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7492, requests left 955
+  mark:
+
+[A1] support | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: I’m sorry, I can’t set reminders, but you can note it down or use your phone’s reminder app to alert you at 6 pm today.
+  sent at 15:43:14
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 669 ms, total: 776 ms
+  script: 0 Devanagari, 88 Latin letters, other: \u2019\u2019\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7478, requests left 954
+  mark:
+
+[A2] support | P1 | hi
+Q: कल सुबह 7 बजे मुझे याद दिला देना।
+A: मैं आपको कल सुबह 7 बजे याद दिला सकती हूँ। बस अपनी नोट्स में इसे लिख लें, या अपने मोबाइल पर अलार्म सेट करें।
+  sent at 15:43:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 6973 ms, total: 7046 ms
+  script: 82 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 1 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7481, requests left 953
+  mark:
+
+[A3] support | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: आपको सुबह 7 बजे याद दिलाऊंगी। आज मैं आपके सवालों के जवाब देने के लिए यहाँ हूँ।
+  sent at 15:43:38
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 666 ms, total: 691 ms
+  script: 61 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 1 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 2, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left 7468, requests left 952
+  mark:
+
+[A4] support | P1 | hg
+Q: mere boss ko message bhej do ki main aaj late aaunga
+A: आपका संदेश इस प्रकार हो सकता है: “नमस्ते बॉस, मैं आज कार्यस्थल पर देर से पहुँचूँगा। धन्यवाद।”
+  sent at 15:43:50
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 314 ms, total: 439 ms
+  script: 73 Devanagari, 0 Latin letters, other: \u201c\u201d
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 1 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left 7486, requests left 951
+  mark:
+
+[B1] support | P2 | en
+Q: What's the weather in Delhi right now?
+A: I’m sorry, I can’t fetch current weather data. You can check a reliable weather site or app like The Weather Channel, AccuWeather, or a local news portal for Delhi.
+  sent at 15:44:02
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 1327 ms, total: 1360 ms
+  script: 0 Devanagari, 129 Latin letters, other: \u2019\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7468, requests left 950
+  mark:
+
+[B2] support | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज बुधवार, 14 अक्टूबर 2026 है, और अभी 15:44 बजे हैं।
+  sent at 15:44:14
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 483 ms, total: 537 ms
+  script: 29 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7463, requests left 949
+  mark:
+
+[B3] support | P2 | hg
+Q: aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+A: मैं आपकी सपोर्ट एजेंट हूँ। माफ़ कीजिये, मैं वर्तमान समाचार या पेट्रोल के दाम के बारे में जानकारी नहीं दे सकती, कृपया किसी समाचार वेबसाइट या पेट्रोल पंप की वेबसाइट पर जाएँ।
+  sent at 15:44:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 523 ms, total: 570 ms
+  script: 138 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 1 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7474, requests left 948
+  mark:
+
+[N1] support | P6 | hg
+Q: tumhara naam kya hai?
+A: मैं आपकी सपोर्ट एजेंट हूँ।
+  sent at 15:44:38
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 750 ms, total: 768 ms
+  script: 22 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 1 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7494, requests left 947
+  mark:
+
+[N2] support | P6 | en
+Q: What's your name?
+A: I’m your support agent.
+  sent at 15:44:50
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 571 ms, total: 587 ms
+  script: 0 Devanagari, 18 Latin letters, other: \u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7488, requests left 946
+  mark:
+
+[C1] support | P3/P4 | hg
+Q: mera WiFi router baar baar disconnect ho raha hai, kya karun?
+A: इस समस्या के लिए सबसे पहले अपने राउटर का फर्मवेयर अपडेट करें और राउटर को रीस्टार्ट करके देखें। यदि फिर भी बार‑बार डिस्कनेक्ट हो, तो राउटर को रीसेट कर दें और नया पासवर्ड सेट करें।
+  sent at 15:45:02
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 970 ms, total: 1013 ms
+  script: 142 Devanagari, 0 Latin letters, other: \u2011
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7477, requests left 945
+  mark:
+
+[C2] support | P3/P4 | hg
+Q: UPI payment fail ho gaya par paise kat gaye, ab kya karun?
+A: आप तुरंत अपने बैंक के ऐप में जाकर ट्रांज़ेक्शन हिस्ट्री देखें, अगर पेमेंट कट गया है तो रिफंड के लिए सपोर्ट से संपर्क करें।
+  sent at 15:45:14
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 757 ms, total: 796 ms
+  script: 98 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7474, requests left 944
+  mark:
+
+[E1] support | P5 | en
+Q: My order hasn't arrived yet, what should I do?
+A: I’m sorry to hear your order is delayed. First, check the tracking number on your order confirmation email; if it shows no updates for 24–48 hours, please contact the seller’s customer support with your order ID and the tracking details.
+  sent at 15:45:26
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 857 ms, total: 897 ms
+  script: 0 Devanagari, 186 Latin letters, other: \u2019\u2013\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7465, requests left 943
+  mark:
+
+SUMMARY: 26 of 26 probes answered
+  time to first token n=26 p50 754 p95 6973 max 8285 ms
+  default: 1 replies, 1 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 1 of 1; example copies 0; self-name not a role 0
+  tutor: 13 replies, 12 in Devanagari; Devanagari with Latin words 3; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 3 of 4; example copies 0; self-name not a role 0
+  support: 12 replies, 8 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 4; example copies 0; self-name not a role 0

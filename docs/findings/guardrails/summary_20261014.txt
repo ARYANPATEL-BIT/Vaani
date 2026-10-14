@@ -1,0 +1,96 @@
+Guardrails probe runs, 2026-10-14: summary (feat/guardrails)
+
+WHO JUDGED: every verdict below is Claude's, from the judged_*_claude.txt files. No "mark:"
+line in any run file has been filled in by the user, so none of these counts is the user's.
+The one exception on record: the user's own chat judgement of round 1 (quoted at the top of
+judged_round1_groq_claude.txt): live data fixed, 4 promises of which 2 claim the action was
+done, English 9 of 12, Latin in Hindi 4. That matches Claude's L 0, P 2 + D 2, E 9, X 4.
+The user did not count F, S or G; those are Claude's only.
+
+ROUNDS (prompts in backend/config.toml [personas]):
+  before   the prompts on dev: Devanagari role lines and an example sentence that promises
+  round 1  first guardrails prompt: rules and example sentence in Devanagari, no clock line
+  round 2  every rule in English, no example sentence, clock line at the end of the prompt
+  round 3  round 2 with only what round 2 failed changed. FINAL VERSION, in config.toml
+           (default 1354, tutor 1343, support 1394 characters, all under 1400). No round 4.
+
+PASS CRITERIA (37 groq probes): E at most 2 of the 12 English probes; D 0; P at most 1;
+  L 0 and every date/time answer matches the clock line; O 0 (tutor C3 must answer);
+  F and S 0 (one criterion); X at most 1; N 0. G is counted, not gated.
+  The gemini runs have fewer probes than the criteria were written for, so their
+  pass/fail is on fewer chances to fail.
+
+                     before    round 1   round 2     round 3   gemini    gemini
+                     groq      groq      groq        groq      before    round 3
+probes judged        37        37        22 of 37    37        12        8 of 37
+                                         (partial)             (subset)  (partial)
+E English->Hindi     2/12 ok   9/12 X    4/7 X       6/12 X    0/3 ok    0/2 ok (a)
+D claims done        0 ok      2 X       0 ok        0 ok      0 ok      0 ok
+P promises           12 X      2 X       0 ok        6 X       4 X       0 ok
+L invented/wrong     7 X       0 ok (b)  0 ok        0 ok      3 X       0 ok
+O over-refusal       0 ok      0 ok      1 X         0 ok      0 ok      not run (c)
+F user feminine      0         5         4           3         0         0
+S own gender wrong   1         2         0           0         0         0
+F and S              X         X         X           X         ok        ok
+X Latin in Hindi     1 ok      4 X       2 X         4 X       0 ok      0 ok
+N personal name      0 ok      0 ok      0 ok        0 ok      0 ok      0 ok
+G grammar (not gated)2         4         2           3         0         0
+criteria passed      5 of 8    3 of 8    at most 4   4 of 8    6 of 8    7 of 7 run
+                                         (4 fail     (D L O N)           (O not run)
+                                         for sure)
+first token p50 ms   605       754       1920        750       845       2413
+first token p95 ms   974       1763 (d)  5214 (d)    6973 (d)  1331 (d)  17152 (d)
+failed requests      1 of 38   1 of 38   1 of 23     1 of 38   0 of 12   1 of 9
+                     timeout   timeout   timeout     connect   -         timeout
+                                                     error
+
+(a) plus 1 the other way: default N1 "tumhara naam kya hai?" answered in English.
+(b) round 1 had no clock line and its rule was to refuse the date and time, so there were
+    no date/time answers to check; rounds 2 and 3 answered all of theirs correctly.
+(c) the run stopped at probe 9; tutor C3 is probe 24.
+(d) above the 1300 ms flag. Round 3's p95 comes from 3 slow replies (8285, 6973, 5109 ms);
+    the other 34 were 241 to 1479 ms. Prompt length was about the same as round 2's.
+    p50 is the median, p95 the nearest-rank p95 of telemetry.py; failed requests excluded.
+
+FAILED REQUESTS PER PROVIDER, 2026-10-14 (details: timeouts_20261014.txt)
+  groq:   4 failures in 138 requests: 3 timeouts (10.0 s, 17.7 s, 10.0 s) and 1 connect
+          error (18.8 s); none was a 429. 138 = 38 + 38 + 23 + 38 probe requests, plus 1
+          test request before the round 3 resume.
+  gemini: 1 failure in 21 requests: 1 timeout (11.3 s), not a 429. 21 = 12 + 9.
+  Budget for this task (from round 2 on): groq 62 of 150, gemini 9 of 50.
+
+PROVIDER VERDICT (round 3 prompts, both providers)
+  criterion        groq round 3 (37)     gemini round 3 (8, default persona only)
+  E                FAIL 6 of 12          pass 0 of 2 (+1 Hinglish answered in English)
+  D                pass 0                pass 0
+  P                FAIL 6                pass 0
+  L                pass 0                pass 0
+  O                pass 0                not run
+  F and S          FAIL F 3              pass 0
+  X                FAIL 4                pass 0
+  N                pass 0                pass 0
+  passed           4 of 8                7 of 7 run
+  first token      p50 750, p95 6973     p50 2413, p95 17152
+  On the same 8 default probes (A1-N1), groq had E 2, P 2, F 3; gemini had none of these.
+  Gemini passes more criteria, but on 8 replies from one persona: a quality edge, not a
+  measured result. Groq stays primary on latency: its p50 is a third of gemini's, and
+  gemini's p95 is 17 s. Neither is clean on reliability today: groq failed 4 of 138,
+  gemini 1 of 21. provider_order is not changed here (a separate PR).
+
+FILES (all under docs/findings/guardrails/ unless a path is given)
+  probe sets: probes_20261014.tsv (37 rows), probes_20261014_rows12-37.tsv,
+    probes_20261014_rows8-37.tsv (resumes), probes_20261014_gemini-all.tsv (37 rows,
+    every row marked for gemini)
+  before groq:     probe_before_groq_20261014-104717.txt/.tsv, probe_before_groq_20261014-134334.txt/.tsv,
+                   judged_before_groq_claude.txt
+  round 1 groq:    probe_after_groq_20261014-135203.txt/.tsv, probe_after_groq_20261014-140222.txt/.tsv,
+                   judged_round1_groq_claude.txt, tables_groq_first-after_20261014.txt
+  round 2 groq:    probe_round2_groq_20261014-142926.txt/.tsv, judged_round2_groq_claude.txt
+  round 3 groq:    probe_round3_groq_20261014-152228.txt/.tsv, probe_round3_groq_20261014-154026.txt/.tsv,
+                   judged_round3_groq_claude.txt
+  gemini before:   probe_before_gemini_20261014-134848.txt/.tsv, judged_before_gemini_claude.txt
+  gemini round 3:  probe_round3_gemini_20261014-153347.txt/.tsv, judged_round3_gemini_claude.txt
+  failures:        timeouts_20261014.txt (items 1-5)
+  Latin check cost: chunk_check_cost_20261014-104727.txt
+  runner:          backend/scripts/probe_replies.py (uses backend/scripts/ask.py)
+  learning doc:    docs/learning/backend-learning/20-guardrails.md

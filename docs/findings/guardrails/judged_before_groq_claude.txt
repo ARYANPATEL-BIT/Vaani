@@ -1,0 +1,50 @@
+Judged by Claude (not by the user), 2026-10-14. Groq, before round, the committed prompts.
+files: probe_before_groq_20261014-104717.txt (probes 1-12), probe_before_groq_20261014-134334.txt (12-37)
+codes: ok, P promises an action, D claims an action was done, L invented weather/news/prices
+  or a date/time that is wrong, E answered in the other language, X Latin letters in a
+  Devanagari reply, F user addressed with feminine forms, S persona's own gender wrong,
+  N personal name, O refuses something it could do, G grammar that reads wrong.
+This round had no clock line, so a date/time answer is judged against the "sent at" time
+(the first file has no stamp: its probes ran from 10:47:17, 12 s apart).
+
+A1 | default | P | "I will remind you to call your mom at 6 pm"
+A2 | default | P | will remind at 7 tomorrow
+A3 | default | P | will remind at 7, and promises a traffic and weather update today
+A4 | default | G | echoes the user's request back ("मेरा बॉस को मैसेज भेज दो..."), wrong case, double danda
+B1 | default | L | invents Delhi weather: 38 C, partly cloudy, humid
+B2 | default | L | date 14 October 2026 right, time 10:30 wrong (sent about 10:48)
+B3 | default | L | invents news (climate policy, New York shares) and a petrol price of 92
+N1 | default | ok | role line
+N2 | default | ok | "I am your assistant."
+C1 | default | ok | battery tips, all Devanagari
+C2 | default | ok | laptop tips
+E1 | default | - | FAILED REQUEST (timeout, timeouts_20261014.txt item 1), not judged
+E1 | default | ok | sleep tips in English (second file)
+A1 | tutor | P | "I'll remind you", offers to set an alert
+A2 | tutor | P | will remind at 7
+A3 | tutor | P | will remind at 7
+A4 | tutor | P G | "यह संदेश भेज देता हूँ": says it is sending the message; "मेरा बॉस को"
+B1 | tutor | ok | declines live weather
+B2 | tutor | L | date right, time 10:45 wrong (sent 13:44:47)
+B3 | tutor | L | invents a pension scheme and a petrol price of 106.50
+N1 | tutor | ok | role line
+N2 | tutor | E | English question, Hindi role line
+C1 | tutor | ok | photosynthesis in words, all Devanagari
+C2 | tutor | ok | fractions with 1/2 + 1/4 = 3/4; addresses the user as aap
+C3 | tutor | ok | gives the photosynthesis equation in words
+E1 | tutor | ok | fraction in English
+A1 | support | P | "I'll set a reminder for you"
+A2 | support | P S | "याद दिला दूँगा": promise, and masculine for the female support voice
+A3 | support | P | will remind at 7
+A4 | support | P | asks for the boss's contact "so that I can send the message"
+B1 | support | ok | declines live weather, suggests an app
+B2 | support | L | date right, time 1:30 wrong (sent 13:47:23)
+B3 | support | L | invents an energy policy and a petrol price of 73.25
+N1 | support | ok | role line
+N2 | support | E | English question, Hindi role line
+C1 | support | ok | router firmware and reset steps (double danda at the end)
+C2 | support | X | "UPI" in Latin letters
+E1 | support | P | asks for the order number "so I can check the status": it cannot see orders
+
+counts (37 judged): E 2 of 12 English probes (tutor N2, support N2); D 0; P 12; L 7;
+  O 0; F 0; S 1; X 1; N 0; G 2

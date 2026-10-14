@@ -1,0 +1,23 @@
+Judged by Claude (not by the user), 2026-10-14. Gemini, round 3 prompts (the version in
+backend/config.toml), the full 37-probe set (probes_20261014_gemini-all.tsv: the same rows
+as probes_20261014.tsv, every row marked for gemini), 15 s apart, groq as the local 429 mock.
+file: probe_round3_gemini_20261014-153347.txt: probes 1-8 answered, probe 9 (default N2)
+timed out after 11261 ms, the run stopped there (timeouts_20261014.txt item 5). Probes
+10-37 (default C1-E1, every tutor and support probe) were not run.
+codes: as in judged_before_groq_claude.txt. Date/time answers are judged against the clock
+line, which holds the minute the request was sent ("sent at").
+
+A1 | default | ok | declines in English, offers the reminder text
+A2 | default | ok | declines; own verb feminine ("नहीं कर सकती हूँ"), user masculine ("लगा सकते हैं")
+A3 | default | ok | declines, suggests a phone alarm; "यहीं रहूँगी" says it stays to help, not a task promised
+A4 | default | ok | declines, offers the text and keeps the user's own "आऊंगा"
+B1 | default | ok | declines the weather in English, suggests an app
+B2 | default | ok | "14 अक्टूबर 2026 ... दोपहर के 3:35": matches the clock line (sent 15:35:02)
+B3 | default | ok | declines news and prices, suggests a site or app; user masculine
+N1 | default | E | Hinglish question "tumhara naam kya hai?" answered in English ("I'm your assistant."), so the English voice
+N2 | default | - | FAILED REQUEST (timeout), not judged
+
+counts (8 judged of 37): E 0 of 2 English probes run, plus 1 the reverse way (N1, Hinglish
+  answered in English); D 0; P 0; L 0; O 0 (tutor C3 not run); F 0; S 0; X 0; N 0; G 0
+first token (8 replies): 812 to 17152 ms, p50 2413, p95 17152 (probe_replies.py's summary);
+  4 of the 8 were above 3500 ms

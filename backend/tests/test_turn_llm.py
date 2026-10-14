@@ -185,7 +185,11 @@ def test_persona_choice_changes_the_system_prompt_sent() -> None:
     personas = Settings().personas
     sent = [call[0] for call in llm.calls]
     assert [m.role for m in sent] == ["system", "system"]
-    assert [m.content for m in sent] == [personas["default"], personas["tutor"]]
+    # Each persona's own prompt, then the date and time line (persona.assemble).
+    for message, persona in zip(sent, ("default", "tutor"), strict=True):
+        before, _, clock = message.content.rpartition("\n\n")
+        assert before == personas[persona]
+        assert clock.startswith("Current date and time (Asia/Kolkata): ")
 
 
 def test_unknown_persona_is_refused() -> None:

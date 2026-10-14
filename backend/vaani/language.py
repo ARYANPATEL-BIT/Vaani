@@ -23,8 +23,21 @@ LANGUAGES = ("hi", "en")
 # The Devanagari Unicode block, U+0900 to U+097F. Built with chr() so the
 # source shows the code points, as in chunker.py.
 _DEVANAGARI = re.compile(f"[{chr(0x0900)}-{chr(0x097F)}]")
+# A run of ASCII letters. Never Devanagari, so what it finds is ASCII and safe
+# to print to any console.
+_LATIN_WORD = re.compile(r"[A-Za-z]+")
 
 
 def reply_language(text: str) -> str:
     """The language key for `text`: "hi" if it has any Devanagari, else "en"."""
     return "hi" if _DEVANAGARI.search(text) else "en"
+
+
+def latin_words(text: str) -> list[str]:
+    """Every run of Latin letters in `text`: "WiFi", "a", "m" in "WiFi 8 a.m.".
+
+    In a Devanagari reply each one is a word the Hindi voice will misread
+    (feat/guardrails). One regex scan: about 2 us for a 200-character chunk
+    (docs/findings/guardrails/).
+    """
+    return _LATIN_WORD.findall(text)

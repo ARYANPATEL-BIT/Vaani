@@ -14,6 +14,7 @@ or the gitignored backend/.env file.
 import re
 from functools import lru_cache
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, SecretStr, field_validator
 from pydantic_settings import (
@@ -252,8 +253,21 @@ class LLMSettings(BaseModel):
     max_requests_per_process: int
     # Completed user+assistant exchanges re-sent with every request.
     history_turns: int
+    # IANA time zone of the date and time line added to every system prompt
+    # (persona.assemble), e.g. "Asia/Kolkata".
+    timezone: str
     gemini: GeminiSettings
     groq: GroqSettings
+
+    @field_validator("timezone")
+    @classmethod
+    def _known_zone(cls, timezone: str) -> str:
+        # A misspelt zone fails at startup, not on a user's turn.
+        try:
+            ZoneInfo(timezone)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"unknown time zone {timezone!r}") from exc
+        return timezone
 
 
 class GuardrailSettings(BaseModel):

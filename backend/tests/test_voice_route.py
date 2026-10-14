@@ -14,7 +14,7 @@ import pytest
 from tests.fake_tts import FakeSynthesizer
 from tests.test_turn_llm import ScriptedLLM, speak, start
 from tests.test_turn_tts import is_, make_client, until
-from vaani.language import reply_language
+from vaani.language import latin_words, reply_language
 
 HINDI_RATE = 22050
 ENGLISH_RATE = 16000  # no real voice runs at 16 kHz: here it marks "English"
@@ -34,6 +34,19 @@ ENGLISH_RATE = 16000  # no real voice runs at 16 kHz: here it marks "English"
 )
 def test_reply_language_is_decided_by_script(text, language) -> None:
     assert reply_language(text) == language
+
+
+@pytest.mark.parametrize(
+    "text, words",
+    [
+        ("ठीक है, मैं याद दिला दूँगी।", []),
+        ("मेरा WiFi बंद है।", ["WiFi"]),
+        # Digits are not words; "a.m." is two runs of letters.
+        ("कल 8 a.m. को UPI से भेजिए।", ["a", "m", "UPI"]),
+    ],
+)
+def test_latin_words_finds_every_run_of_latin_letters(text, words) -> None:
+    assert latin_words(text) == words
 
 
 def speak_reply(chunks: tuple[str, ...]):
@@ -69,11 +82,23 @@ def test_an_english_reply_is_spoken_by_the_english_voice() -> None:
     assert spoken_rate(msgs) == ENGLISH_RATE
 
 
-def test_a_mixed_reply_is_spoken_by_the_hindi_voice() -> None:
-    voices, msgs = speak_reply(("ठीक है, ", "मैं meeting का link भेज दूँगी।"))
+def test_a_mixed_reply_is_spoken_by_the_hindi_voice(caplog) -> None:
+    with caplog.at_level(logging.WARNING, logger="vaani.speaker"):
+        voices, msgs = speak_reply(("ठीक है, ", "मैं meeting का link भेज दूँगी।"))
     assert voices["hi"].texts == ["ठीक है,", "मैं meeting का link भेज दूँगी।"]
     assert voices["en"].texts == []
     assert spoken_rate(msgs) == HINDI_RATE
+    # Still said by the Hindi voice, and its Latin words are logged: only
+    # for the second chunk, the first has none.
+    assert "2 Latin word(s) in a hi chunk: meeting link" in caplog.text
+    assert caplog.text.count("Latin word(s)") == 1
+
+
+def test_an_english_reply_logs_no_latin_words(caplog) -> None:
+    # Latin is the right script for an English reply: nothing to log.
+    with caplog.at_level(logging.WARNING, logger="vaani.speaker"):
+        speak_reply(("Sure, ", "I'll remind you at 8 a.m. tomorrow."))
+    assert "Latin word(s)" not in caplog.text
 
 
 def test_a_reply_that_drifts_script_stays_on_its_first_voice(caplog) -> None:

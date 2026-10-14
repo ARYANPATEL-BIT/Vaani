@@ -1,0 +1,76 @@
+Provider timeouts during the guardrails probe runs, 2026-10-14
+Each one is a data point, not a probe result: it is left out of the
+first-token p50/p95 and out of the per-problem counts.
+
+1. groq, before round, probe 12 of 37: [E1] default | P5 | en
+   "How can I sleep better at night?"
+   file: probe_before_groq_20261014-104717.txt (last block)
+   error: ProviderTimeoutError after 10023 ms (groq: no response within 10.0s);
+     [llm.groq].timeout_s = 10.0 in backend/config.toml
+   time of day: about 10:49:31 IST (+0530). Not stamped by the runner then: derived
+     from the run file's last write, 10:49:41 (written right after the error),
+     minus the 10 s wait.
+   the 11 requests before it in the same run answered with first token 536 to 974 ms;
+     the rate headers of those 11 read 999 down to 989 requests left (of 1000 a day)
+     and 7296 to 7597 tokens left (of 8000 a minute; 7304 on the request just
+     before), so it was not a token-limit wait
+   what happened next: the run stopped (any failure stops); the user chose to resume
+     from probe 12 into a second before-file, with the remaining rows in
+     probes_20261014_rows12-37.tsv. The timed-out request is counted as used:
+     Groq before round = 38 requests.
+   since then the runner stamps "sent at HH:MM:SS" on every probe.
+
+2. groq, after round, probe 8 of 37: [N1] default | P6 | hg
+   "tumhara naam kya hai?"
+   file: probe_after_groq_20261014-135203.txt (last block)
+   error: ProviderTimeoutError after 17702 ms (groq: no response within 10.0s).
+     17.7 s, not 10: timeout_s applies to EACH step (connect, first byte, each
+     following chunk), so the request can run longer than 10 s in total before
+     one step goes 10 s without a byte
+   time of day: sent at 13:53:27 IST (stamped by the runner)
+   the 7 requests before it in the same run answered with first token 553 to
+     969 ms; their rate headers read 975 down to 969 requests left (of 1000 a
+     day) and 7202 to 7357 tokens left (of 8000 a minute), so not a token-limit wait
+   the run stopped (any failure stops) and asked the user, who chose to resume
+     from probe 8 into a second after-file, with the remaining rows in
+     probes_20261014_rows8-37.tsv. Counted as a used request: Groq after round =
+     38 requests.
+
+3. groq, round 2, probe 23 of 37: [C2] tutor | P3/P4 | hi
+   file: probe_round2_groq_20261014-142926.txt (last block)
+   error: ProviderTimeoutError after 10018 ms (groq: no response within 10.0s)
+   time of day: sent at 14:33:50 IST (stamped by the runner)
+   the 22 requests before it in the same run answered with first token 503 to
+     5588 ms (p50 1920, p95 5214): much slower than the before round (p50 605)
+     and round 1 (p50 754), although round 2's prompts are shorter than round
+     1's and drew fewer tokens (bucket deficit 427 to 634 per request, against
+     557 to 818 in round 1). Rate headers: 939 down to 937 requests left of
+     1000 a day, 7366 to 7573 tokens left of 8000 a minute: not a token-limit wait
+   the run stopped (any failure stops) and asked the user. Counted as a used request.
+
+4. groq, round 3, probe 12 of 37: [E1] default | P5 | en
+   "How can I sleep better at night?"
+   file: probe_round3_groq_20261014-152228.txt (last block)
+   error: ProviderUnavailableError after 18754 ms (groq: ConnectError): not a
+     timeout and not a 429; the connection itself failed, then the chain
+     failed over to ask.py's local gemini 429 mock, so 0 gemini requests
+   time of day: sent at 15:24:40 IST (stamped by the runner)
+   the 11 requests before it in the same run answered with first token 241 to
+     1479 ms (p50 585); rate headers 969 down to 959 requests left of 1000 a
+     day, 7301 to 7520 tokens left of 8000 a minute: not a limit wait
+   the run stopped (any failure stops). Counted as a used request.
+
+5. gemini, round 3, probe 9 of 37: [N2] default | P6 | en
+   "What's your name?"
+   file: probe_round3_gemini_20261014-153347.txt (last block)
+   error: ProviderTimeoutError after 11261 ms (gemini: no response within
+     10.0s); [llm.gemini].timeout_s = 10.0. Groq was ask.py's local 429 mock,
+     so 0 groq requests
+   time of day: sent at 15:35:50 IST (stamped by the runner)
+   the 8 requests before it in the same run answered with first token 812 to
+     17152 ms (p50 2413): the last four were 5285, 3507, 17152 and 4842 ms,
+     so Gemini was already slow before it stopped answering. Gemini returns
+     no rate headers in this runner, so a quota wait cannot be ruled in or out;
+     it was not an HTTP 429
+   the run stopped (any failure stops). Counted as a used request: Gemini
+     round 3 = 9 requests.

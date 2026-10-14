@@ -35,7 +35,9 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from contextlib import aclosing
+from datetime import datetime
 from time import perf_counter
+from zoneinfo import ZoneInfo
 
 from vaani.chunker import ClauseChunker
 from vaani.config import Settings
@@ -86,6 +88,7 @@ class Responder:
         # gateway has already refused a key that is not in config.
         self._system_prompt = settings.personas[session.persona]
         self._history_turns = settings.llm.history_turns
+        self._zone = ZoneInfo(settings.llm.timezone)  # for the clock line
         self._patterns = settings.guardrail.patterns
         self._session = session
         self._telemetry = telemetry
@@ -172,7 +175,10 @@ class Responder:
             return
 
         # 2. Only now does the transcript meet the system prompt.
-        messages = assemble(self._system_prompt, self._session.history, transcript)
+        # The clock is read here, once per reply: the date and time line is
+        # as fresh as the turn it answers.
+        now = datetime.now(self._zone)
+        messages = assemble(self._system_prompt, self._session.history, transcript, now)
 
         # 3. Stream. aclosing: if we leave the loop early, the chain's stream
         # (and its HTTP connection) is closed at once, not at garbage collection.

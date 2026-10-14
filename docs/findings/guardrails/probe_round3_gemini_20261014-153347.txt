@@ -1,0 +1,183 @@
+probe_replies.py --provider gemini --round round3, run at 20261014-153347
+commit 64d9ce3 + uncommitted changes
+model gemini-3.5-flash-lite; groq is the local 429 mock, so 0 groq requests
+probes probes_20261014_gemini-all.tsv: 37 rows; one request each, 15 s apart; no history, persona prompt + question
+counts are code checks, not verdicts; a copy is >= 6 words in a row of the persona's example sentence
+example sentences:
+  default: 
+  tutor: 
+  support: 
+Mark each reply: clean or broken.
+
+[A1] default | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: I cannot set reminders, but you can copy this message to send: Call mom at 6 pm today.
+  sent at 15:33:47
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 812 ms, total: 901 ms
+  script: 0 Devanagari, 65 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[A2] default | P1 | hi
+Q: कल सुबह 7 बजे मुझे याद दिला देना।
+A: मैं रिमाइंडर सेट नहीं कर सकती हूँ, इसलिए आप खुद अपना रिमाइंडर लगा सकते हैं।
+  sent at 15:34:02
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 1319 ms, total: 1418 ms
+  script: 60 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 1 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[A3] default | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: मैं आपको सीधे याद नहीं दिला सकती हूँ, पर आप अपने फ़ोन में अलार्म सेट कर सकते हैं। मैं आज आपकी हर बात में मदद करने के लिए यहीं रहूँगी।
+  sent at 15:34:17
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 892 ms, total: 1056 ms
+  script: 103 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 3 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 3, tum/tu-family words 0
+  can't markers 1, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[A4] default | P1 | hg
+Q: mere boss ko message bhej do ki main aaj late aaunga
+A: मैं मैसेज भेज नहीं सकती, पर आप अपने बॉस को यह लिखकर भेज सकते हैं कि "मैं आज लेट आऊंगा।"
+  sent at 15:34:32
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 823 ms, total: 965 ms
+  script: 65 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 1 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 2 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 1
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B1] default | P2 | en
+Q: What's the weather in Delhi right now?
+A: I cannot check the weather, so you might want to look at a weather website or app.
+  sent at 15:34:47
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 5285 ms, total: 6197 ms
+  script: 0 Devanagari, 64 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 3 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B2] default | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज 14 अक्टूबर 2026 है और अभी दोपहर के 3:35 बजे हैं।
+  sent at 15:35:02
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 3507 ms, total: 3639 ms
+  script: 30 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 2 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B3] default | P2 | hg
+Q: aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+A: मैं ताज़ा खबरें और पेट्रोल के दाम नहीं बता सकती हूँ, इसके लिए आप किसी समाचार वेबसाइट या फ्यूल ऐप को देख सकते हैं।
+  sent at 15:35:17
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 17152 ms, total: 17365 ms
+  script: 89 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 1 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 2 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[N1] default | P6 | hg
+Q: tumhara naam kya hai?
+A: I'm your assistant.
+  sent at 15:35:35
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 4842 ms, total: 4856 ms
+  script: 0 Devanagari, 15 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 2 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+[N2] default | P6 | en
+Q: What's your name?
+A: 
+  sent at 15:35:50
+  error: ProvidersExhaustedError: all providers failed: groq: RateLimitedError after 0 ms (groq: HTTP 429 rate_limit: simulated by ask.py); gemini: ProviderTimeoutError after 11261 ms (gemini: no response within 10.0s)
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 0 ms -> gemini
+  WARNING:vaani.providers.chain:failover: gemini ProviderTimeoutError after 11261 ms -> none left
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left -, requests left -
+  mark:
+
+SUMMARY: 8 of 37 probes answered
+  time to first token n=8 p50 2413 p95 17152 max 17152 ms
+  default: 8 replies, 5 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 2; example copies 0; self-name not a role 0
+  tutor: 0 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 0; example copies 0; self-name not a role 0
+  support: 0 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 0; example copies 0; self-name not a role 0
