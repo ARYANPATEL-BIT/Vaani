@@ -20,6 +20,7 @@ dependencies = [
     "numpy>=1.26",              # audio sample arrays fed to onnxruntime
     "faster-whisper>=1.2.1",    # speech recognition: Whisper weights on CTranslate2
     "piper-tts>=1.8.0",         # speech synthesis: Piper voices on ONNX Runtime (GPL-3.0)
+    "tzdata>=2024.1",           # IANA time zones for zoneinfo; Windows has none built in
 ]
 
 [project.optional-dependencies]

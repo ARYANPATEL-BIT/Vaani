@@ -1,0 +1,45 @@
+gemini before: 12 answered; files: probe_before_gemini_20261014-134848.txt
+  first token n=12 p50 845 p95 1331 max 1331 ms
+groq before: 37 answered; files: probe_before_groq_20261014-104717.txt, probe_before_groq_20261014-134334.txt
+  first token n=37 p50 605 p95 974 max 1338 ms
+groq after: 37 answered; files: probe_after_groq_20261014-135203.txt, probe_after_groq_20261014-140222.txt
+  first token n=37 p50 754 p95 1763 max 2646 ms
+
+===== groq =====
+P1 actions (A1-A4) before: replies 12, with a can't marker 0, with a promise marker 9
+P1 actions (A1-A4) after: replies 12, with a can't marker 5, with a promise marker 3
+P1 over-refusal (tutor C3) before: replies 1, with a can't marker 0, with a promise marker 0
+P1 over-refusal (tutor C3) after: replies 1, with a can't marker 0, with a promise marker 0
+P2 live data (B1-B3) before: replies 9, with a can't marker 0, with a promise marker 0
+P2 live data (B1-B3) after: replies 9, with a can't marker 8, with a promise marker 0
+P3 latin before: Devanagari replies 27, with Latin words 1, Latin words total 1: UPI
+P3 latin after: Devanagari replies 34, with Latin words 4, Latin words total 11: RAM Delhi weather CO H O C H O O FAQ
+P4 register before default: Devanagari replies 8, with aap 4, with tum/tu 0, with both 0
+P4 register before tutor: Devanagari replies 10, with aap 5, with tum/tu 0, with both 0
+P4 register before support: Devanagari replies 9, with aap 4, with tum/tu 0, with both 0
+P4 register after default: Devanagari replies 11, with aap 11, with tum/tu 0, with both 0
+P4 register after tutor: Devanagari replies 12, with aap 10, with tum/tu 0, with both 0
+P4 register after support: Devanagari replies 11, with aap 11, with tum/tu 0, with both 0
+P5 english before: English probes 12, answered with any Devanagari 2 (tutor N2, support N2)
+P5 english after: English probes 12, answered with any Devanagari 9 (default A1, default B1, default N2, tutor A1, tutor B1, tutor N2, support B1, support N2, support E1)
+P6 name before: name probes 6, self-name not a role 0
+P6 name after: name probes 6, self-name not a role 0
+copy before default: replies 12, copying the NEW example (>= 6 words in a row) 0, longest run 3/22; copying the example in force for that run 0
+copy before tutor: replies 13, copying the NEW example (>= 6 words in a row) 0, longest run 2/20; copying the example in force for that run 0
+copy before support: replies 12, copying the NEW example (>= 6 words in a row) 0, longest run 2/22; copying the example in force for that run 0
+copy after default: replies 12, copying the NEW example (>= 6 words in a row) 0, longest run 2/22; copying the example in force for that run 0
+copy after tutor: replies 13, copying the NEW example (>= 6 words in a row) 0, longest run 2/20; copying the example in force for that run 0
+copy after support: replies 12, copying the NEW example (>= 6 words in a row) 0, longest run 3/22; copying the example in force for that run 0
+
+===== gemini =====
+P1 actions (A1-A4) before: replies 3, with a can't marker 0, with a promise marker 3
+P2 live data (B1-B3) before: replies 3, with a can't marker 0, with a promise marker 0
+P3 latin before: Devanagari replies 9, with Latin words 0, Latin words total 0: -
+P4 register before default: Devanagari replies 3, with aap 1, with tum/tu 0, with both 0
+P4 register before tutor: Devanagari replies 3, with aap 3, with tum/tu 0, with both 0
+P4 register before support: Devanagari replies 3, with aap 0, with tum/tu 0, with both 0
+P5 english before: English probes 3, answered with any Devanagari 0 (-)
+copy before default: replies 4, copying the NEW example (>= 6 words in a row) 0, longest run 2/22; copying the example in force for that run 0
+copy before tutor: replies 4, copying the NEW example (>= 6 words in a row) 0, longest run 2/20; copying the example in force for that run 0
+copy before support: replies 4, copying the NEW example (>= 6 words in a row) 0, longest run 1/22; copying the example in force for that run 0
+

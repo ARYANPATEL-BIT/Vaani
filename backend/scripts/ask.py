@@ -23,7 +23,8 @@ provider listed there needs its key in the environment or backend/.env
                  half-read connection). tests/test_streaming.py proves the close
                  from the server's side of a real socket.
 --persona        send config.toml's system prompt for that persona first, built
-                 by the same persona.assemble() the server uses (no history).
+                 by the same persona.assemble() the server uses (no history;
+                 the same date and time line at its end).
                  Without it the question goes alone, with no system prompt.
 --save           append "question<TAB>reply" to FILE as UTF-8, one line per run.
 
@@ -45,8 +46,10 @@ import asyncio
 import logging
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -135,7 +138,8 @@ async def ask(
     settings = get_settings()
     messages = [Message("user", question)]
     if persona is not None:
-        messages = assemble(settings.personas[persona], [], question)
+        clock = datetime.now(ZoneInfo(settings.llm.timezone))  # as reply.py
+        messages = assemble(settings.personas[persona], [], question, clock)
     cap = RequestCap(settings.llm.max_requests_per_process)
     clients = {}
     if simulate_429:

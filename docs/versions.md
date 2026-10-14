@@ -3,7 +3,8 @@
 The learning documents cite this file for the exact version of every library
 and tool in use. Generated 2026-10-11 from `backend/uv.lock` and
 `frontend/package-lock.json`: every version below is the one those lock files
-pin, nothing else. Regenerate this file after any `uv lock` or `npm install`
+pin, nothing else (the tzdata row was added on 2026-10-14, from the same
+`backend/uv.lock`). Regenerate this file after any `uv lock` or `npm install`
 that changes a lock file.
 
 Licences are not in the lock files. Backend licences come from each installed
@@ -32,6 +33,7 @@ classifier); frontend licences come from the `license` field that
 | numpy | 2.4.6 on Python 3.11 (2.5.3 on 3.12+) | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Audio sample arrays |
 | faster-whisper | 1.2.1 | MIT | Speech recognition: Whisper on CTranslate2 |
 | piper-tts | 1.8.0 | GPL-3.0-or-later | Speech synthesis: Piper voices on ONNX Runtime |
+| tzdata | 2026.5 | Apache-2.0 | IANA time zones for `zoneinfo` (`[llm].timezone`, the date and time line in every system prompt); Windows has no zone database of its own. Added in feat/guardrails |
 
 ## Backend optional `gpu` extra (`uv sync --extra gpu`)
 

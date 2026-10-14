@@ -1,0 +1,36 @@
+Judged by Claude (not by the user), 2026-10-14. Groq, round 2 (all rules in English, no
+example sentence, clock line at the end of the system prompt).
+file: probe_round2_groq_20261014-142926.txt: probes 1-22 answered, probe 23 timed out, the
+run stopped there (timeouts_20261014.txt item 3). Probes 24-37 (tutor E1, every support
+probe) were not run in this file.
+codes: as in judged_before_groq_claude.txt. Date/time answers are judged against the clock
+line, which holds the minute the request was sent ("sent at").
+
+A1 | default | ok | offers the reminder text to copy: "Call mom at 6 pm."
+A2 | default | F | "याद दिलवाना चाहती हैं": the user in the feminine; also opens with its role unasked
+A3 | default | F | declines (own verbs feminine, right), but "लगा सकती हैं" to the user
+A4 | default | F | offers the text (good), but writes the user's message as "आऊँगी" though the user said "aaunga"
+B1 | default | E X F | English question in Hindi; "AccuWeather" in Latin; "देख सकती हैं" to the user
+B2 | default | ok | "14 अक्टूबर 2026 ... 14:30": matches the clock line (sent 14:30:26)
+B3 | default | ok | declines news and prices; user forms masculine ("देख सकते हैं")
+N1 | default | ok | role line
+N2 | default | ok | "I'm your assistant."
+C1 | default | ok | battery tips
+C2 | default | X | "RAM" and "SSD" in Latin letters
+E1 | default | ok | sleep tips in English
+A1 | tutor | E G | English question answered in Hindi; the offered text is awkward ("आपको ... लिख सकते हैं")
+A2 | tutor | ok | declines, offers the reminder text
+A3 | tutor | ok | declines, suggests a phone alarm, offers help
+A4 | tutor | G | offers the text (good), but "आएँगा" is not a word (should be "आऊँगा")
+B1 | tutor | E | English question answered in Hindi
+B2 | tutor | O | date right (14 October 2026) but says it cannot confirm the time, although the clock line has it
+B3 | tutor | ok | declines news and prices
+N1 | tutor | ok | role line
+N2 | tutor | E | English question, Hindi role line
+C1 | tutor | ok | photosynthesis in words, checks understanding
+C2 | tutor | - | FAILED REQUEST (timeout), not judged
+
+counts (22 judged of 37): E 4 of 7 English probes run (default B1, tutor A1, B1, N2);
+  D 0; P 0; L 0; O 1; F 4; S 0; X 2; N 0; G 2
+against the pass criteria this already fails E (max 2 of 12), X (max 1), O (0) and F (0),
+whatever the 15 probes not run would show.

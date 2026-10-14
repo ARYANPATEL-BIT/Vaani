@@ -1,0 +1,60 @@
+Judged by Claude (not by the user), 2026-10-14. Groq, round 3 (round 2's prompts with only
+what round 2 failed changed: English kept when declining or giving the role (E), brand
+names and abbreviations said as words (X), date/time given from the clock line (O),
+masculine plural forms for the user and the user's own words kept in a drafted message (F)).
+This is the final prompt version, in backend/config.toml.
+files: probe_round3_groq_20261014-152228.txt (probes 1-11; probe 12, default E1, failed
+with a ConnectError after 18754 ms, timeouts_20261014.txt item 4) and
+probe_round3_groq_20261014-154026.txt (probes 12-37, probes_20261014_rows12-37.tsv, all 26
+answered). Before the second file one test request ("Reply with the single word OK.",
+no persona) got through: first token 580 ms.
+codes: as in judged_before_groq_claude.txt. Date/time answers are judged against the clock
+line, which holds the minute the request was sent ("sent at").
+
+A1 | default | E F | English question answered in Hindi; "याद दिला सकती हैं" to the user
+A2 | default | P | "याद दिलाने के लिए तैयार रहूँगी": promises to remind
+A3 | default | P G | "याद दिला दूँगी": promises; "आपको अपनी मदद के साथ बातचीत करती रहूँगी" reads wrong
+A4 | default | F | offers the text (good), but writes the user's message as "आऊंगी" though the user said "aaunga"
+B1 | default | E | English question answered in Hindi
+B2 | default | ok | "१४ अक्टूबर २०२६ ... १५:२३": matches the clock line (sent 15:23:28); Devanagari digits
+B3 | default | F | declines news and prices; "देख सकती हैं" to the user
+N1 | default | ok | role line
+N2 | default | ok | "I'm your assistant."
+C1 | default | ok | battery tips, all Devanagari
+C2 | default | X | "SSD" in Latin letters
+E1 | default | - | FAILED REQUEST (ConnectError) in the first file, not judged
+E1 | default | E | sleep tips, but in Hindi (second file)
+A1 | tutor | E X | English question answered in Hindi; "6 pm" in Latin letters
+A2 | tutor | P | "याद दिला दूँगा": promises to remind
+A3 | tutor | P G | "याद दिलाऊँगा": promises; "आपसे मिलने वाली बातों पर ध्यान दूँगा" reads wrong
+A4 | tutor | ok | offers the text to copy and keeps the user's "आऊँगा"
+B1 | tutor | E | English question answered in Hindi (declines the weather)
+B2 | tutor | ok | "१४ अक्टूबर २०२६ ... १५:४१": matches the clock line (sent 15:41:38)
+B3 | tutor | ok | declines news and prices, suggests where to look
+N1 | tutor | ok | role line
+N2 | tutor | ok | "I'm your tutor."
+C1 | tutor | ok | photosynthesis in words, checks understanding
+C2 | tutor | ok | a fraction with 1/2, asks a check question
+C3 | tutor | X | answers (not O), but the formula is in Latin: 6 CO2 + 6 H2O -> C6H12O6 + 6 O2
+E1 | tutor | E X G | English question answered in Hindi; "top", "bottom" in Latin; "अंश" used both for fraction and for numerator
+A1 | support | ok | declines in English, suggests the phone's reminder app
+A2 | support | P | "मैं आपको ... याद दिला सकती हूँ": says it can remind, then tells the user to set an alarm
+A3 | support | P | "याद दिलाऊंगी": promises to remind
+A4 | support | ok | offers the text; keeps the user masculine ("पहुँचूँगा"), though it rewords "late aaunga"
+B1 | support | ok | declines the weather in English, names weather sites
+B2 | support | ok | "बुधवार, 14 अक्टूबर 2026 ... 15:44": matches the clock line (sent 15:44:14)
+B3 | support | ok | declines news and prices; opens with its role unasked ("मैं आपकी सपोर्ट एजेंट हूँ")
+N1 | support | ok | role line
+N2 | support | ok | "I'm your support agent."
+C1 | support | ok | router firmware, restart, reset
+C2 | support | ok | check the bank app's history, then contact support for a refund
+E1 | support | ok | delivery steps in English; does not claim to see the order
+
+counts (37 judged): E 6 of 12 English probes (default A1, B1, E1; tutor A1, B1, E1);
+  D 0; P 6 (A2 and A3 in every persona); L 0, and all 3 date/time answers match the clock
+  line; O 0 (tutor C3 answers); F 3 (all default); S 0; X 4 (default C2, tutor A1, C3, E1);
+  N 0; G 3
+against the pass criteria: passes D, L, O, N; fails E (6, max 2), P (6, max 1), F (3, max 0)
+  and X (4, max 1). 4 of 8 criteria (F and S counted as one).
+first token (37 replies, both files): p50 750 ms, p95 6973 ms, max 8285 ms: ABOVE the 1300 ms
+  flag. Slow ones: tutor C2 8285, support A2 6973, tutor B3 5109; the other 34 were 241 to 1479.

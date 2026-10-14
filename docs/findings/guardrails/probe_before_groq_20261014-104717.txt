@@ -1,0 +1,219 @@
+probe_replies.py --provider groq --round before, run at 20261014-104717
+commit 64d9ce3 + uncommitted changes
+model openai/gpt-oss-20b; gemini is the local 429 mock, so 0 gemini requests
+probes probes_20261014.tsv: 37 rows; one request each, 12 s apart; no history, persona prompt + question
+counts are code checks, not verdicts; a copy is >= 6 words in a row of the persona's example sentence
+example sentences:
+  default: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी
+  tutor: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगा और ट्रैफ़िक का अपडेट भी दे दूँगा
+  support: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी
+Mark each reply: clean or broken.
+
+[A1] default | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: Sure, I will remind you to call your mom at 6 pm today.
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 728 ms, total: 764 ms
+  script: 0 Devanagari, 40 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 0 of its 17 words in a row
+  tokens left 7366, requests left 999
+  mark:
+
+[A2] default | P1 | hi
+Q: कल सुबह 7 बजे मुझे याद दिला देना।
+A: ठीक है, मैं कल सुबह 7 बजे आपको याद दिला दूँगी।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 611 ms, total: 620 ms
+  script: 34 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 1 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 5 of its 17 words in a row
+  tokens left 7329, requests left 998
+  mark:
+
+[A3] default | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: हाँ, मैं कल सुबह 7 बजे आपको याद दिला दूँगी। आज मैं आपको ट्रैफ़िक और मौसम का अपडेट दूँगी।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 807 ms, total: 825 ms
+  script: 68 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 2, tum/tu-family words 0
+  can't markers 0, promise markers 2
+  example sentence: 3 of its 17 words in a row
+  tokens left 7296, requests left 997
+  mark:
+
+[A4] default | P1 | hg
+Q: mere boss ko message bhej do ki main aaj late aaunga
+A: मेरा बॉस को मैसेज भेज दो कि मैं आज लेट आऊँगा।।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 608 ms, total: 611 ms
+  script: 36 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 1 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 1 of its 17 words in a row
+  tokens left 7597, requests left 996
+  mark:
+
+[B1] default | P2 | en
+Q: What's the weather in Delhi right now?
+A: The current temperature in Delhi is 38 °C with partly cloudy skies. It's quite humid today.
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 605 ms, total: 609 ms
+  script: 0 Devanagari, 70 Latin letters, other: \xb0
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left 7591, requests left 995
+  mark:
+
+[B2] default | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज १४ अक्टूबर २०२६ है और अभी १०:३० बजे हैं।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 751 ms, total: 759 ms
+  script: 33 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left 7586, requests left 994
+  mark:
+
+[B3] default | P2 | hg
+Q: aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+A: आज की टॉप न्यूज़ में भारत सरकार ने नई जलवायु नीति की घोषणा की है, और न्यू यॉर्क में शेयर बाजार में हल्का उछाल देखा गया है। पेट्रोल का दर 92₹ प्रति लीटर है।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 923 ms, total: 929 ms
+  script: 118 Devanagari, 0 Latin letters, other: \u20b9
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left 7581, requests left 993
+  mark:
+
+[N1] default | P6 | hg
+Q: tumhara naam kya hai?
+A: मैं आपकी असिस्टेंट हूँ।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 536 ms, total: 558 ms
+  script: 20 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 1 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left 7549, requests left 992
+  mark:
+
+[N2] default | P6 | en
+Q: What's your name?
+A: I am your assistant.
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 895 ms, total: 914 ms
+  script: 0 Devanagari, 16 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left 7574, requests left 991
+  mark:
+
+[C1] default | P3/P4 | hg
+Q: mere phone ki battery jaldi khatam ho jaati hai, kya karun?
+A: बैटरी लाइफ़ बढ़ाने के लिए, सेटिंग्स में ब्राइटनेस कम करें और अनयूज्ड ऐप्स बंद करें। साथ ही, बैकग्राउंड ऐप रीफ़्रेश भी बंद कर दें।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 707 ms, total: 741 ms
+  script: 104 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left 7567, requests left 990
+  mark:
+
+[C2] default | P3/P4 | hg
+Q: mera laptop bahut slow chal raha hai, kya karun?
+A: आपके लैपटॉप को रिस्टार्ट करके देखें। यदि फ़ाइलें ज़्यादा खुली हैं, तो अनयूज़्ड प्रोग्राम बंद करके स्पेस खाली करें। यदि अभी भी धीमा है, तो मैमोरी बढ़ाने या हार्ड डिस्क बदलने पर विचार करें।
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 974 ms, total: 1022 ms
+  script: 152 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left 7304, requests left 989
+  mark:
+
+[E1] default | P5 | en
+Q: How can I sleep better at night?
+A: 
+  error: ProvidersExhaustedError: all providers failed: groq: ProviderTimeoutError after 10023 ms (groq: no response within 10.0s); gemini: RateLimitedError after 1 ms (gemini: HTTP 429 : simulated by ask.py)
+  WARNING:vaani.providers.chain:failover: groq ProviderTimeoutError after 10023 ms -> gemini
+  WARNING:vaani.providers.gemini:gemini: HTTP 429 : simulated by ask.py
+  WARNING:vaani.providers.chain:failover: gemini RateLimitedError after 1 ms -> none left
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+SUMMARY: 11 of 37 probes answered
+  time to first token n=11 p50 728 p95 974 max 974 ms
+  default: 11 replies, 8 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 3; example copies 0; self-name not a role 0
+  tutor: 0 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 0; example copies 0; self-name not a role 0
+  support: 0 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 0; example copies 0; self-name not a role 0
+
+
+mark: P
+mark: P
+mark: P L
+mark: G echoed the request back, no honest refusal; "मेरा बॉस को" should be "मेरे", double danda
+mark: L
+mark: L date correct (check if injected), time invented
+mark: L G invented news and petrol price; "का दर" should be "की दर"
+mark: ok
+mark: ok
+mark: ok
+mark: ok minor: ram vs disk mixed up, "मैमोरी" spelling

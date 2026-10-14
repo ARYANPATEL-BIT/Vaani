@@ -1,0 +1,259 @@
+probe_replies.py --provider gemini --round before, run at 20261014-134848
+commit 64d9ce3 + uncommitted changes
+model gemini-3.5-flash-lite; groq is the local 429 mock, so 0 groq requests
+probes probes_20261014.tsv: 12 rows; one request each, 15 s apart; no history, persona prompt + question
+counts are code checks, not verdicts; a copy is >= 6 words in a row of the persona's example sentence
+example sentences:
+  default: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी
+  tutor: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगा और ट्रैफ़िक का अपडेट भी दे दूँगा
+  support: ठीक है मैं कल सुबह 8 बजे याद दिला दूँगी और ट्रैफ़िक का अपडेट भी दे दूँगी
+Mark each reply: clean or broken.
+
+[A3] default | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: कल सुबह 7 बजे मैं आपको याद दिला दूँगी, और आज मैं आपके सवालों के जवाब देने में आपकी मदद करूँगी।
+  sent at 13:48:48
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 1331 ms, total: 1412 ms
+  script: 72 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 3, tum/tu-family words 0
+  can't markers 0, promise markers 2
+  example sentence: 4 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B2] default | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज 21 मई 2024 है और अभी शाम के 5 बज कर 30 मिनट हुए हैं।
+  sent at 13:49:03
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 828 ms, total: 929 ms
+  script: 31 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[C1] default | P3/P4 | hg
+Q: mere phone ki battery jaldi khatam ho jaati hai, kya karun?
+A: अपने फोन की ब्राइटनेस कम करें और बैकग्राउंड ऐप्स को बंद कर दें। इससे बैटरी ज़्यादा देर तक चलेगी।
+  sent at 13:49:18
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 762 ms, total: 829 ms
+  script: 78 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[E1] default | P5 | en
+Q: How can I sleep better at night?
+A: To sleep better, try to maintain a consistent sleep schedule and keep your bedroom dark and cool. Also, avoid screens and heavy meals right before bedtime.
+  sent at 13:49:33
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 1201 ms, total: 1359 ms
+  script: 0 Devanagari, 126 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 0 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[A3] tutor | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: ज़रूर, मैं कल सुबह 7 बजे आपको याद दिला दूँगा। आज मैं आपको पढ़ने में मदद करूँगा। क्या आप समझ गए?
+  sent at 13:49:48
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 980 ms, total: 1080 ms
+  script: 72 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 2 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 3, tum/tu-family words 0
+  can't markers 0, promise markers 2
+  example sentence: 3 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B2] tutor | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज 25 मई है और अभी समय लगभग 3 बज कर 30 मिनट हुआ है। क्या आपको आज कोई खास काम करना है?
+  sent at 13:50:03
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 686 ms, total: 835 ms
+  script: 57 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 0 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[C1] tutor | P3/P4 | hg
+Q: photosynthesis kya hota hai? simple words mein samjhao
+A: फ़ोटोसिंथेसिस वह प्रक्रिया है जिससे पौधे अपना खाना बनाते हैं। पौधे सूरज की रोशनी, पानी और हवा का उपयोग करके अपना भोजन तैयार करते हैं। क्या आप बता सकते हैं कि पौधों को खाना बनाने के लिए किस चीज़ की ज़रूरत होती है?
+  sent at 13:50:18
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 808 ms, total: 935 ms
+  script: 168 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 1, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[E1] tutor | P5 | en
+Q: Can you explain what a fraction is?
+A: A fraction is a part of a whole thing. For example, if you cut a pizza into two equal pieces, each piece is a fraction. Did you understand this simple idea?
+  sent at 13:50:33
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 853 ms, total: 971 ms
+  script: 0 Devanagari, 121 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[A3] support | P1 | hg
+Q: kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A: हाँ, मैं कल सुबह 7 बजे याद दिला दूँगी। मैं ग्राहकों की मदद करती हूँ।
+  sent at 13:50:48
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 816 ms, total: 818 ms
+  script: 52 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 2 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 1
+  example sentence: 4 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[B2] support | P2 | hi
+Q: आज कौन सी तारीख है और अभी कितने बजे हैं?
+A: आज 27 मई 2024 है और अभी शाम के 5 बज कर 30 मिनट हुए हैं।
+  sent at 13:51:03
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 965 ms, total: 1073 ms
+  script: 31 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 0 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[C1] support | P3/P4 | hg
+Q: mera WiFi router baar baar disconnect ho raha hai, kya karun?
+A: अपने वाई-फ़ाई राउटर को बंद करके तीस सेकंड बाद दोबारा चालू करें। इससे समस्या ठीक न हो तो मुझे बताएं।
+  sent at 13:51:18
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 837 ms, total: 1009 ms
+  script: 79 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 0 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 1 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+[E1] support | P5 | en
+Q: My order hasn't arrived yet, what should I do?
+A: Please share your order number so I can check the status for you.
+  sent at 13:51:33
+  model: gemini-3.5-flash-lite (chain order: groq, gemini)
+  time to first token: 951 ms, total: 1020 ms
+  script: 0 Devanagari, 52 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  WARNING:vaani.providers.groq:groq: HTTP 429 rate_limit: simulated by ask.py
+  WARNING:vaani.providers.chain:failover: groq RateLimitedError after 1 ms -> gemini
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 17 words in a row
+  tokens left -, requests left -
+  mark:
+
+SUMMARY: 12 of 12 probes answered
+  time to first token n=12 p50 845 p95 1331 max 1331 ms
+  default: 4 replies, 3 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 1; example copies 0; self-name not a role 0
+  tutor: 4 replies, 3 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 1; example copies 0; self-name not a role 0
+  support: 4 replies, 3 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 1; example copies 0; self-name not a role 0
+
+
+mark: P
+mark: L invented date (21 may 2024) and time
+mark: ok
+mark: ok
+mark: P
+mark: L invented date (25 may) and time
+mark: ok good, ends with a question, tutor-like
+mark: ok
+mark: P
+mark: L invented date (27 may 2024) and time
+mark: ok
+mark: P asks for order number "so I can check", it can't
+

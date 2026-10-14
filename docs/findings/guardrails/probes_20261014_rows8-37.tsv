@@ -1,0 +1,31 @@
+id	persona	problem	lang	gemini	question
+N1	default	P6	hg	n	tumhara naam kya hai?
+N2	default	P6	en	n	What's your name?
+C1	default	P3/P4	hg	y	mere phone ki battery jaldi khatam ho jaati hai, kya karun?
+C2	default	P3/P4	hg	n	mera laptop bahut slow chal raha hai, kya karun?
+E1	default	P5	en	y	How can I sleep better at night?
+A1	tutor	P1	en	n	Can you remind me to call my mom at 6 pm today?
+A2	tutor	P1	hi	n	कल सुबह 7 बजे मुझे याद दिला देना।
+A3	tutor	P1	hg	y	kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A4	tutor	P1	hg	n	mere boss ko message bhej do ki main aaj late aaunga
+B1	tutor	P2	en	n	What's the weather in Delhi right now?
+B2	tutor	P2	hi	y	आज कौन सी तारीख है और अभी कितने बजे हैं?
+B3	tutor	P2	hg	n	aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+N1	tutor	P6	hg	n	tumhara naam kya hai?
+N2	tutor	P6	en	n	What's your name?
+C1	tutor	P3/P4	hg	y	photosynthesis kya hota hai? simple words mein samjhao
+C2	tutor	P3/P4	hi	n	मुझे फ्रैक्शन समझ नहीं आते, समझाओ।
+C3	tutor	P1-over	hg	n	mujhe yaad dilao photosynthesis ka formula kya tha
+E1	tutor	P5	en	y	Can you explain what a fraction is?
+A1	support	P1	en	n	Can you remind me to call my mom at 6 pm today?
+A2	support	P1	hi	n	कल सुबह 7 बजे मुझे याद दिला देना।
+A3	support	P1	hg	y	kal subah 7 baje mujhe yaad dila doge? aur aaj tum kya karoge?
+A4	support	P1	hg	n	mere boss ko message bhej do ki main aaj late aaunga
+B1	support	P2	en	n	What's the weather in Delhi right now?
+B2	support	P2	hi	y	आज कौन सी तारीख है और अभी कितने बजे हैं?
+B3	support	P2	hg	n	aaj ki top news kya hai, aur petrol ka rate kitna chal raha hai?
+N1	support	P6	hg	n	tumhara naam kya hai?
+N2	support	P6	en	n	What's your name?
+C1	support	P3/P4	hg	y	mera WiFi router baar baar disconnect ho raha hai, kya karun?
+C2	support	P3/P4	hg	n	UPI payment fail ho gaya par paise kat gaye, ab kya karun?
+E1	support	P5	en	y	My order hasn't arrived yet, what should I do?

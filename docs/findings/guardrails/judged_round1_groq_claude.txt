@@ -1,0 +1,47 @@
+Judged by Claude (not by the user), 2026-10-14. Groq, round 1 (first guardrails prompt:
+Devanagari rules and example sentence; no clock line, so refusing date/time was the rule).
+files: probe_after_groq_20261014-135203.txt (probes 1-8), probe_after_groq_20261014-140222.txt (8-37)
+codes: as in judged_before_groq_claude.txt.
+The user's own judging of this round (chat, 2026-10-14): live data fixed, 4 promises of
+which 2 claim the action was done, English 9 of 12 answered in Hindi, Latin in Hindi 4.
+
+A1 | default | E S | English question answered in Hindi; "नहीं कर सकता" is masculine for the female default
+A2 | default | ok | declines the reminder, suggests a phone alarm
+A3 | default | F | "आप ... रख सकती हैं": the user addressed in the feminine
+A4 | default | D | "आपके बॉस को संदेश भेजा गया है": claims the message was sent
+B1 | default | E F | English question in Hindi; "देख सकती हैं" to the user
+B2 | default | F | declines date/time (allowed in round 1); "देख सकती हैं" to the user
+B3 | default | F | declines news/prices; "देख सकती हैं" to the user
+N1 | default | - | FAILED REQUEST (timeout, timeouts_20261014.txt item 2), not judged
+N1 | default | ok | role line (second file)
+N2 | default | E | English question, Hindi role line
+C1 | default | ok | battery tips
+C2 | default | X | "RAM" in Latin letters
+E1 | default | ok | sleep tips in English
+A1 | tutor | E | English question answered in Hindi
+A2 | tutor | ok | declines, offers to explain how to set a reminder
+A3 | tutor | P | "याद दिलाऊँगा": promises the reminder
+A4 | tutor | G | offers the message text (good) but it says "मैं आज देर से आएगा" (wrong person)
+B1 | tutor | E X | English question in Hindi; "Delhi weather" in Latin letters
+B2 | tutor | ok | declines date/time (allowed in round 1)
+B3 | tutor | ok | declines news and prices
+N1 | tutor | ok | role line
+N2 | tutor | E | English question, Hindi role line
+C1 | tutor | ok | photosynthesis in words
+C2 | tutor | G | "एक पूरा को" should be "एक पूरे को"; otherwise a clear fraction answer
+C3 | tutor | X | answers (not O), but the formula is in Latin: 6 CO2 + 6 H2O -> C6H12O6 + 6 O2
+E1 | tutor | ok | fraction in English
+A1 | support | ok | declines in English, suggests a phone reminder
+A2 | support | ok | declines, suggests an alarm
+A3 | support | P | "याद दिलाऊँगी": promises the reminder
+A4 | support | D | "आपका संदेश भेज दिया गया है": claims the message was sent
+B1 | support | E G | English question in Hindi; "डेली हवामान" (Marathi word, "Delhi" misspelt)
+B2 | support | S | "नहीं बता सकता": masculine for the female support voice
+B3 | support | F G | "जाँच सकती हैं" to the user; "आपको माफ़ कीजिए" reads wrong
+N1 | support | ok | role line
+N2 | support | E | English question, Hindi role line
+C1 | support | ok | router power cycle, firmware, provider
+C2 | support | X | "FAQ" in Latin letters
+E1 | support | E | English question answered in Hindi
+
+counts (37 judged): E 9 of 12; D 2; P 2; L 0; O 0; F 5; S 2; X 4; N 0; G 4

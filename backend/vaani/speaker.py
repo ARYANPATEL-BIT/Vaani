@@ -27,6 +27,11 @@ and it is locked for the whole reply: audio.start declares one sample rate
 per reply, and switching voices mid-reply would sound like a second speaker.
 A later chunk in the other script is still said by the locked voice, partly
 misread, and logged as drift.
+
+Latin words inside a Hindi reply (feat/guardrails): the prompt asks for
+every word in Devanagari, but a model still writes "WiFi" now and then. Each
+such chunk is logged with its Latin words, before synthesis. It is a count,
+not a fix: the words are still said, and still misread.
 """
 
 import asyncio
@@ -36,7 +41,7 @@ from contextlib import suppress
 from time import perf_counter
 from typing import NamedTuple
 
-from vaani.language import reply_language
+from vaani.language import latin_words, reply_language
 from vaani.protocol import TurnState, audio_end, audio_start
 from vaani.telemetry import TTS_FIRST_AUDIO, TTS_START, Telemetry
 from vaani.tts import Synthesizer
@@ -113,6 +118,19 @@ class Speaker:
                 language,
                 self.language,
             )
+        # A Devanagari chunk of a Hindi reply that still holds English letters
+        # ("WiFi"): the Hindi voice will misread those words. Only logged, to
+        # count how often it happens. A chunk with no Devanagari at all was
+        # already logged as drift just above, so it is not logged twice.
+        if self.language == "hi" and reply_language(text) == "hi":
+            if words := latin_words(text):
+                log.warning(
+                    "session %s: turn %s %d Latin word(s) in a hi chunk: %s",
+                    self._telemetry.session_id,
+                    self._turn_id,
+                    len(words),
+                    " ".join(words),  # ASCII only: latin_words finds A-Z, a-z
+                )
         assert self._synth is not None  # locked just above, on the first chunk
         began = perf_counter()
         pcm = await self._synth.synthesize(text, self._cancel)

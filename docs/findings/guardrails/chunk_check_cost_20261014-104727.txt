@@ -1,0 +1,10 @@
+chunk_check_cost run at 20261014-104727
+Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme: Power Scheme GUID: 64a64f24-65b9-4b56-befd-5ec1eaced9b3  (Silent)
+timeit, 200000 calls each, per-call mean in microseconds; no network, no model
+vaani/language.py latin_words (new, feat/guardrails) vs reply_language (existing, same chunk)
+
+200-char Devanagari chunk, no Latin: latin_words 1.67 us, reply_language 0.18 us, found []
+200-char Devanagari chunk, 2 Latin words: latin_words 1.85 us, reply_language 0.19 us, found ['WiFi', 'settings']
+40-char first chunk, no Latin: latin_words 0.46 us, reply_language 0.19 us, found []
+note: measured while probe_replies.py (groq, before) ran in another process, which mostly sleeps between requests
