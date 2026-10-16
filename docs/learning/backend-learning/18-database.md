@@ -115,3 +115,4 @@ and real Whisper, and was not run.
   sayable (only punctuation). A row is lost (with a warning) if its write fails.
 - `turns.py` is now 411 lines, `reply.py` 309 and `gateway.py` 319, all over the ~300
   limit. The `turns.py` split is still a planned follow-up.
+  

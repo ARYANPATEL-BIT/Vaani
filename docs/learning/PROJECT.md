@@ -142,6 +142,7 @@ end_to_first_audio_ms). Column meanings are in the comments of `schema.sql`.
 - The latency numbers and the budget: [`docs/findings/perf-1-latency-budget.md`](../findings/perf-1-latency-budget.md).
 - Every runtime setting, with the reason for its value: `backend/config.toml`.
 - How each step was built and why: the per-PR documents in `backend-learning/` and `frontend-learning/`.
+- Every stack choice, the protocol messages and the SQL, each with the alternative we rejected: [`STACK.md`](STACK.md).
 
 ## Known gaps on `dev`
 
