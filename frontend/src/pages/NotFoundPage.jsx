@@ -8,12 +8,12 @@ import { Link } from 'react-router-dom';
 
 export default function NotFoundPage() {
   return (
-    <main style={{ textAlign: 'center', padding: '48px 24px' }}>
+    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
       <h1>404</h1>
       <p>This page does not exist.</p>
       <Link to="/" style={{ color: 'var(--accent)', marginTop: '16px', display: 'inline-block' }}>
         Back to Vaani
       </Link>
-    </main>
+    </div>
   );
 }

@@ -10,7 +10,7 @@
  *     2. Connection dropped
  *     3. Provider failure
  * - Preserves existing visual direction (warm cream canvas, central VoiceOrb,
- *   real personas, collapsible latency HUD, bottom controls).
+ *   real personas, bottom controls).
  * - Push-to-talk (docs/contracts.md §2.8): a mode choice before connect, sent
  *   as session.start's mode, and a Speak/Stop control (PttButton) in a
  *   session the server confirmed as "ptt".
@@ -24,10 +24,8 @@ import { useAudioCapture } from '../hooks/useAudioCapture.js';
 import { usePlaybackQueue } from '../hooks/usePlaybackQueue.js';
 import { useTranscript } from '../hooks/useTranscript.js';
 import { useTurnState } from '../hooks/useTurnState.js';
-import { useLatencyTelemetry } from '../hooks/useLatencyTelemetry.js';
 import { VoiceOrb } from '../components/VoiceOrb/VoiceOrb.jsx';
 import { TranscriptView } from '../components/TranscriptView.jsx';
-import { LatencyHud } from '../components/LatencyHud.jsx';
 import { PttButton } from '../components/PttButton.jsx';
 import './ConversationPage.css';
 
@@ -61,7 +59,6 @@ export default function ConversationPage() {
   const [selectedPersona, setSelectedPersona] = useState('default');
   const [selectedMode, setSelectedMode] = useState('vad');
   const [selectedReplyLanguage, setSelectedReplyLanguage] = useState('any');
-  const [showTelemetry, setShowTelemetry] = useState(false);
 
   // Playback queue: gapless PCM scheduling + dynamic sample rate handling
   const { enqueue, flushPlayback, setPlaybackSampleRate } = usePlaybackQueue();
@@ -87,13 +84,6 @@ export default function ConversationPage() {
     resetTranscript,
   } = useTranscript();
 
-  // Real pipeline latency telemetry
-  const {
-    telemetryData,
-    processServerMessage: processTelemetryMessage,
-    resetTelemetry,
-  } = useLatencyTelemetry();
-
   // Audio capture pipeline & WebSocket session lifecycle
   const {
     isCapturing,
@@ -118,7 +108,7 @@ export default function ConversationPage() {
 
   /**
    * Central server message router.
-   * Dispatches protocol events to audio, transcript, turn state, and telemetry.
+   * Dispatches protocol events to audio, transcript and turn state.
    */
   const handleServerMessage = useCallback((msg) => {
     if (!msg || typeof msg !== 'object') return;
@@ -167,9 +157,6 @@ export default function ConversationPage() {
       finalizeAgentTurn();
       updatePartial(null);
     }
-
-    // Pipeline telemetry
-    processTelemetryMessage(msg);
   }, [
     setPlaybackSampleRate,
     updatePartial,
@@ -178,7 +165,6 @@ export default function ConversationPage() {
     appendAgentDelta,
     finalizeAgentTurn,
     interruptAgentTurn,
-    processTelemetryMessage,
   ]);
 
   /**
@@ -187,7 +173,6 @@ export default function ConversationPage() {
   const handleConnect = useCallback(() => {
     if (isCapturing) return;
     resetTranscript();
-    resetTelemetry();
     resetTurnState();
     startCapture(
       enqueue,
@@ -200,7 +185,6 @@ export default function ConversationPage() {
   }, [
     isCapturing,
     resetTranscript,
-    resetTelemetry,
     resetTurnState,
     startCapture,
     enqueue,
@@ -429,31 +413,6 @@ export default function ConversationPage() {
           />
         </section>
 
-        {/* Collapsible Pipeline Telemetry */}
-        <section className="telemetry-collapsible">
-          <button
-            type="button"
-            className="telemetry-toggle-btn"
-            onClick={() => setShowTelemetry((prev) => !prev)}
-            aria-expanded={showTelemetry}
-          >
-            <span className="telemetry-toggle-icon">⚡</span>
-            <span>{showTelemetry ? 'Hide Pipeline Latency' : 'View Pipeline Latency Telemetry'}</span>
-            {telemetryData?.totalMs && (
-              <span className="telemetry-total-pill">{Math.round(telemetryData.totalMs)} ms</span>
-            )}
-          </button>
-
-          {showTelemetry && (
-            <div className="telemetry-drawer">
-              <LatencyHud
-                telemetryData={telemetryData}
-                wsStatus={wsStatus}
-                isCapturing={isCapturing}
-              />
-            </div>
-          )}
-        </section>
       </div>
 
       {/* Floating Bottom Control Bar */}

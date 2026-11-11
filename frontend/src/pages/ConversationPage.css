@@ -5,11 +5,14 @@
 .conversation-container {
   display: flex;
   flex-direction: column;
+  /* Fills .app-main (100vh tall) even when the content is short, so the
+     bottom bar's margin-top: auto can push it to the bottom edge. */
   min-height: 100vh;
   width: 100%;
-  max-width: 960px;
+  /* 1020, not 960: at an 18px root the three pickers need 922px on one row. */
+  max-width: 1020px;
   margin: 0 auto;
-  padding: 1.5rem 2rem 7rem;
+  padding: 1.5rem 2rem 2rem;
   position: relative;
   box-sizing: border-box;
 }
@@ -53,7 +56,7 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
@@ -329,73 +332,22 @@
 }
 
 /* -------------------------------------------------------------------------
- * Telemetry Collapsible Section
- * ----------------------------------------------------------------------- */
-.telemetry-collapsible {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  gap: 1rem;
-}
-
-.telemetry-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.telemetry-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  color: #1e293b;
-  border-color: rgba(203, 213, 225, 0.9);
-}
-
-.telemetry-toggle-icon {
-  font-size: 0.8rem;
-}
-
-.telemetry-total-pill {
-  background: #f1f5f9;
-  color: #0f172a;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-family: var(--mono);
-  font-size: 0.7rem;
-}
-
-.telemetry-drawer {
-  width: 100%;
-  animation: drawerSlide 0.25s ease-out;
-}
-
-@keyframes drawerSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* -------------------------------------------------------------------------
  * Floating Bottom Controls Bar
  * ----------------------------------------------------------------------- */
 .bottom-bar-container {
-  position: fixed;
+  /* The last child of .conversation-container, so it is centred on the page
+     column, not the window. margin-top: auto pushes it to the bottom when
+     the content is short; padding-top keeps it off the card above. When the
+     content is taller than .app-main, sticky holds it 2rem above the bottom
+     edge of the visible area while the rest scrolls under it. */
+  position: sticky;
   bottom: 2rem;
-  left: 0;
-  right: 0;
+  margin-top: auto;
+  padding-top: 1.5rem;
   display: flex;
   justify-content: center;
   pointer-events: none;
   z-index: 100;
-  padding: 0 1rem;
 }
 
 .floating-controls-bar {
@@ -490,7 +442,7 @@
 
 @media (max-width: 640px) {
   .conversation-container {
-    padding: 1rem 1rem 6rem;
+    padding: 1rem;
   }
   .conversation-header {
     flex-direction: column;
