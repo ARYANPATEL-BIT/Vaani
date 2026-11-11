@@ -14,6 +14,9 @@
  * - Push-to-talk (docs/contracts.md §2.8): a mode choice before connect, sent
  *   as session.start's mode, and a Speak/Stop control (PttButton) in a
  *   session the server confirmed as "ptt".
+ * - Reply language (docs/contracts.md §2.3, v0.10): a choice before connect,
+ *   sent as session.start's reply_language; while connected the picker shows
+ *   the language the server confirmed in session.started.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -45,9 +48,19 @@ const MODES = [
   { id: 'ptt', label: 'Push-to-talk', desc: 'Press Speak to talk, Stop when done' },
 ];
 
+/**
+ * Reply languages of session.start (protocol v0.10, docs/contracts.md §2.3).
+ */
+const REPLY_LANGUAGES = [
+  { id: 'any', label: 'Any language', desc: 'Replies follow the language you speak' },
+  { id: 'en', label: 'English', desc: 'Every reply in English' },
+  { id: 'hi', label: 'Hindi', desc: 'Every reply in Hindi' },
+];
+
 export default function ConversationPage() {
   const [selectedPersona, setSelectedPersona] = useState('default');
   const [selectedMode, setSelectedMode] = useState('vad');
+  const [selectedReplyLanguage, setSelectedReplyLanguage] = useState('any');
   const [showTelemetry, setShowTelemetry] = useState(false);
 
   // Playback queue: gapless PCM scheduling + dynamic sample rate handling
@@ -92,6 +105,7 @@ export default function ConversationPage() {
     startCapture,
     stopCapture,
     sessionMode,
+    sessionReplyLanguage,
     pressState,
     pttStart,
     pttStop,
@@ -99,6 +113,8 @@ export default function ConversationPage() {
 
   const isTransitioning = wsStatus === 'connecting' || wsStatus === 'connected';
   const isConnected = wsStatus === 'ready';
+  // Once session.started has arrived, the server's reply language is shown.
+  const shownReplyLanguage = isConnected ? sessionReplyLanguage : selectedReplyLanguage;
 
   /**
    * Central server message router.
@@ -173,7 +189,14 @@ export default function ConversationPage() {
     resetTranscript();
     resetTelemetry();
     resetTurnState();
-    startCapture(enqueue, flushPlayback, selectedPersona, handleServerMessage, selectedMode);
+    startCapture(
+      enqueue,
+      flushPlayback,
+      selectedPersona,
+      handleServerMessage,
+      selectedMode,
+      selectedReplyLanguage,
+    );
   }, [
     isCapturing,
     resetTranscript,
@@ -185,6 +208,7 @@ export default function ConversationPage() {
     selectedPersona,
     handleServerMessage,
     selectedMode,
+    selectedReplyLanguage,
   ]);
 
   /**
@@ -264,6 +288,25 @@ export default function ConversationPage() {
                   title={m.desc}
                 >
                   {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reply language selector (fixed for the session, like the mode) */}
+          <div className="persona-picker" title={isCapturing ? 'Reply language is fixed for active session' : 'Choose reply language'}>
+            <span className="persona-picker-label">Reply:</span>
+            <div className="persona-options">
+              {REPLY_LANGUAGES.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`persona-chip ${shownReplyLanguage === r.id ? 'active' : ''}`}
+                  onClick={() => !isCapturing && setSelectedReplyLanguage(r.id)}
+                  disabled={isCapturing}
+                  title={r.desc}
+                >
+                  {r.label}
                 </button>
               ))}
             </div>

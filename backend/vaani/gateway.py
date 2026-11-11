@@ -26,6 +26,9 @@ dev.flush message, its stand-in since day 4, is gone (protocol v0.7).
 Push-to-talk (v0.9): session.start's mode is kept on the Session, and
 ptt.start / ptt.end go to the pipeline, in a ptt session only.
 
+Reply language (v0.10): session.start's reply_language is kept on the
+Session beside the mode, and echoed in session.started the same way.
+
 Database (feat/database): how the session ended (end_reason) is decided here
 and handed to the pipeline's close, which records it (turn_log.py).
 """
@@ -197,7 +200,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
                 # re-acknowledge the existing session id, don't make a new one.
                 if session is not None:
                     await websocket.send_json(
-                        session_started(session.session_id, session.mode)
+                        session_started(
+                            session.session_id, session.mode, session.reply_language
+                        )
                     )
                     continue
                 if not _audio_matches(start.audio, audio_cfg):
@@ -215,7 +220,10 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     )
                     continue
                 session = Session(
-                    session_id=uuid.uuid4().hex, persona=start.persona, mode=start.mode
+                    session_id=uuid.uuid4().hex,
+                    persona=start.persona,
+                    mode=start.mode,
+                    reply_language=start.reply_language,
                 )
                 telemetry = Telemetry(session.session_id)
                 # Fresh per-session VAD / endpointing / ASR / reply state. The
@@ -244,7 +252,9 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     _log_frames(session, telemetry, interval_s, vad_enabled)
                 )
                 await websocket.send_json(
-                    session_started(session.session_id, session.mode)
+                    session_started(
+                        session.session_id, session.mode, session.reply_language
+                    )
                 )
                 continue
 

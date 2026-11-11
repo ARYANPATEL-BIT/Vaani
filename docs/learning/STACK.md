@@ -73,9 +73,9 @@ message at any moment. HTTP, by contrast, is "the browser asks, the server answe
   `Session` object, `session.py:31-68`) belongs to the one coroutine that serves
   that socket (`gateway.py:1-8`). Nothing is shared between sessions.
 - **How it starts.** The user clicks Start. The browser opens the mic, opens the
-  socket and, when it opens, sends `session.start` with the persona, the mode and
-  the audio format (`useAudioCapture.js:267-281`). The server checks it and answers
-  `session.started` with a new `session_id` (`gateway.py:188-249`). The browser sends
+  socket and, when it opens, sends `session.start` with the persona, the mode, the
+  reply language (v0.10) and the audio format (`useAudioCapture.js:277-289`). The server
+  checks it and answers `session.started` with a new `session_id` (`gateway.py:191-258`). The browser sends
   no audio until then (`useAudioCapture.js:408-412`).
 - **How it ends.** Three ways, recorded as the session's `end_reason`:
   `client_end` (the browser sent `session.end`; the server closes with code 1000,
@@ -89,7 +89,7 @@ message at any moment. HTTP, by contrast, is "the browser asks, the server answe
   be the first thing after a cut. Messages on one WebSocket arrive in the order they
   were sent (`contracts.md` 2.8). Two sockets give no order between them.
 
-### 2c. Every message in protocol v0.9
+### 2c. Every message in protocol v0.10
 
 Control messages are JSON text with a `type` field. Audio is raw binary. The
 models are in `backend/vaani/protocol.py`; the browser side is in
@@ -99,7 +99,7 @@ models are in `backend/vaani/protocol.py`; the browser side is in
 
 | Message | Fields | When the browser sends it | What the server does |
 |---|---|---|---|
-| `session.start` | `persona`; `mode`: `"vad"` or `"ptt"`, default `"vad"` (`protocol.py:145`); `audio`: `sample_rate`, `channels`, `frame_ms` (`protocol.py:129-146`). `protocol.py:142` gives `persona` a default of `"default"`; `contracts.md:112,121` shows it in the payload and does not say it is optional | Once, when the socket opens (`useAudioCapture.js:267-281`) | Malformed or unknown `mode`: `BAD_MESSAGE`. A session already open: the same `session.started` again, nothing changes. Audio not 16000 / 1 / 20: `UNSUPPORTED_FORMAT`. Persona not in `[personas]`: `BAD_MESSAGE`. Otherwise it makes the session, its pipeline and its database row, then answers `session.started` (`gateway.py:188-249`) |
+| `session.start` | `persona`; `mode`: `"vad"` or `"ptt"`, default `"vad"` (`protocol.py:155`); `reply_language` (v0.10): `"any"`, `"en"` or `"hi"`, default `"any"` (`protocol.py:133,158`); `audio`: `sample_rate`, `channels`, `frame_ms` (`protocol.py:139-159`). `protocol.py:152` gives `persona` a default of `"default"`; `contracts.md` 2.3 shows it in the payload and does not say it is optional | Once, when the socket opens, built by `buildSessionStart` (`turnContracts.js:180`, called at `useAudioCapture.js:277-289`); `reply_language` is the page's "Reply" picker (`ConversationPage.jsx:296-312`) | Malformed, or an unknown `mode` or `reply_language`: `BAD_MESSAGE`. A session already open: the same `session.started` again, nothing changes. Audio not 16000 / 1 / 20: `UNSUPPORTED_FORMAT`. Persona not in `[personas]`: `BAD_MESSAGE`. Otherwise it makes the session (with its reply language, `session.py`), its pipeline and its database row, then answers `session.started` (`gateway.py:191-258`). The reply language is not stored in the database |
 | audio frame (binary) | 640 bytes: 320 samples of 16-bit little-endian PCM, mono, 16 kHz, 20 ms. The size is computed from config (`gateway.py:63-73`) | Every 20 ms after `session.started` (`audio-processor.js:20,51`; `useAudioCapture.js:389-418`). In a ptt session, only during a press (`useAudioCapture.js:404-406`) | No session: `SESSION_NOT_STARTED`. Wrong size: `BAD_FRAME_SIZE`, frame dropped. Otherwise counted and passed to the turn pipeline: VAD, then the endpointer or barge-in judge (vad) or the press buffer (ptt) (`gateway.py:147-166`, `turns.py:162-194`) |
 | `ptt.start` | `type` only (`protocol.py:156-160`) | Speak pressed: button or Space (`pttPress.js:76-82`, called from `useAudioCapture.js:457-474`) | In a vad session: `BAD_MESSAGE` (`gateway.py:273-276`). A press already open: ignored. Agent thinking or speaking: a barge-in at once. Otherwise: a new turn, `listening`. Then VAD memory is reset and the press opens (`turns.py:196-215`) |
 | `ptt.end` | `type` only (`protocol.py:163-167`) | Stop pressed, after the worklet hands over its last frame, or after 300 ms (`pttPress.js:59-63,85-102`; `config.js:46`) | No press open: ignored. Too little voiced audio: the turn is dropped, `idle`, no transcription. Otherwise the turn ends now: `thinking`, then transcription (`turns.py:217-223,358-365`; `ptt.py:78-113`) |
@@ -111,7 +111,7 @@ models are in `backend/vaani/protocol.py`; the browser side is in
 
 | Message | Fields | When the server sends it | What the browser does |
 |---|---|---|---|
-| `session.started` | `session_id`, `mode` (`protocol.py:187-192`) | After an accepted `session.start`, and again for any repeat (`gateway.py:198-202,246-248`) | Marks the session ready, so frames start to flow. The server's `mode` is the one used (`useAudioCapture.js:303-311`) |
+| `session.started` | `session_id`, `mode`, `reply_language` (v0.10) (`protocol.py:200-206`) | After an accepted `session.start`, and again for any repeat, with the FIRST session's values (`gateway.py:201-207,254-258`) | Marks the session ready, so frames start to flow. The server's `mode` and `reply_language` are the ones used and shown; no `reply_language` (an older server) reads as `"any"` (`useAudioCapture.js:311-321`, `turnContracts.js:192`) |
 | `turn.state` | `turn_id` (null only in `idle`), `state`: `idle`, `listening`, `thinking`, `speaking`, `cancelling` (`protocol.py:111-123,256-261`) | On every state change. The only way to change state is `TurnStateMachine.move_to` (`turn_state.py:68-81`); the legal moves are listed in `turn_state.py:31-44` | Shows the state (`useTurnState.js:39-51`). Remembers the agent's turn while it is busy, for a ptt local stop; clears the error banner on `listening` (`useAudioCapture.js:347-359`). On `cancelling`, marks the reply interrupted (`ConversationPage.jsx:123-128`) |
 | `transcript.partial` | `turn_id`, `text` (`protocol.py:231-237`) | **Never today**: `[asr].partial_interval_ms = 0` turns partials off (`config.toml:135`) | Would replace the partial line (`ConversationPage.jsx:116-117`) |
 | `transcript.final` | `turn_id`, `text`, `duration_ms`, `language` (`protocol.py:240-253`) | Once per turn, when Whisper has finished (`asr/runner.py:230-232`). A turn cut by a barge-in still gets it, possibly after the next turn's `listening` (`contracts.md` 2.4) | Adds the user's line (`ConversationPage.jsx:118-119`). Never dropped (`turnFilter.js:13-16`) |
@@ -134,7 +134,7 @@ carries a `turn_id`, so the browser cannot tell which turn an error is about.
 | `SESSION_NOT_STARTED` | Audio, or any control message but `session.start`, before a session exists | `gateway.py:150-154,252-256` | No turn exists |
 | `UNSUPPORTED_FORMAT` | `session.start`'s audio is not 16000 / 1 / 20 | `gateway.py:203-209` | No session is made |
 | `BAD_FRAME_SIZE` | A binary frame is not 640 bytes | `gateway.py:155-162` | The frame is dropped; the turn goes on |
-| `BAD_MESSAGE` | Not JSON, no `type`, a malformed `session.start` or `flush.ack`, an unknown persona or mode, or `ptt.start` / `ptt.end` in a vad session | `gateway.py:175-184,189-195,210-216,259-265,273-276` | The message is dropped; nothing else changes |
+| `BAD_MESSAGE` | Not JSON, no `type`, a malformed `session.start` or `flush.ack`, an unknown persona, mode or (v0.10) reply language, or `ptt.start` / `ptt.end` in a vad session | `gateway.py:175-184,189-195,210-216,259-265,273-276` | The message is dropped; nothing else changes |
 | `UNKNOWN_MESSAGE_TYPE` | A `type` the server does not handle | `gateway.py:293-295` | The message is dropped |
 | `ASR_FAILED` | Whisper raised, or took longer than `[asr].timeout_s` (5 s) | `asr/runner.py:248-265` | No `transcript.final`. The reply gets no text, so `idle` (`turns.py:417-424`). Database row: `failed`, `error_code = ASR_FAILED` (`turn_log.py:146-147`). For a cut turn, nothing is carried |
 | `LLM_FAILED` | Every provider failed, a non-failover provider error (bad key, bad request), the spend cap, or an empty reply | `reply.py:228-236,251-258` | No `agent.done`; `idle` (`reply.py:272-283`). Text already streamed stays on screen. No spoken apology |
@@ -158,7 +158,8 @@ move to `idle` does not: the barge-in owns the state from then on (`reply.py:280
 | `audio.flush` first in a barge-in | Token set, then `audio.flush`, then `cancelling`, then `listening` (`barge_in.py:178-182`, `turns.py:293-313`) | The user judges the interruption by when the speaker goes quiet (`contracts.md` 2.7) | Stop the model stream and synthesis first, then tell the browser (the spec PDF's order, `contracts.md:299-301`) | The speaker keeps playing while the server tidies up |
 | Start and end pairs | `session.start`/`session.end`, `audio.start`/`audio.end`, `ptt.start`/`ptt.end` | Each pair brackets a span, so both sides know what is open; one naming rule for all three | One toggle message (for example `ptt` with `pressed: true/false`) | A lost or repeated toggle flips the meaning; a repeated `ptt.start` is simply ignored (`turns.py:202-205`) |
 | Mode fixed per session | `mode` only in `session.start`; a second `session.start` changes nothing (`gateway.py:196-202`) | The pipeline is built once from the mode: a press buffer or an endpointer, never both (`turns.py:95-120`) | A message to switch mode mid-session | Rules needed for an open press, an open utterance and VAD's memory at the switch. Reconnecting does the same job |
-| Versioning | `contracts.md` is the source of truth; v0.9 now; only the PR that changes it bumps it (`contracts.md:38-40`). Wording fixes are "editorial, no version change" (`contracts.md:387,389,391,392`) | One place to read; the history table says what each version added | A version field on the wire, checked at `session.start` | Two developers, one repo, deployed together. **Cost:** nothing at runtime checks the version. `/health` reports the app version `0.1.0`, not the protocol's |
+| Reply language fixed per session (v0.10) | `reply_language` only in `session.start`, kept on the `Session`; a second `session.start` changes nothing. `"en"`/`"hi"` add one line after the clock line (`persona.py:51-76`) and pick the voice for every reply (`speaker.py:200-216`) | One choice for a whole conversation, read once by `reply.py` (`reply.py:90-96`): the prompt, the voice and the history stay in one language | Send it on every turn (a field the server reads per reply) | A language switch mid-conversation leaves history in the other language, which pulls the model back to it, and a turn already being answered would need a rule for which value it uses. Reconnecting does the same job |
+| Versioning | `contracts.md` is the source of truth; v0.10 now; only the PR that changes it bumps it (`contracts.md:38-40`). Wording fixes are "editorial, no version change" (`contracts.md:387,389,391,392`) | One place to read; the history table says what each version added | A version field on the wire, checked at `session.start` | Two developers, one repo, deployed together. **Cost:** nothing at runtime checks the version. `/health` reports the app version `0.1.0`, not the protocol's |
 
 ### 2f. Two walkthroughs, message by message
 
@@ -166,8 +167,8 @@ Arrows: `->` browser to server, `<-` server to browser. T1 and T2 are turn ids.
 
 **A normal push-to-talk turn**
 
-1. `-> session.start` (persona, mode `ptt`, audio 16000/1/20)
-2. `<- session.started` (session_id, mode `ptt`)
+1. `-> session.start` (persona, mode `ptt`, reply_language `any`, audio 16000/1/20)
+2. `<- session.started` (session_id, mode `ptt`, reply_language `any`)
 3. The user presses Speak. `-> ptt.start`
 4. `<- turn.state listening` (T1)
 5. `-> audio frames`, every 20 ms, only while pressed

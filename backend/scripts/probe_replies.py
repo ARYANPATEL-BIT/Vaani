@@ -15,6 +15,8 @@ docs/findings/guardrails/probes_20261014.tsv).
               (--simulate-429), so a failure can never fail over into a
               request nobody planned. gemini runs only the rows marked "y".
 --round       a label for the file name, e.g. before or after.
+--reply-language  any (default), en or hi: session.start's reply_language
+              (protocol v0.10), passed to every probe. It is in the file name.
 --interval-s  seconds from one request's start to the next (default 12):
               keeps a run under Groq's 8000 tokens a minute. If Groq says
               fewer than 2000 tokens are left, the run waits another 60 s.
@@ -104,12 +106,16 @@ def counts(reply: str, report: list[str], example: list[str]) -> dict:
     }
 
 
-def run_one(question: str, persona: str, other: str, tsv: Path, logs) -> tuple:
+def run_one(
+    question: str, persona: str, other: str, tsv: Path, logs, session_language: str
+) -> tuple:
     """(exit code, ask.py's report lines, log text) for one probe."""
     out, log = io.StringIO(), io.StringIO()
     logs.setStream(log)
     with redirect_stdout(out), redirect_stderr(out):
-        code = asyncio.run(ask(question, False, other, None, persona, tsv))
+        code = asyncio.run(
+            ask(question, False, other, None, persona, tsv, session_language)
+        )
     keep = (*REPORT, "error:")
     report = [ln for ln in out.getvalue().splitlines() if ln.startswith(keep)]
     return code, report, log.getvalue()
@@ -167,6 +173,7 @@ def main() -> int:
     parser.add_argument("--provider", choices=("groq", "gemini"), required=True)
     parser.add_argument("--round", required=True, help="file name label")
     parser.add_argument("--interval-s", type=float, default=12.0)
+    parser.add_argument("--reply-language", choices=("any", "en", "hi"), default="any")
     parser.add_argument("--probes", type=Path, default=DEFAULT_PROBES)
     args = parser.parse_args()
 
@@ -176,7 +183,8 @@ def main() -> int:
     rows = [ln.split("\t") for ln in lines if ln]
     rows = [r for r in rows if args.provider == "groq" or r[4] == "y"]
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    path = args.probes.parent / f"probe_{args.round}_{args.provider}_{stamp}.txt"
+    name = f"probe_{args.round}_{args.provider}_rl-{args.reply_language}_{stamp}"
+    path = args.probes.parent / f"{name}.txt"
     tsv = path.with_suffix(".tsv")
     examples = {p: example_words(settings.personas[p]) for p in settings.personas}
 
@@ -189,7 +197,8 @@ def main() -> int:
 
     f = path.open("w", encoding="utf-8", newline="\n")
     f.write(
-        f"probe_replies.py --provider {args.provider} --round {args.round}, "
+        f"probe_replies.py --provider {args.provider} --round {args.round} "
+        f"--reply-language {args.reply_language}, "
         f"run at {stamp}\n{git_state()}\n"
         f"model {getattr(settings.llm, args.provider).model}; {other} is the "
         f"local 429 mock, so 0 {other} requests\n"
@@ -207,7 +216,9 @@ def main() -> int:
         time.sleep(max(0.0, next_at - time.monotonic()))
         next_at = time.monotonic() + args.interval_s
         sent = datetime.now().strftime("%H:%M:%S")  # time of day, for a timeout
-        code, report, log = run_one(question, persona, other, tsv, logs)
+        code, report, log = run_one(
+            question, persona, other, tsv, logs, args.reply_language
+        )
         rate = dict(RATE.findall(log))
         reply = ""
         if code == 0:  # ask.py appended "question<TAB>reply" to the .tsv

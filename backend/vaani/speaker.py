@@ -28,6 +28,13 @@ per reply, and switching voices mid-reply would sound like a second speaker.
 A later chunk in the other script is still said by the locked voice, partly
 misread, and logged as drift.
 
+Reply language (protocol v0.10): in a session that forces "en" or "hi", that
+language picks the voice instead, for the whole reply, whatever script the
+first chunk is in. The model was told to write in that language, so a first
+chunk in the other script ("OK," opening a Hindi reply) is the model
+slipping, not the reply's language: it is logged and said by the forced
+voice. The script is still kept (first_script), for the turn's database row.
+
 Latin words inside a Hindi reply (feat/guardrails): the prompt asks for
 every word in Devanagari, but a model still writes "WiFi" now and then. Each
 such chunk is logged with its Latin words, before synthesis. It is a count,
@@ -69,6 +76,7 @@ class Speaker:
     def __init__(
         self,
         voices: dict[str, Synthesizer],
+        forced_voice: str | None,  # "en" / "hi" when forced (v0.10); None: "any"
         frame_ms: int,
         turn_id: str,
         cancel: asyncio.Event,
@@ -79,9 +87,14 @@ class Speaker:
         move_to: MoveTo,
     ) -> None:
         self._voices = voices  # language ("hi", "en") -> that language's voice
+        self._forced_voice = forced_voice
         self._frame_ms = frame_ms
         # Set by the first chunk (_lock_voice): until then no voice is chosen.
+        # `language` is the voice's language; `first_script` the first
+        # chunk's script. They differ only when a forced reply began in the
+        # other script.
         self.language: str | None = None
+        self.first_script: str | None = None
         self._synth: Synthesizer | None = None
         self._rate = 0
         self._frame_bytes = 0
@@ -185,8 +198,21 @@ class Speaker:
                 await asyncio.wait_for(self._cancel.wait(), timeout=remaining)
 
     def _lock_voice(self, first_chunk: str) -> None:
-        """Pick this reply's voice from its first chunk's script, for good."""
-        self.language = reply_language(first_chunk)
+        """Pick this reply's voice, for good: the session's forced language
+        if there is one (v0.10), else the first chunk's script."""
+        self.first_script = reply_language(first_chunk)
+        self.language = self._forced_voice or self.first_script
+        if self.language != self.first_script:
+            # Only possible when forced: the model began in the other script.
+            log.warning(
+                "session %s: turn %s forced %s reply began in %s script; "
+                "said by the %s voice",
+                self._telemetry.session_id,
+                self._turn_id,
+                self.language,
+                self.first_script,
+                self.language,
+            )
         self._synth = self._voices[self.language]
         self._rate = self._synth.sample_rate
         # Frames as long as the mic's (20 ms), at the VOICE's rate:

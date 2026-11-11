@@ -17,6 +17,8 @@
  *     open, but frames are sent only during a press (pttPress.js).
  *     pttStart() also stops local playback at once when the agent is busy,
  *     without waiting for the server's audio.flush round trip.
+ * 12. Reply language (docs/contracts.md §2.3, v0.10): sent in session.start;
+ *     the language the server confirms in session.started is kept, as the mode is.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -26,7 +28,11 @@ import {
   WS_SESSION_URL,
   PTT_END_FALLBACK_MS,
 } from '../config.js';
-import { formatServerError } from '../turnState/turnContracts.js';
+import {
+  buildSessionStart,
+  confirmedReplyLanguage,
+  formatServerError,
+} from '../turnState/turnContracts.js';
 import { createTurnFilter } from '../turnState/turnFilter.js';
 import { createPttPress, PRESS_STATES } from '../ptt/pttPress.js';
 
@@ -40,6 +46,8 @@ export function useAudioCapture() {
   const [errorMessage, setErrorMessage] = useState(null);
   // The session's input mode as the SERVER confirmed it in session.started.
   const [sessionMode, setSessionMode] = useState('vad'); // 'vad' | 'ptt'
+  // The reply language the SERVER confirmed in session.started (v0.10).
+  const [sessionReplyLanguage, setSessionReplyLanguage] = useState('any'); // 'any' | 'en' | 'hi'
   const [pressState, setPressState] = useState(PRESS_STATES.IDLE);
 
   // References to active hardware / network resources for reliable teardown
@@ -133,6 +141,7 @@ export function useAudioCapture() {
     busyTurnIdRef.current = null;
     localStopRef.current = null;
     setSessionMode('vad');
+    setSessionReplyLanguage('any');
     setIsCapturing(false);
 
     if (!options.preserveMicDenied) {
@@ -162,8 +171,9 @@ export function useAudioCapture() {
    * @param {string} [persona='default'] - persona name for session.start.
    * @param {function(object): void} [onServerMessage] - callback for JSON messages.
    * @param {'vad'|'ptt'} [mode='vad'] - input mode for session.start (v0.9).
+   * @param {'any'|'en'|'hi'} [replyLanguage='any'] - reply language for session.start (v0.10).
    */
-  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage, mode = 'vad') => {
+  const startCapture = useCallback(async (onBinaryMessage, onFlushCommand, persona = 'default', onServerMessage, mode = 'vad', replyLanguage = 'any') => {
     if (isCapturing) {
       return;
     }
@@ -267,16 +277,14 @@ export function useAudioCapture() {
       socket.onopen = () => {
         setWsStatus('connected');
         socket.send(
-          JSON.stringify({
-            type: 'session.start',
-            persona,
-            mode,
-            audio: {
-              sample_rate: AUDIO_SAMPLE_RATE,
-              channels: 1,
-              frame_ms: AUDIO_FRAME_MS,
-            },
-          }),
+          JSON.stringify(
+            buildSessionStart({
+              persona,
+              mode,
+              replyLanguage,
+              audio: { sample_rate: AUDIO_SAMPLE_RATE, channels: 1, frame_ms: AUDIO_FRAME_MS },
+            }),
+          ),
         );
       };
 
@@ -308,6 +316,8 @@ export function useAudioCapture() {
             const confirmedMode = msg.mode === 'ptt' ? 'ptt' : 'vad';
             sessionModeRef.current = confirmedMode;
             setSessionMode(confirmedMode);
+            // Same rule for the reply language: the server's answer is shown.
+            setSessionReplyLanguage(confirmedReplyLanguage(msg));
             setWsStatus('ready');
           } else if (msg.type === 'audio.flush') {
             const flushTurnId = msg.turn_id;
@@ -498,6 +508,7 @@ export function useAudioCapture() {
     startCapture,
     stopCapture,
     sessionMode,
+    sessionReplyLanguage,
     pressState,
     pttStart,
     pttStop,

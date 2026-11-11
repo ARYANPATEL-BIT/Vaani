@@ -1,0 +1,13 @@
+id	persona	problem	lang	gemini	question
+A1	default	P1	en	n	Can you remind me to call my mom at 6 pm today?
+B1	default	P2	en	n	What's the weather in Delhi right now?
+N2	default	P6	en	n	What's your name?
+E1	default	P5	en	y	How can I sleep better at night?
+A1	tutor	P1	en	n	Can you remind me to call my mom at 6 pm today?
+B1	tutor	P2	en	n	What's the weather in Delhi right now?
+N2	tutor	P6	en	n	What's your name?
+E1	tutor	P5	en	y	Can you explain what a fraction is?
+A1	support	P1	en	n	Can you remind me to call my mom at 6 pm today?
+B1	support	P2	en	n	What's the weather in Delhi right now?
+N2	support	P6	en	n	What's your name?
+E1	support	P5	en	y	My order hasn't arrived yet, what should I do?

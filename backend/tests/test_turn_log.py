@@ -53,7 +53,15 @@ class ModelLLM(ScriptedLLM):
 
 
 @contextmanager
-def connect(tmp_path, *texts, mode="vad", chunks=("Theek hai.",), synth=None, **llm):
+def connect(
+    tmp_path,
+    *texts,
+    mode="vad",
+    reply_language="any",
+    chunks=("Theek hai.",),
+    synth=None,
+    **llm,
+):
     """A session on a fresh app with the database on a temp file."""
     base = Settings()
     settings = Settings(
@@ -70,7 +78,7 @@ def connect(tmp_path, *texts, mode="vad", chunks=("Theek hai.",), synth=None, **
     # Left in reverse: the socket closes (the session's close is queued),
     # then the lifespan ends (the writer finishes the queue).
     with TestClient(app) as client, client.websocket_connect("/ws/session") as ws:
-        ws.send_json({**START, "mode": mode})
+        ws.send_json({**START, "mode": mode, "reply_language": reply_language})
         assert ws.receive_json()["type"] == "session.started"
         yield ws
 

@@ -1,0 +1,5 @@
+measure_assemble.py --label before, commit c01b16b, 100000 calls x 3 runs, history 12 messages
+assemble has reply_language: False
+default  -    system 1429 chars, median 6.38 us per call (runs: 6.38, 6.39, 6.36)
+tutor    -    system 1418 chars, median 6.52 us per call (runs: 6.54, 6.52, 6.48)
+support  -    system 1469 chars, median 6.50 us per call (runs: 6.50, 6.56, 6.44)

@@ -46,7 +46,7 @@ PARTS = ["Theek hai, ", "main kal ", "aapko ", "yaad ", "dila ", "doongi. "] + [
 
 
 class FakeSpeaker:
-    language = "en"
+    first_script = "en"  # what TurnLog reads for reply_script
 
 
 class FakeResponder:

@@ -26,6 +26,9 @@ provider listed there needs its key in the environment or backend/.env
                  by the same persona.assemble() the server uses (no history;
                  the same date and time line at its end).
                  Without it the question goes alone, with no system prompt.
+--reply-language  with --persona: any (default), en or hi, as session.start's
+                 reply_language (protocol v0.10): en / hi end the system
+                 prompt with the server's reply-language line.
 --save           append "question<TAB>reply" to FILE as UTF-8, one line per run.
 
 After the answer, a "script:" line counts the reply's characters IN CODE:
@@ -134,12 +137,15 @@ async def ask(
     cancel_after_ms: int | None,
     persona: str | None,
     save: Path | None,
+    session_language: str,  # session.start's reply_language (v0.10): any, en, hi
 ) -> int:
     settings = get_settings()
     messages = [Message("user", question)]
     if persona is not None:
         clock = datetime.now(ZoneInfo(settings.llm.timezone))  # as reply.py
-        messages = assemble(settings.personas[persona], [], question, clock)
+        messages = assemble(
+            settings.personas[persona], [], question, clock, session_language
+        )
     cap = RequestCap(settings.llm.max_requests_per_process)
     clients = {}
     if simulate_429:
@@ -248,6 +254,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--persona", metavar="KEY", help="config.toml persona key")
     parser.add_argument("--save", type=Path, metavar="FILE", help="append the reply")
+    parser.add_argument("--reply-language", choices=("any", "en", "hi"), default="any")
     args = parser.parse_args()
     # Failover warnings go to stderr, so they show between the answer's lines.
     logging.basicConfig(level=logging.WARNING, format="[%(name)s] %(message)s")
@@ -264,6 +271,7 @@ if __name__ == "__main__":
                 args.cancel_after_ms,
                 args.persona,
                 args.save,
+                args.reply_language,
             )
         )
     )

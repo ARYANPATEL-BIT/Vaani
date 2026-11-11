@@ -118,14 +118,15 @@ async def main(rounds: int, groq_models: list[str]) -> None:
 
     # One clock reading for the whole run: same request shape as reply.py.
     now = datetime.now(ZoneInfo(settings.llm.timezone))
-    warm_up = assemble(system, HISTORY, "namaste", now)
+    warm_up = assemble(system, HISTORY, "namaste", now, "any")
     for name, chain in chains.items():
         cold, model = await first_token_ms(chain, warm_up)
         log(f"{name}: cold first call {cold:.0f} ms (model {model})")
 
     times: dict[str, list[float]] = {name: [] for name in names}
     for i in range(rounds):
-        messages = assemble(system, HISTORY, QUESTIONS[i % len(QUESTIONS)], now)
+        question = QUESTIONS[i % len(QUESTIONS)]
+        messages = assemble(system, HISTORY, question, now, "any")
         # Rotate who goes first: round 0 a,b,c; round 1 b,c,a; round 2 c,a,b.
         shift = i % len(names)
         for name in names[shift:] + names[:shift]:

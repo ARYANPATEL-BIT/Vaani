@@ -1,0 +1,75 @@
+Judged by Claude (not by the user), 2026-11-11. Groq openai/gpt-oss-20b, feat/reply-language
+(protocol v0.10): the 12 English probes of probes_20261014.tsv (A1, B1, N2, E1 per persona,
+copied as probes_en_20261111.tsv), asked once with reply_language "en" and once with "hi".
+Prompts: backend/config.toml on this branch (round 3's prompts plus the reply-language rule
+and the clock-line wording), each ending with the clock line and then the reply-language
+line. No history, one request per probe, 12 s apart, Gemini mocked (0 Gemini requests).
+files: probe_forced_groq_rl-en_20261111-121416.txt (12 of 12 answered),
+probe_forced_groq_rl-hi_20261111-121634.txt (12 of 12 answered). 24 requests, none failed.
+codes: as in ../guardrails/judged_before_groq_claude.txt: ok, P promises an action, D claims
+  an action was done, L invented weather/news/prices or a wrong date/time, E answered in
+  the other language (here: not the FORCED one), X Latin letters in a Devanagari reply,
+  F user addressed with feminine forms, S persona's own gender wrong, N personal name,
+  O refuses something it could do, G grammar that reads wrong. New here: A a verb for
+  the user that is not the masculine plural "aap" form the prompts ask for.
+
+forced en (reply_language "en": every reply should be English, Latin script)
+A1 | default | ok | declines the reminder, gives the note's text
+B1 | default | ok | declines the weather, names weather sites
+N2 | default | ok | "I'm your assistant."
+E1 | default | E | sleep tips, but in Hindi, all Devanagari: the forced line was not obeyed
+A1 | tutor | ok | declines, gives the note's text
+B1 | tutor | ok | declines the weather, names weather sites
+N2 | tutor | ok | "I'm your tutor."
+E1 | tutor | ok | explains numerator and denominator in English
+A1 | support | ok | declines, gives the note's text, suggests a phone alarm
+B1 | support | ok | declines the weather
+N2 | support | ok | "I'm your support agent."
+E1 | support | ok | delivery steps in English; does not claim to see the order
+
+forced hi (reply_language "hi": every reply should be Hindi, all Devanagari)
+A1 | default | ok | "मैं यह कार्य नहीं कर सकती": declines; offers the text but does not write it out
+B1 | default | X F | "AccuWeather, Weather.com" in Latin letters; "देख सकती हैं" to the user
+N2 | default | ok | "मैं आपकी असिस्टेंट हूँ।"
+E1 | default | G | "साँसों को धीरे-धीरे खोलें" ("open your breaths slowly") reads wrong
+A1 | tutor | ok | "तैयार कर सकता हूँ" (masculine, right); writes the note: "माँ को आज शाम 6 बजे फोन करें।"
+B1 | tutor | ok | declines; brand names said as words ("वेदर चैनल", "गूगल")
+N2 | tutor | ok | "मैं आपका ट्यूटर हूँ।"
+E1 | tutor | A G | "क्या आप इस व्याख्या को समझा?": "समझा" is not the "आप" form ("समझे")
+A1 | support | G | "मैं यह याद रख सकती हूँ कि आप 6 बजकर ..." ("6 बजकर" for "6 बजे"); then says it cannot set a reminder and gives the text
+B1 | support | X F | 'Delhi weather' in Latin letters; "प्राप्त कर सकती हैं" to the user
+N2 | support | ok | "मैं आपकी सपोर्ट एजेंट हूँ।"
+E1 | support | ok | tracking, then contact support; the "48 घंटे" is its own rule of thumb
+
+counts
+forced en: in English (Latin script) 11 of 12; E 1 (default E1). P 0, D 0, L 0, X 0, N 0,
+  O 0, G 0. F, S, A: none possible in an English reply.
+forced hi: in Hindi (Devanagari, first chunk Devanagari) 12 of 12; E 0. Gender and "aap"
+  misses 3: F 2 (default B1, support B1), A 1 (tutor E1); S 0 (every own verb matches the
+  persona). X 2 replies, 5 Latin words (default B1: AccuWeather, Weather, com; support B1:
+  Delhi, weather). P 0, D 0, L 0, N 0, O 0, G 3 (default E1, tutor E1, support A1).
+
+against round 3, the same 12 probes, no reply-language line
+  (../guardrails/judged_round3_groq_claude.txt; probe_round3_groq_20261014-152228.txt for
+  default A1, B1, N2 and -154026.txt for the other 9):
+  round 3 (mirroring): 6 of 12 answered in Hindi (default A1, B1, E1; tutor A1, B1, E1).
+  forced en: 1 of 12 not in English (default E1, which round 3 also answered in Hindi).
+  forced hi: 0 of 12 not in Hindi.
+first token, ms (probe_replies.py's TTFT lines; p95 nearest rank, as telemetry.py):
+  round 3, these 12: p50 702.5, p95 1479, max 1479
+  forced en:         p50 574.0, p95 1120, max 1120
+  forced hi:         p50 620.5, p95 1007, max 1007
+  Different days and 12 samples each: this shows no slowdown from the longer prompt, it
+  does not measure the 40 extra characters' cost.
+
+the 5 replies I am least sure about
+1. hi tutor E1: "समझा" counted as A (not the "आप" form) and G. A native speaker may call it
+   only a grammar slip; either way it is wrong.
+2. hi support A1: "मैं यह याद रख सकती हूँ" ("I can remember that you call ...") is close to
+   a promise. Not counted as P because it then says it cannot set a reminder.
+3. hi default E1: "साँसों को धीरे-धीरे खोलें" counted as G. It may be read as odd rather
+   than wrong.
+4. hi support E1: "48 घंटे" is a threshold it made up. Not counted as L (it is not weather,
+   news, prices or a date), but it is invented.
+5. hi default A1: offers to give the message's text but does not write it. Counted ok,
+   since the prompt asks it to offer the text.

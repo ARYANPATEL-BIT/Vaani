@@ -43,6 +43,9 @@ class Session:
     # "vad" (hands-free) or "ptt" (push-to-talk), from session.start (v0.9).
     # Fixed for the session: turns.py builds its pipeline from it once.
     mode: str = "vad"
+    # "any", "en" or "hi", from session.start (v0.10). Fixed for the session
+    # like the mode: reply.py reads it once, for the prompt and the voice.
+    reply_language: str = "any"
     # monotonic() is a clock that only moves forward and is immune to system
     # time changes — correct for measuring elapsed time, not wall-clock dates.
     created_at: float = field(default_factory=monotonic)

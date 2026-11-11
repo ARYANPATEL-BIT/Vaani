@@ -1,0 +1,220 @@
+probe_replies.py --provider groq --round forced --reply-language en, run at 20261111-121416
+commit c01b16b + uncommitted changes
+model openai/gpt-oss-20b; gemini is the local 429 mock, so 0 gemini requests
+probes probes_en_20261111.tsv: 12 rows; one request each, 12 s apart; no history, persona prompt + question
+counts are code checks, not verdicts; a copy is >= 6 words in a row of the persona's example sentence
+example sentences:
+  default: 
+  tutor: 
+  support: 
+Mark each reply: clean or broken.
+
+[A1] default | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: I can't set reminders, but you can write the note: "Call mom at 6 pm today."
+  sent at 12:14:16
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 1120 ms, total: 1142 ms
+  script: 0 Devanagari, 54 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 1, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7339, requests left 999
+  mark:
+
+[B1] default | P2 | en
+Q: What's the weather in Delhi right now?
+A: I’m sorry, I can’t check the current weather. You can look it up on a weather site or app like AccuWeather, Weather.com, or the India Meteorological Department.
+  sent at 12:14:28
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 584 ms, total: 633 ms
+  script: 0 Devanagari, 126 Latin letters, other: \u2019\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7359, requests left 998
+  mark:
+
+[N2] default | P6 | en
+Q: What's your name?
+A: I’m your assistant.
+  sent at 12:14:40
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 518 ms, total: 522 ms
+  script: 0 Devanagari, 15 Latin letters, other: \u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7358, requests left 997
+  mark:
+
+[E1] default | P5 | en
+Q: How can I sleep better at night?
+A: अच्छा नींद लेने के लिए रोज़ एक ही समय पर सोने और उठने का प्रयास करें। सोने से पहले भारी भोजन, कैफीन या शराब से बचें, और कम रोशनी वाले आरामदेह कमरे में रहें। कुछ गहरी साँसें लें या हल्का स्ट्रेचिंग करें, फिर ध्यान या हल्की किताब पढ़ें। यदि यह मदद नहीं करता, तो डॉक्टर से सलाह लें।
+  sent at 12:14:52
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 951 ms, total: 1071 ms
+  script: 218 Devanagari, 0 Latin letters, other: none
+  language: hi voice (first chunk), whole reply hi
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7466, requests left 996
+  mark:
+
+[A1] tutor | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: I can’t set a reminder, but you can write a quick note: “Call mom at 6 pm.” Then put it on your phone or sticky note.
+  sent at 12:15:04
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 539 ms, total: 559 ms
+  script: 0 Devanagari, 84 Latin letters, other: \u2019\u201c\u201d
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7496, requests left 995
+  mark:
+
+[B1] tutor | P2 | en
+Q: What's the weather in Delhi right now?
+A: I’m sorry, I can’t check real‑time weather. You can look at a weather website or app like the Weather Channel, BBC Weather, or a local Indian service such as the Indian Meteorological Department.
+  sent at 12:15:16
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 722 ms, total: 731 ms
+  script: 0 Devanagari, 155 Latin letters, other: \u2019\u2019\u2011
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7463, requests left 994
+  mark:
+
+[N2] tutor | P6 | en
+Q: What's your name?
+A: I'm your tutor.
+  sent at 12:15:28
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 730 ms, total: 733 ms
+  script: 0 Devanagari, 11 Latin letters, other: none
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7463, requests left 993
+  mark:
+
+[E1] tutor | P5 | en
+Q: Can you explain what a fraction is?
+A: A fraction shows how many parts of a whole we have. It has a numerator (top number) and a denominator (bottom number). For example, 3/4 means three parts out of four equal parts.
+  sent at 12:15:40
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 470 ms, total: 520 ms
+  script: 0 Devanagari, 135 Latin letters, other: /
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7420, requests left 992
+  mark:
+
+[A1] support | P1 | en
+Q: Can you remind me to call my mom at 6 pm today?
+A: I can’t set a reminder, but you can write a note to yourself: “Call mom at 6 pm.” Then set a phone alarm for 6 pm.
+  sent at 12:15:52
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 564 ms, total: 605 ms
+  script: 0 Devanagari, 80 Latin letters, other: \u2019\u201c\u201d
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7418, requests left 991
+  mark:
+
+[B1] support | P2 | en
+Q: What's the weather in Delhi right now?
+A: I’m sorry, I can’t check the weather for you. You could try a weather app or a search engine for the latest forecast in Delhi.
+  sent at 12:16:04
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 363 ms, total: 561 ms
+  script: 0 Devanagari, 97 Latin letters, other: \u2019\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7463, requests left 990
+  mark:
+
+[N2] support | P6 | en
+Q: What's your name?
+A: I’m your support agent.
+  sent at 12:16:16
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 646 ms, total: 650 ms
+  script: 0 Devanagari, 18 Latin letters, other: \u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7467, requests left 989
+  mark:
+
+[E1] support | P5 | en
+Q: My order hasn't arrived yet, what should I do?
+A: I’m sorry to hear that. Please check the tracking details on the order page; if the status is still “In Transit” and it’s been more than the estimated delivery date, contact customer support with your order number for an update.
+  sent at 12:16:28
+  model: openai/gpt-oss-20b (chain order: groq, gemini)
+  time to first token: 508 ms, total: 673 ms
+  script: 0 Devanagari, 181 Latin letters, other: \u2019\u201c\u201d\u2019
+  language: en voice (first chunk), whole reply en
+  first person: 0 feminine, 0 masculine
+  self-name: 0 self-description(s), not a role: none
+  latin words in a Devanagari reply: -
+  aap-family words 0, tum/tu-family words 0
+  can't markers 0, promise markers 0
+  example sentence: 0 of its 0 words in a row
+  tokens left 7421, requests left 988
+  mark:
+
+SUMMARY: 12 of 12 probes answered
+  time to first token n=12 p50 574 p95 1120 max 1120 ms
+  default: 4 replies, 1 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 1 of 4; example copies 0; self-name not a role 0
+  tutor: 4 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 4; example copies 0; self-name not a role 0
+  support: 4 replies, 0 in Devanagari; Devanagari with Latin words 0; with tum/tu words 0, with both aap and tum/tu 0; English probes answered in Devanagari 0 of 4; example copies 0; self-name not a role 0
