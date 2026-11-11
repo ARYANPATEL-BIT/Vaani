@@ -57,7 +57,8 @@
   --bg-page: linear-gradient(135deg, #FBF3EC 0%, #EFE9FA 55%, #E0EDFF 100%);
 
   font-family: var(--font-ui);
-  font-size: 15px;
+  /* The rem base: every rem size in the app is a multiple of this. */
+  font-size: 18px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

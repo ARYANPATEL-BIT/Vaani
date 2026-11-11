@@ -1,6 +1,6 @@
 /**
  * AppShell — 3-column grid layout + theme toggling.
- * Grid: sidebar | main-stage | right-panel
+ * Layout: sidebar | .app-main (the page, which scrolls on its own)
  */
 
 import { useState, useEffect } from 'react';
@@ -21,7 +21,10 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <Sidebar />
-      <Outlet context={{ theme, toggleTheme }} />
+      {/* The scroll container for every page: the column right of the sidebar. */}
+      <main className="app-main">
+        <Outlet context={{ theme, toggleTheme }} />
+      </main>
     </div>
   );
 }

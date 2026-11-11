@@ -8,6 +8,16 @@
   position: relative;
 }
 
+/* The page column right of the sidebar, and the one element that scrolls.
+   body and .app-shell stay overflow: hidden, so the sidebar never moves.
+   It is also the scrolling box that sticky elements in a page attach to. */
+.app-main {
+  flex: 1;
+  min-width: 0; /* a flex item may otherwise refuse to shrink below its content */
+  height: 100vh;
+  overflow-y: auto;
+}
+
 /* Mesh blobs behind everything */
 .app-shell::before {
   content: '';
