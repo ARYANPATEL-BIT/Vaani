@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.9.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.10.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -50,6 +50,7 @@ Only the PR that changes this file bumps the version.
 | v0.7 | Barge-in. No new message. `dev.flush` removed; `audio.flush` can come during `thinking`, after `agent.done`, after `audio.end`; `flush.ack` may name a turn that is no longer current; `cancelling` → `listening` with a new `turn_id` | 2.3, 2.5, 2.7 |
 | v0.8 | English replies. No new message or field. `agent.text` / `agent.done` can be Latin script; `audio.start.sample_rate` can change between replies of one session | 2.2, 2.5 |
 | v0.9 | Push-to-talk. `session.start.mode` (`"vad"` default, or `"ptt"`); `session.started.mode`; `ptt.start`, `ptt.end`; `BAD_MESSAGE` also for a ptt message in a vad session | 2.3, 2.8 |
+| v0.10 | Reply language. `session.start.reply_language` (`"any"` default, `"en"` or `"hi"`); `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language` | 2.3, 2.5 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -109,7 +110,7 @@ Control messages use JSON text frames (not binary).
 
 | Type             | Payload                                                   | When                                             |
 |------------------|-----------------------------------------------------------|--------------------------------------------------|
-| `session.start`  | `{ "type": "session.start", "persona": "default", "mode": "vad", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects. `mode` (v0.9) is optional: `"vad"` (hands-free, the default) or `"ptt"` (push-to-talk, §2.8). Fixed for the whole session |
+| `session.start`  | `{ "type": "session.start", "persona": "default", "mode": "vad", "reply_language": "any", "audio": { "sample_rate": 16000, "channels": 1, "frame_ms": 20 } }` | After WebSocket connects. `mode` (v0.9) is optional: `"vad"` (hands-free, the default) or `"ptt"` (push-to-talk, §2.8). `reply_language` (v0.10) is optional: `"any"` (the reply follows the user's language, the default), `"en"` or `"hi"` (every reply in that language, §2.5). Both are fixed for the whole session |
 | `session.end`    | `{ "type": "session.end" }`                               | User ends conversation                           |
 | `ptt.start`      | `{ "type": "ptt.start" }`                                 | v0.9, `ptt` sessions only: the user pressed speak (§2.8) |
 | `ptt.end`        | `{ "type": "ptt.end" }`                                   | v0.9, `ptt` sessions only: the user pressed stop, sent after the press's last audio frame (§2.8) |
@@ -121,15 +122,16 @@ Control messages use JSON text frames (not binary).
 `persona` must be one of `default`, `tutor`, `support` (config.toml
 `[personas]`); anything else gets `BAD_MESSAGE`. `audio` must be exactly
 `16000` / `1` / `20`; anything else gets `UNSUPPORTED_FORMAT`. `mode` must be
-`"vad"` or `"ptt"`; anything else gets `BAD_MESSAGE`. A second
-`session.start` on a live session changes nothing, its `mode` included: it is
-answered with the same `session.started`.
+`"vad"` or `"ptt"`; anything else gets `BAD_MESSAGE`. `reply_language` must be
+`"any"`, `"en"` or `"hi"`; anything else gets `BAD_MESSAGE`. A second
+`session.start` on a live session changes nothing, its `mode` and
+`reply_language` included: it is answered with the same `session.started`.
 
 #### Server → Client
 
 | Type             | Payload                                               | When                              |
 |------------------|-------------------------------------------------------|-----------------------------------|
-| `session.started`| `{ "type": "session.started", "session_id": "...", "mode": "vad" }`  | Backend accepted session.start. `mode` (v0.9) is the session's input mode, the one in force even if a later `session.start` asked for another |
+| `session.started`| `{ "type": "session.started", "session_id": "...", "mode": "vad", "reply_language": "any" }`  | Backend accepted session.start. `mode` (v0.9) is the session's input mode and `reply_language` (v0.10) its reply language: the ones in force even if a later `session.start` asked for others |
 | `error`          | `{ "type": "error", "code": "<code>", "message": "..." }` | A problem report. Non-fatal: the connection stays open. Codes below |
 | `audio.start`    | `{ "type": "audio.start", "turn_id": "<string>", "sample_rate": <number> }` | Before a turn's first audio frame. Every frame until the matching `audio.end` belongs to `turn_id` and is at `sample_rate` (v0.6) |
 | `audio.end`      | `{ "type": "audio.end", "turn_id": "<string>" }`      | After a turn's last audio frame   |
@@ -146,7 +148,7 @@ on `code`.
 | `SESSION_NOT_STARTED` | Audio or a message arrived before `session.start` | Nothing; send `session.start` |
 | `UNSUPPORTED_FORMAT` | `session.start`'s audio settings are not 16000 / 1 / 20 | No `session.started` |
 | `BAD_FRAME_SIZE` | A binary frame is not 640 bytes | The frame is dropped |
-| `BAD_MESSAGE` | Not valid JSON, no `type`, a malformed known message, an unknown persona or `mode`, or (v0.9) `ptt.start` / `ptt.end` in a `vad` session | The message is dropped |
+| `BAD_MESSAGE` | Not valid JSON, no `type`, a malformed known message, an unknown persona, `mode` or (v0.10) `reply_language`, or (v0.9) `ptt.start` / `ptt.end` in a `vad` session | The message is dropped |
 | `UNKNOWN_MESSAGE_TYPE` | A `type` the server does not handle | The message is dropped |
 | `ASR_FAILED` | The turn's final transcript could not be produced (recogniser error, or the `[asr].timeout_s` timeout) | No `transcript.final`; `turn.state idle` |
 | `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be shown to the user, never silence. The backend does **not** yet speak an apology; text only |
@@ -219,6 +221,14 @@ Backend notes:
   English, in **Latin script**, and spoken by the persona's English voice.
   So `agent.text` / `agent.done` can be either script; render both. A Hindi
   or mixed reply is still all Devanagari.
+- **v0.10:** a session started with `reply_language` `"en"` or `"hi"` asks for
+  every reply in that language: the server adds one line to the model's
+  instructions, and the persona's voice for that language speaks the whole
+  reply, whatever script it was written in. `"en"` replies are Latin script,
+  `"hi"` replies Devanagari, as the model is asked; the model can still
+  disobey, so render both scripts in every case. `"any"` is v0.8 unchanged:
+  the reply follows the user's language and its first chunk's script picks the
+  voice.
 - **v0.7:** the backend is no longer half-duplex: speech while the agent is
   thinking or speaking is a barge-in (§2.7). `cancelling` is always
   followed by `listening`; `cancelling → idle` no longer exists.
@@ -390,3 +400,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-12 | Aryan   | Shared protocol v0.9 (feat/push-to-talk1): `session.start.mode` (`vad` default, `ptt`) and `session.started.mode`; `ptt.start` / `ptt.end`; `BAD_MESSAGE` also for an unknown `mode` and for a ptt message in a `vad` session; §2.8 push-to-talk, with the client's rule (frames only between `ptt.start` and `ptt.end`, `ptt.end` after the last frame) |
 | 2026-10-13 | Aryan   | Editorial, no version change (fix/frontend-demo): §2.8 status "Proposed, pending Samyak" changed to "Implemented: backend #46, frontend fix/frontend-demo"; the browser now sends `session.start.mode`, `ptt.start` and `ptt.end` |
 | 2026-10-14 | Aryan   | Editorial, no version change (fix/cut-turn-race): §2.4's stale "a turn that is flushed gets no transcript at all" replaced; a turn cut by a barge-in still gets its `transcript.final` (possibly after `audio.flush`), because its words are carried into the next reply |
+| 2026-11-11 | Aryan   | Shared protocol v0.10 (feat/reply-language): `session.start.reply_language` (`any` default, `en`, `hi`) and `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language`; §2.5 note: a forced language is asked of the model and picks the voice for the whole reply |

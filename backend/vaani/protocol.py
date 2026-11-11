@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.9. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.10. The same shapes are mirrored on the frontend.
 Version numbers come from docs/contracts.md, the source of truth; the
 history below repeats its version table, and only the PR that changes
 contracts.md bumps the version.
@@ -78,6 +78,11 @@ force. A ptt session adds ptt.start (speak pressed) and ptt.end (stop
 pressed): the client sends audio frames only between them, and ptt.end after
 the last one. ptt.start or ptt.end in a vad session is BAD_MESSAGE.
 
+v0.10 is REPLY LANGUAGE. session.start gains `reply_language`: "any" (the
+default: the reply follows the user's language, as in v0.8), "en" or "hi"
+(every reply in that language, and spoken by that language's voice). Fixed
+for the session, like the mode; session.started repeats the one in force.
+
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
 a malformed message through.
@@ -123,6 +128,11 @@ class TurnState(StrEnum):
     CANCELLING = "cancelling"  # reply being stopped by a barge-in
 
 
+# session.start's reply_language (v0.10). One type for both directions, so
+# the server can only ever echo a value the client was allowed to send.
+ReplyLanguage = Literal["any", "en", "hi"]
+
+
 # --- Client -> server -------------------------------------------------------
 
 
@@ -143,6 +153,9 @@ class SessionStart(BaseModel):
     # v0.9: "vad" (hands-free) or "ptt" (push-to-talk). Anything else fails
     # validation, which the gateway answers with BAD_MESSAGE.
     mode: Literal["vad", "ptt"] = "vad"
+    # v0.10: "any" follows the user's language; "en" / "hi" force one.
+    # Anything else fails validation too: BAD_MESSAGE, like an unknown mode.
+    reply_language: ReplyLanguage = "any"
     audio: AudioParams
 
 
@@ -190,6 +203,7 @@ class SessionStarted(BaseModel):
     type: Literal["session.started"] = "session.started"
     session_id: str
     mode: Literal["vad", "ptt"]  # v0.9: the session's input mode
+    reply_language: ReplyLanguage  # v0.10: the session's reply language
 
 
 class ErrorMessage(BaseModel):
@@ -280,9 +294,11 @@ class AgentDone(BaseModel):
 # --- Helpers for the server to build outgoing JSON --------------------------
 
 
-def session_started(session_id: str, mode: str) -> dict:
+def session_started(session_id: str, mode: str, reply_language: str) -> dict:
     """Build the session.started payload for `websocket.send_json`."""
-    return SessionStarted(session_id=session_id, mode=mode).model_dump(mode="json")
+    return SessionStarted(
+        session_id=session_id, mode=mode, reply_language=reply_language
+    ).model_dump(mode="json")
 
 
 def error(code: ErrorCode, message: str) -> dict:

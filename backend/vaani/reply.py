@@ -87,6 +87,13 @@ class Responder:
         # Looked up once: the persona is fixed at session.start, and the
         # gateway has already refused a key that is not in config.
         self._system_prompt = settings.personas[session.persona]
+        # Fixed at session.start too (v0.10): "any", "en" or "hi". It goes
+        # into every prompt, and a forced one also picks every reply's voice
+        # (None: "any", the first chunk's script picks it, speaker.py).
+        self._reply_language = session.reply_language
+        self._forced_voice = (
+            None if session.reply_language == "any" else session.reply_language
+        )
         self._history_turns = settings.llm.history_turns
         self._zone = ZoneInfo(settings.llm.timezone)  # for the clock line
         self._patterns = settings.guardrail.patterns
@@ -117,6 +124,7 @@ class Responder:
         if self._voices is not None:
             self.speaker = Speaker(
                 self._voices,
+                self._forced_voice,
                 self._frame_ms,
                 turn_id,
                 self._cancel,
@@ -178,7 +186,13 @@ class Responder:
         # The clock is read here, once per reply: the date and time line is
         # as fresh as the turn it answers.
         now = datetime.now(self._zone)
-        messages = assemble(self._system_prompt, self._session.history, transcript, now)
+        messages = assemble(
+            self._system_prompt,
+            self._session.history,
+            transcript,
+            now,
+            self._reply_language,
+        )
 
         # 3. Stream. aclosing: if we leave the loop early, the chain's stream
         # (and its HTTP connection) is closed at once, not at garbage collection.

@@ -162,3 +162,33 @@ export function validateErrorMessage(msg) {
     message: typeof msg.message === 'string' ? msg.message : '',
   };
 }
+
+/**
+ * Reply languages of session.start (protocol v0.10, docs/contracts.md §2.3):
+ * 'any' lets the reply follow the user's language; 'en' / 'hi' force one.
+ */
+export const REPLY_LANGUAGES = ['any', 'en', 'hi'];
+
+/**
+ * The session.start message. A plain function, outside the hook, so a plain
+ * Node test can check exactly what the browser sends.
+ *
+ * @param {{ persona: string, mode: 'vad'|'ptt', replyLanguage: string,
+ *           audio: { sample_rate: number, channels: number, frame_ms: number } }} fields
+ * @returns {object} the JSON payload, not yet stringified.
+ */
+export function buildSessionStart({ persona, mode, replyLanguage, audio }) {
+  return { type: 'session.start', persona, mode, reply_language: replyLanguage, audio };
+}
+
+/**
+ * The reply language the SERVER confirmed in session.started. The server's
+ * value wins, as for mode: an older server sends none, and then replies
+ * follow the user's language ('any') whatever we asked for.
+ *
+ * @param {object} msg - a session.started message.
+ * @returns {'any'|'en'|'hi'}
+ */
+export function confirmedReplyLanguage(msg) {
+  return REPLY_LANGUAGES.includes(msg?.reply_language) ? msg.reply_language : 'any';
+}

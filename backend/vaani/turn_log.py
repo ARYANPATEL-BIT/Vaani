@@ -160,7 +160,9 @@ class TurnLog:
             "outcome": outcome,
             "user_text": reply.transcript if reply else None,
             "user_script": reply_language(reply.transcript) if reply else None,
-            "reply_script": speaker.language if speaker else None,
+            # The first chunk's SCRIPT, as schema.sql says, not the voice: in
+            # a forced session (v0.10) the voice can be the other language.
+            "reply_script": speaker.first_script if speaker else None,
             "reply_generated": "".join(reply.parts) if reply and reply.parts else None,
             "reply_heard": reply.heard if reply else None,
             "llm_provider": reply.provider if reply else None,
