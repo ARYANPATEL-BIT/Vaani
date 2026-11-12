@@ -1,0 +1,270 @@
+/**
+ * colors.css — every colour that differs between the light and dark theme.
+ *
+ * :root holds the light values, copied unchanged from the component CSS
+ * they came from, so light mode looks exactly as it did before themes.
+ * [data-theme="dark"] overrides the same names. theme/theme.js (and the
+ * inline script in index.html) set data-theme on <html>.
+ *
+ * A component stylesheet uses var(--name) where it used a literal colour.
+ * Colours that are the same in both themes (status greens/ambers/reds, the
+ * orb sphere) stay literals in the component files.
+ *
+ * Grouped by the file that uses them. Part 1: layout, sidebar, conversation.
+ */
+
+:root {
+  color-scheme: light; /* native scrollbars and form controls drawn light */
+
+  /* ── Page + sidebar (AppLayout.css) ─────────────────────────────── */
+  --mesh:
+    radial-gradient(ellipse 60% 50% at 15% 20%, rgba(251,243,236,0.9) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 80%, rgba(233,227,250,0.85) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(224,237,255,0.6) 0%, transparent 70%),
+    linear-gradient(135deg, #FBF3EC 0%, #EFE9FA 55%, #E0EDFF 100%);
+  --sidebar-bg: rgba(255,255,255,0.72);
+  --sidebar-border: rgba(226,232,240,0.9);
+  --sidebar-footer-border: rgba(226,232,240,0.8);
+  --logo-bar: var(--c-indigo);
+  --nav-text: var(--c-slate);
+  --nav-hover-bg: rgba(79,70,229,0.06);
+  --nav-active-bg: var(--c-lavender);
+  --nav-active-text: var(--c-indigo);
+  --row-hover-bg: rgba(79,70,229,0.05);
+  --avatar-bg: linear-gradient(135deg, var(--c-indigo), var(--c-violet));
+  --avatar-text: #fff;
+
+  /* ── Conversation header, pickers, status chip (ConversationPage.css) */
+  --header-divider: rgba(226, 232, 240, 0.7);
+  --header-title: #1e1b2e;
+  --header-subtitle: #64748b;
+  --pill-bg: rgba(255, 255, 255, 0.6);
+  --pill-border: rgba(226, 232, 240, 0.9);
+  --pill-label: #64748b;
+  --chip-text: #64748b;
+  --chip-hover-bg: rgba(241, 245, 249, 0.8);
+  --chip-hover-text: #1e293b;
+  --chip-active-bg: #f3e8ff;
+  --chip-active-text: #7c3aed;
+  --chip-active-shadow: 0 1px 4px rgba(124, 58, 237, 0.12);
+  --status-bg: rgba(255, 255, 255, 0.65);
+  --status-text: #64748b;
+  --status-dot: #94a3b8;
+  --status-ready-text: #065f46;
+  --status-ready-bg: rgba(209, 250, 229, 0.5);
+  --status-ready-border: rgba(167, 243, 208, 0.8);
+  --status-error-text: #991b1b;
+  --status-error-bg: rgba(254, 226, 226, 0.6);
+  --status-error-border: rgba(254, 202, 202, 0.8);
+  --session-id-text: #94a3b8;
+  --session-id-border: rgba(203, 213, 225, 0.6);
+  --turn-speaking-dot: #6366f1;
+
+  /* ── Error banners (ConversationPage.css) ───────────────────────── */
+  --err-bg: rgba(254, 242, 242, 0.95);
+  --err-border: #fecaca;
+  --err-mic-border: #fca5a5;
+  --err-text: #991b1b;
+  --err-title: #7f1d1d;
+  --err-dismiss-border: rgba(153, 27, 27, 0.3);
+  --err-dismiss-hover: rgba(153, 27, 27, 0.08);
+  --warn-bg: rgba(255, 247, 237, 0.95);
+  --warn-border: #fed7aa;
+  --warn-text: #9a3412;
+  --warn-title: #7c2d12;
+  --warn-dismiss-border: rgba(154, 52, 18, 0.3);
+
+  /* ── Bottom bar: Start / Speak / End buttons (ConversationPage.css) */
+  --dock-bg: rgba(255, 255, 255, 0.8);
+  --dock-border: rgba(226, 232, 240, 0.85);
+  --dock-shadow:
+    0 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  --dock-shadow-hover:
+    0 16px 36px -4px rgba(0, 0, 0, 0.1),
+    0 6px 16px -2px rgba(0, 0, 0, 0.05);
+  --cta-bg: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
+  --cta-bg-hover: linear-gradient(135deg, #7e22ce 0%, #4f46e5 100%);
+  --cta-text: #ffffff;
+  --cta-shadow: 0 4px 16px rgba(147, 51, 234, 0.35);
+  --cta-shadow-hover: 0 6px 20px rgba(147, 51, 234, 0.45);
+  --cta-icon-bg: rgba(255, 255, 255, 0.2);
+  --stop-bg: #fef2f2;
+  --stop-text: #dc2626;
+  --stop-border: #fecaca;
+  --stop-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+  --stop-bg-hover: #fee2e2;
+  --stop-text-hover: #b91c1c;
+  --stop-icon-bg: rgba(220, 38, 38, 0.1);
+
+  /* ── Orb surroundings, not the sphere (VoiceOrb.css) ────────────── */
+  --wave-1: rgba(192, 132, 252, 0.45);
+  --wave-2: rgba(147, 197, 253, 0.4);
+  --wave-3: rgba(232, 121, 249, 0.3);
+  --halo-outer: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(96, 165, 250, 0.12) 45%, transparent 70%);
+  --halo-middle: radial-gradient(circle, rgba(192, 132, 252, 0.3) 0%, rgba(56, 189, 248, 0.15) 50%, transparent 75%);
+  --halo-listening: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 75%);
+  --halo-speaking: radial-gradient(circle, rgba(217, 70, 239, 0.35) 0%, rgba(139, 92, 246, 0.25) 50%, transparent 75%);
+  --orb-title: #1e1b2e;
+  --orb-subtitle: #6b7280;
+  --eq-idle: #c4b5fd;
+  --eq-listening: #818cf8;
+  --eq-speaking: #a855f7;
+  --eq-thinking: #c084fc;
+
+  /* ── Conversation card and messages (TranscriptView.css) ────────── */
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(226, 232, 240, 0.8);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  --card-divider: rgba(241, 245, 249, 0.9);
+  --card-title: #64748b;
+  --badge-text: #94a3b8;
+  --badge-bg: rgba(241, 245, 249, 0.8);
+  --empty-icon: #cbd5e1;
+  --empty-text: #64748b;
+  --empty-subtext: #94a3b8;
+  --scroll-thumb: rgba(203, 213, 225, 0.6);
+  --msg-user-bg: rgba(245, 243, 255, 0.8);
+  --msg-user-border: rgba(221, 214, 254, 0.7);
+  --msg-agent-bg: rgba(255, 255, 255, 0.9);
+  --msg-agent-border: rgba(226, 232, 240, 0.9);
+  --msg-agent-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  --sender-user: #7c3aed;
+  --sender-agent: #4f46e5;
+  --msg-time: #94a3b8;
+  --msg-text: #1e293b;
+  --msg-partial-text: #475569;
+  --msg-live: #8b5cf6;
+  --msg-interrupted-bg: rgba(254, 242, 242, 0.75);
+  --msg-thinking: #6366f1;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark; /* native scrollbars and form controls drawn dark */
+
+  /* Shared palette from index.css (also read by pages not yet converted) */
+  --c-navy: #f5f5f5;
+  --c-slate: #a3a3a3;
+  --c-muted: #8a8a8a;
+  --glass-bg: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.12);
+  --glass-shadow: none;
+  --bg-page: #0a0a0a;
+
+  /* Page + sidebar */
+  --mesh:
+    radial-gradient(ellipse 40% 45% at 28% 12%, rgba(255,255,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 50% at 88% 85%, rgba(255,255,255,0.05) 0%, transparent 70%),
+    #0a0a0a;
+  --sidebar-bg: #111111;
+  --sidebar-border: rgba(255,255,255,0.08);
+  --sidebar-footer-border: rgba(255,255,255,0.08);
+  --logo-bar: #f5f5f5;
+  --nav-text: #f5f5f5;
+  --nav-hover-bg: rgba(255,255,255,0.06);
+  --nav-active-bg: #2a2a2a;
+  --nav-active-text: #ffffff;
+  --row-hover-bg: rgba(255,255,255,0.06);
+  --avatar-bg: #e5e5e5;
+  --avatar-text: #0a0a0a;
+
+  /* Conversation header, pickers, status chip */
+  --header-divider: transparent;
+  --header-title: #f5f5f5;
+  --header-subtitle: #a3a3a3;
+  --pill-bg: transparent;
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --pill-label: #a3a3a3;
+  --chip-text: #d4d4d4;
+  --chip-hover-bg: rgba(255, 255, 255, 0.08);
+  --chip-hover-text: #ffffff;
+  --chip-active-bg: #3a3a3a;
+  --chip-active-text: #ffffff;
+  --chip-active-shadow: none;
+  --status-bg: transparent;
+  --status-text: #f5f5f5;
+  --status-dot: #f5f5f5;
+  --status-ready-text: #6ee7b7;
+  --status-ready-bg: rgba(16, 185, 129, 0.1);
+  --status-ready-border: rgba(16, 185, 129, 0.35);
+  --status-error-text: #fca5a5;
+  --status-error-bg: rgba(239, 68, 68, 0.1);
+  --status-error-border: rgba(239, 68, 68, 0.35);
+  --session-id-text: #a3a3a3;
+  --session-id-border: rgba(255, 255, 255, 0.15);
+  --turn-speaking-dot: #f5f5f5;
+
+  /* Error banners: dark red / dark orange tints, light text */
+  --err-bg: rgba(42, 18, 18, 0.95);
+  --err-border: rgba(239, 68, 68, 0.4);
+  --err-mic-border: rgba(239, 68, 68, 0.5);
+  --err-text: #fca5a5;
+  --err-title: #fecaca;
+  --err-dismiss-border: rgba(252, 165, 165, 0.3);
+  --err-dismiss-hover: rgba(252, 165, 165, 0.08);
+  --warn-bg: rgba(42, 26, 14, 0.95);
+  --warn-border: rgba(249, 115, 22, 0.4);
+  --warn-text: #fdba74;
+  --warn-title: #fed7aa;
+  --warn-dismiss-border: rgba(253, 186, 116, 0.3);
+
+  /* Bottom bar: no frosted dock; Start and Speak become a white pill */
+  --dock-bg: transparent;
+  --dock-border: transparent;
+  --dock-shadow: none;
+  --dock-shadow-hover: none;
+  --cta-bg: #ffffff;
+  --cta-bg-hover: #e5e5e5;
+  --cta-text: #0a0a0a;
+  --cta-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --cta-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --cta-icon-bg: transparent;
+  --stop-bg: rgba(239, 68, 68, 0.12);
+  --stop-text: #fca5a5;
+  --stop-border: rgba(239, 68, 68, 0.4);
+  --stop-shadow: none;
+  --stop-bg-hover: rgba(239, 68, 68, 0.2);
+  --stop-text-hover: #fecaca;
+  --stop-icon-bg: rgba(239, 68, 68, 0.15);
+
+  /* Orb surroundings: white/grey light instead of pink and violet */
+  --wave-1: rgba(255, 255, 255, 0.55);
+  --wave-2: rgba(212, 212, 212, 0.35);
+  --wave-3: rgba(255, 255, 255, 0.25);
+  --halo-outer: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 45%, transparent 70%);
+  --halo-middle: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 75%);
+  --halo-listening: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 50%, transparent 75%);
+  --halo-speaking: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.07) 50%, transparent 75%);
+  --orb-title: #f5f5f5;
+  --orb-subtitle: #a3a3a3;
+  --eq-idle: #f5f5f5;
+  --eq-listening: #f5f5f5;
+  --eq-speaking: #ffffff;
+  --eq-thinking: #d4d4d4;
+
+  /* Conversation card and messages */
+  --card-bg: rgba(255, 255, 255, 0.02);
+  --card-border: rgba(255, 255, 255, 0.18);
+  --card-shadow: none;
+  --card-divider: rgba(255, 255, 255, 0.1);
+  --card-title: #f5f5f5;
+  --badge-text: #e5e5e5;
+  --badge-bg: #2a2a2a;
+  --empty-icon: #f5f5f5;
+  --empty-text: #f5f5f5;
+  --empty-subtext: #d4d4d4;
+  --scroll-thumb: rgba(255, 255, 255, 0.2);
+  --msg-user-bg: #262626;
+  --msg-user-border: rgba(255, 255, 255, 0.12);
+  --msg-agent-bg: rgba(255, 255, 255, 0.04);
+  --msg-agent-border: rgba(255, 255, 255, 0.12);
+  --msg-agent-shadow: none;
+  --sender-user: #d4d4d4;
+  --sender-agent: #f5f5f5;
+  --msg-time: #a3a3a3;
+  --msg-text: #f5f5f5;
+  --msg-partial-text: #a3a3a3;
+  --msg-live: #d4d4d4;
+  --msg-interrupted-bg: rgba(239, 68, 68, 0.08);
+  --msg-thinking: #d4d4d4;
+}

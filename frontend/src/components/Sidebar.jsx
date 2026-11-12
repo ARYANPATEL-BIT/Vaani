@@ -1,12 +1,15 @@
 /**
- * Sidebar — Left navigation rail with logo, nav items, operator row & logout.
+ * Sidebar — Left navigation rail with logo, nav items, theme toggle,
+ * operator row & logout.
  */
 
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Mic, Video, History, User, BarChart2, Settings,
-  ChevronRight, LogOut, UserCheck
+  ChevronRight, LogOut, UserCheck, Moon, Sun
 } from 'lucide-react';
+import { applyTheme, saveTheme } from '../theme/theme.js';
 import './AppLayout.css';
 
 const NAV_ITEMS = [
@@ -21,6 +24,19 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar() {
+  // The inline script in index.html already chose the theme and set it on
+  // <html> before React loaded, so start from what it chose.
+  const [theme, setTheme] = useState(
+    () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+  );
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next, document.documentElement); // CSS recolours everything
+    saveTheme(next, () => window.localStorage); // remembered for next visit
+    setTheme(next); // only this button's icon and pressed state re-render
+  }
+
   return (
     <aside className="sidebar">
       {/* Logo */}
@@ -55,6 +71,21 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="sidebar-footer">
+        {/* A toggle button: the label stays "Dark mode" and aria-pressed says
+            whether it is on. The icon shows the theme a click switches to. */}
+        <button
+          type="button"
+          className="sidebar-theme-toggle"
+          aria-label="Dark mode"
+          aria-pressed={theme === 'dark'}
+          title="Dark mode"
+          onClick={toggleTheme}
+        >
+          {theme === 'dark'
+            ? <Sun size={16} strokeWidth={1.8} aria-hidden="true" />
+            : <Moon size={16} strokeWidth={1.8} aria-hidden="true" />}
+          <span>Dark mode</span>
+        </button>
         <div className="operator-row">
           <div className="operator-avatar">A</div>
           <span className="operator-name">Operator</span>

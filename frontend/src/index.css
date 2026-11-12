@@ -65,16 +65,7 @@
   color: var(--c-navy);
 }
 
-/* Dark mode overrides */
-[data-theme="dark"] {
-  --glass-bg:        rgba(15,23,42,0.72);
-  --glass-border:    rgba(255,255,255,0.08);
-  --glass-shadow:    0 4px 32px rgba(0,0,0,0.3);
-  --c-navy:          #F8FAFC;
-  --c-slate:         #94A3B8;
-  --c-muted:         #64748B;
-  --bg-page:         linear-gradient(135deg, #0F0E1A 0%, #14102A 55%, #0D1828 100%);
-}
+/* Dark-theme values for these and every other themed colour: theme/colors.css */
 
 /* ── Reset ──────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,10 +76,6 @@ body {
   color: var(--c-navy);
   font-family: var(--font-ui);
   overflow: hidden; /* single viewport — transcript scrolls internally */
-}
-
-[data-theme="dark"] body {
-  color: #F8FAFC;
 }
 
 button { font-family: inherit; cursor: pointer; border: none; background: none; }
