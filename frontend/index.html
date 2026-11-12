@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Pick the colour theme before anything is drawn, so a dark-mode user
+      // never sees a flash of the light page while React loads.
+      // KEEP IN SYNC with src/theme/theme.js (readStoredTheme, resolveTheme,
+      // applyTheme). This copy exists because it must run before any module.
+      (function () {
+        var stored = null;
+        try { stored = window.localStorage.getItem('vaani-theme'); } catch (e) { /* blocked storage: no choice */ }
+        if (stored !== 'light' && stored !== 'dark') stored = null;
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = stored || (prefersDark ? 'dark' : 'light');
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

@@ -4,13 +4,13 @@
 
 .transcript-section {
   width: 100%;
-  background: rgba(255, 255, 255, 0.65);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--card-border);
   border-radius: 20px;
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
   min-height: 240px;
@@ -24,7 +24,7 @@
   justify-content: space-between;
   padding-bottom: 0.85rem;
   margin-bottom: 0.85rem;
-  border-bottom: 1px solid rgba(241, 245, 249, 0.9);
+  border-bottom: 1px solid var(--card-divider);
 }
 
 .transcript-title-group {
@@ -39,15 +39,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: var(--card-title);
   margin: 0;
 }
 
 .transcript-count {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #94a3b8;
-  background: rgba(241, 245, 249, 0.8);
+  color: var(--badge-text);
+  background: var(--badge-bg);
   padding: 2px 7px;
   border-radius: 10px;
 }
@@ -94,19 +94,19 @@
 
 .transcript-empty-icon {
   margin-bottom: 0.6rem;
-  color: #cbd5e1;
+  color: var(--empty-icon);
 }
 
 .transcript-empty-text {
   font-size: 0.95rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--empty-text);
   margin: 0 0 0.25rem;
 }
 
 .transcript-empty-subtext {
   font-size: 0.825rem;
-  color: #94a3b8;
+  color: var(--empty-subtext);
   margin: 0;
 }
 
@@ -130,7 +130,7 @@
 }
 
 .transcript-feed::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.6);
+  background: var(--scroll-thumb);
   border-radius: 10px;
 }
 
@@ -155,18 +155,18 @@
 }
 
 .message-user {
-  background: rgba(245, 243, 255, 0.8);
-  border: 1px solid rgba(221, 214, 254, 0.7);
+  background: var(--msg-user-bg);
+  border: 1px solid var(--msg-user-border);
   align-self: flex-end;
   max-width: 88%;
 }
 
 .message-agent {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: var(--msg-agent-bg);
+  border: 1px solid var(--msg-agent-border);
   align-self: flex-start;
   max-width: 90%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--msg-agent-shadow);
 }
 
 .message-header {
@@ -184,16 +184,16 @@
 }
 
 .message-user .message-sender {
-  color: #7c3aed;
+  color: var(--sender-user);
 }
 
 .message-agent .message-sender {
-  color: #4f46e5;
+  color: var(--sender-agent);
 }
 
 .message-time {
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: var(--msg-time);
 }
 
 .message-live-indicator {
@@ -201,7 +201,7 @@
   align-items: center;
   gap: 4px;
   font-size: 0.7rem;
-  color: #8b5cf6;
+  color: var(--msg-live);
   font-style: italic;
 }
 
@@ -209,7 +209,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: var(--msg-live);
   animation: liveBadgePulse 1.2s infinite;
 }
 
@@ -221,17 +221,17 @@
   margin: 0;
   font-size: 0.925rem;
   line-height: 1.5;
-  color: #1e293b;
+  color: var(--msg-text);
   word-break: break-word;
 }
 
 .partial-text {
-  color: #475569;
+  color: var(--msg-partial-text);
   font-style: italic;
 }
 
 .streaming-text {
-  color: #1e293b;
+  color: var(--msg-text);
 }
 
 .message-partial {
@@ -239,13 +239,13 @@
 }
 
 .message-streaming {
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid var(--msg-live);
 }
 
 /* Interrupted Message State */
 .message-interrupted {
   border: 1px dashed rgba(239, 68, 68, 0.5);
-  background: rgba(254, 242, 242, 0.75);
+  background: var(--msg-interrupted-bg);
 }
 
 .badge-interrupted {
@@ -265,11 +265,11 @@
 
 /* Thinking Indicator in Transcript */
 .message-thinking {
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid var(--msg-thinking);
 }
 
 .dot-thinking {
-  background: #6366f1;
+  background: var(--msg-thinking);
 }
 
 .thinking-dots {
@@ -283,7 +283,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--msg-thinking);
   opacity: 0.4;
   animation: thinkingPulse 1.4s infinite ease-in-out;
 }
