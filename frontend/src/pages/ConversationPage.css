@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  border-bottom: 1px solid var(--header-divider);
   margin-bottom: 1.5rem;
   gap: 1.5rem;
   flex-wrap: wrap;
@@ -42,14 +42,14 @@
   font-size: 1.85rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #1e1b2e;
+  color: var(--header-title);
   margin: 0;
   line-height: 1.1;
 }
 
 .header-subtitle {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--header-subtitle);
   letter-spacing: 0.01em;
 }
 
@@ -65,17 +65,17 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--pill-bg);
   backdrop-filter: blur(8px);
   padding: 4px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid var(--pill-border);
 }
 
 .persona-picker-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--pill-label);
   padding-left: 8px;
 }
 
@@ -89,7 +89,7 @@
   border: none;
   font-size: 0.775rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--chip-text);
   padding: 4px 10px;
   border-radius: 999px;
   cursor: pointer;
@@ -97,15 +97,15 @@
 }
 
 .persona-chip:hover:not(:disabled) {
-  background: rgba(241, 245, 249, 0.8);
-  color: #1e293b;
+  background: var(--chip-hover-bg);
+  color: var(--chip-hover-text);
 }
 
 .persona-chip.active {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: var(--chip-active-bg);
+  color: var(--chip-active-text);
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.12);
+  box-shadow: var(--chip-active-shadow);
 }
 
 .persona-chip:disabled {
@@ -122,10 +122,10 @@
   border-radius: 999px;
   font-size: 0.775rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.65);
+  background: var(--status-bg);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  color: #64748b;
+  border: 1px solid var(--pill-border);
+  color: var(--status-text);
   transition: all 0.2s ease;
 }
 
@@ -133,7 +133,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: var(--status-dot);
 }
 
 .status-ready .status-indicator {
@@ -142,9 +142,9 @@
 }
 
 .status-ready {
-  color: #065f46;
-  background: rgba(209, 250, 229, 0.5);
-  border-color: rgba(167, 243, 208, 0.8);
+  color: var(--status-ready-text);
+  background: var(--status-ready-bg);
+  border-color: var(--status-ready-border);
 }
 
 .status-connecting .status-indicator,
@@ -158,17 +158,17 @@
 }
 
 .status-error {
-  color: #991b1b;
-  background: rgba(254, 226, 226, 0.6);
-  border-color: rgba(254, 202, 202, 0.8);
+  color: var(--status-error-text);
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
 }
 
 .session-id-tag {
   font-size: 0.7rem;
   font-family: var(--mono);
-  color: #94a3b8;
+  color: var(--session-id-text);
   padding-left: 4px;
-  border-left: 1px solid rgba(203, 213, 225, 0.6);
+  border-left: 1px solid var(--session-id-border);
 }
 
 /* Turn-state pill: mirrors the server's turn.state. Reuses .session-pill
@@ -179,7 +179,7 @@
 
 .turn-listening .status-indicator { background: #10b981; }
 .turn-thinking .status-indicator { background: #f59e0b; animation: pulseAnim 1.4s infinite; }
-.turn-speaking .status-indicator { background: #6366f1; animation: pulseAnim 1.4s infinite; }
+.turn-speaking .status-indicator { background: var(--turn-speaking-dot); animation: pulseAnim 1.4s infinite; }
 .turn-cancelling .status-indicator { background: #ef4444; }
 
 /* -------------------------------------------------------------------------
@@ -190,12 +190,12 @@
   align-items: flex-start;
   gap: 14px;
   padding: 1rem 1.25rem;
-  background: rgba(254, 242, 242, 0.95);
+  background: var(--err-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--err-border);
   border-radius: 16px;
-  color: #991b1b;
+  color: var(--err-text);
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
   animation: bannerSlide 0.25s ease-out;
@@ -222,12 +222,12 @@
 .error-title {
   font-size: 0.925rem;
   font-weight: 600;
-  color: #7f1d1d;
+  color: var(--err-title);
 }
 
 .error-text {
   margin: 0;
-  color: #991b1b;
+  color: var(--err-text);
   line-height: 1.45;
 }
 
@@ -256,8 +256,8 @@
 
 .error-dismiss-btn {
   background: transparent;
-  color: #991b1b;
-  border: 1px solid rgba(153, 27, 27, 0.3);
+  color: var(--err-text);
+  border: 1px solid var(--err-dismiss-border);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 5px 10px;
@@ -267,26 +267,26 @@
 }
 
 .error-dismiss-btn:hover {
-  background: rgba(153, 27, 27, 0.08);
+  background: var(--err-dismiss-hover);
 }
 
 .error-banner.error-mic-denied {
-  border-color: #fca5a5;
-  background: rgba(254, 242, 242, 0.95);
+  border-color: var(--err-mic-border);
+  background: var(--err-bg);
 }
 
 .error-banner.error-connection-dropped {
-  border-color: #fed7aa;
-  background: rgba(255, 247, 237, 0.95);
-  color: #9a3412;
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn-text);
 }
 
 .error-banner.error-connection-dropped .error-title {
-  color: #7c2d12;
+  color: var(--warn-title);
 }
 
 .error-banner.error-connection-dropped .error-text {
-  color: #9a3412;
+  color: var(--warn-text);
 }
 
 .error-banner.error-connection-dropped .error-icon {
@@ -302,8 +302,8 @@
 }
 
 .error-banner.error-connection-dropped .error-dismiss-btn {
-  color: #9a3412;
-  border-color: rgba(154, 52, 18, 0.3);
+  color: var(--warn-text);
+  border-color: var(--warn-dismiss-border);
 }
 
 @keyframes bannerSlide {
@@ -355,22 +355,18 @@
   display: flex;
   align-items: center;
   padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--dock-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid var(--dock-border);
   border-radius: 999px;
-  box-shadow:
-    0 12px 32px -4px rgba(0, 0, 0, 0.08),
-    0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--dock-shadow);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
 .floating-controls-bar:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 16px 36px -4px rgba(0, 0, 0, 0.1),
-    0 6px 16px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--dock-shadow-hover);
 }
 
 .control-btn {
@@ -387,14 +383,14 @@
 }
 
 .primary-connect-btn {
-  background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.35);
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  box-shadow: var(--cta-shadow);
 }
 
 .primary-connect-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7e22ce 0%, #4f46e5 100%);
-  box-shadow: 0 6px 20px rgba(147, 51, 234, 0.45);
+  background: var(--cta-bg-hover);
+  box-shadow: var(--cta-shadow-hover);
   transform: scale(1.02);
 }
 
@@ -407,27 +403,27 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--cta-icon-bg);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .disconnect-btn {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+  background: var(--stop-bg);
+  color: var(--stop-text);
+  border: 1px solid var(--stop-border);
+  box-shadow: var(--stop-shadow);
 }
 
 .disconnect-btn:hover {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--stop-bg-hover);
+  color: var(--stop-text-hover);
   transform: scale(1.02);
 }
 
 .disconnect-icon-wrapper {
-  background: rgba(220, 38, 38, 0.1);
+  background: var(--stop-icon-bg);
 }
 
 .btn-label {
@@ -460,9 +456,9 @@
 }
 
 .ptt-btn {
-  background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.35);
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  box-shadow: var(--cta-shadow);
 }
 
 .ptt-btn:hover:not(:disabled) {
@@ -474,9 +470,11 @@
   cursor: wait;
 }
 
-/* While a press is open: red, like a recording light */
+/* While a press is open: red, like a recording light, in both themes.
+   color is repeated because .ptt-btn's text turns black in dark mode. */
 .ptt-btn.ptt-holding {
   background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+  color: #ffffff;
   box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
 }
 

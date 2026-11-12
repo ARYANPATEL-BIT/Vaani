@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node src/telemetry/latencyTelemetry.test.js && node src/turnState/turnState.test.js && node src/hooks/useReferenceRecorder.test.js && node src/hooks/usePhraseRecorder.test.js && node src/pages/enrolConsent.test.js && node src/bargeIn/bargeInFlush.test.js && node src/enrol/enrolValidation.test.js && node src/ptt/pttPress.test.js && node src/turnState/turnFilter.test.js && node src/turnState/sessionStart.test.js",
+    "test": "node src/telemetry/latencyTelemetry.test.js && node src/turnState/turnState.test.js && node src/hooks/useReferenceRecorder.test.js && node src/hooks/usePhraseRecorder.test.js && node src/pages/enrolConsent.test.js && node src/bargeIn/bargeInFlush.test.js && node src/enrol/enrolValidation.test.js && node src/ptt/pttPress.test.js && node src/turnState/turnFilter.test.js && node src/turnState/sessionStart.test.js && node src/theme/theme.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

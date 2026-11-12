@@ -45,17 +45,17 @@
 }
 
 .wave-1 {
-  stroke: rgba(192, 132, 252, 0.45);
+  stroke: var(--wave-1);
   animation: waveFloat1 10s ease-in-out infinite alternate;
 }
 
 .wave-2 {
-  stroke: rgba(147, 197, 253, 0.4);
+  stroke: var(--wave-2);
   animation: waveFloat2 14s ease-in-out infinite alternate;
 }
 
 .wave-3 {
-  stroke: rgba(232, 121, 249, 0.3);
+  stroke: var(--wave-3);
   animation: waveFloat3 12s ease-in-out infinite alternate;
 }
 
@@ -112,7 +112,7 @@
   width: 240px;
   height: 240px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(96, 165, 250, 0.12) 45%, transparent 70%);
+  background: var(--halo-outer);
   filter: blur(20px);
   pointer-events: none;
   animation: haloPulse 5s ease-in-out infinite;
@@ -123,7 +123,7 @@
   width: 195px;
   height: 195px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(192, 132, 252, 0.3) 0%, rgba(56, 189, 248, 0.15) 50%, transparent 75%);
+  background: var(--halo-middle);
   filter: blur(12px);
   pointer-events: none;
   animation: haloPulse 3.5s ease-in-out infinite alternate;
@@ -240,7 +240,7 @@
 }
 
 .state-listening .orb-halo-outer {
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 75%);
+  background: var(--halo-listening);
   animation: haloPulse 2s ease-in-out infinite;
 }
 
@@ -274,7 +274,7 @@
 }
 
 .state-speaking .orb-halo-outer {
-  background: radial-gradient(circle, rgba(217, 70, 239, 0.35) 0%, rgba(139, 92, 246, 0.25) 50%, transparent 75%);
+  background: var(--halo-speaking);
   animation: haloPulse 1.4s ease-in-out infinite;
 }
 
@@ -307,7 +307,7 @@
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #1e1b2e;
+  color: var(--orb-title);
   margin: 0 0 0.4rem;
   transition: color 0.3s ease;
 }
@@ -316,7 +316,7 @@
   font-family: var(--sans);
   font-size: 0.95rem;
   font-weight: 400;
-  color: #6b7280;
+  color: var(--orb-subtitle);
   margin: 0;
   letter-spacing: 0.01em;
 }
@@ -339,7 +339,7 @@
   width: 3.5px;
   height: 6px;
   border-radius: 999px;
-  background: #c4b5fd;
+  background: var(--eq-idle);
   opacity: 0.55;
   transform-origin: center;
   transition: height 0.25s ease, background-color 0.3s ease, opacity 0.3s ease;
@@ -347,21 +347,21 @@
 
 /* Animated Equalizer in Active States */
 .state-listening .equalizer-bar {
-  background: #818cf8;
+  background: var(--eq-listening);
   opacity: 0.9;
   animation: barBounce 1.2s ease-in-out infinite alternate;
   animation-delay: var(--bar-delay);
 }
 
 .state-speaking .equalizer-bar {
-  background: #a855f7;
+  background: var(--eq-speaking);
   opacity: 0.95;
   animation: barBounceSpeaking 0.9s ease-in-out infinite alternate;
   animation-delay: var(--bar-delay);
 }
 
 .state-thinking .equalizer-bar {
-  background: #c084fc;
+  background: var(--eq-thinking);
   opacity: 0.7;
   animation: barBounceThinking 1.8s ease-in-out infinite alternate;
   animation-delay: var(--bar-delay);
