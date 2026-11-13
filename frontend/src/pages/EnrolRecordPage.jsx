@@ -12,23 +12,34 @@
  *  - Error messages for: permission denied, no mic, recording failure,
  *    unsupported browser.
  *  - In-browser audio preview (<audio>) after a successful capture.
- *  - No backend upload; the Blob remains in memory only.
+ *
+ * Week 4 Day 1 addition — API wiring:
+ *  - "Submit to Vaani" button uploads the recorded blob via useEnrolUpload.
+ *  - Uploading and polling states are shown with inline feedback.
+ *  - On success (accepted | rejected) navigates to /enrol/validation with
+ *    the real API result in router state.
+ *  - On error the error message is shown with a retry option.
+ *  - Duplicate submission is prevented while a request is in flight.
+ *  - Client-side pre-validation still runs before upload to catch obvious
+ *    issues locally without wasting a network round-trip.
  *
  * Redirect guard: if the user lands here without passing through the
  * consent screen (/enrol), they are redirected back to /enrol.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mic, MicOff, Square, RefreshCw, CheckCircle2,
   AlertTriangle, Clock, ChevronLeft, AudioLines,
+  Upload, Loader, XCircle,
 } from 'lucide-react';
 import {
   useReferenceRecorder,
   MIN_DURATION_S,
   MAX_DURATION_S,
 } from '../hooks/useReferenceRecorder.js';
+import { useEnrolUpload } from '../hooks/useEnrolUpload.js';
 import { clientPreValidateRecording } from '../enrol/enrolValidationContracts.js';
 import './EnrolRecordPage.css';
 
@@ -104,6 +115,77 @@ function StatusBadge({ state }) {
   );
 }
 
+/* ── Upload status panel ──────────────────────────────────────────────── */
+
+/**
+ * UploadStatusPanel — shows uploading / polling / error state inline.
+ * Only rendered when an upload is in flight or has ended in error.
+ */
+function UploadStatusPanel({ uploadState, errorMessage, pollAttempt, onCancel }) {
+  if (uploadState === 'idle' || uploadState === 'accepted' || uploadState === 'rejected') {
+    return null;
+  }
+
+  if (uploadState === 'uploading') {
+    return (
+      <div className="upload-status-panel upload-status-uploading" role="status" aria-live="polite">
+        <Loader size={18} strokeWidth={2} className="upload-spinner" aria-hidden="true" />
+        <div className="upload-status-text">
+          <strong>Uploading recording…</strong>
+          <span>Sending your reference voice to the server.</span>
+        </div>
+        <button
+          type="button"
+          className="upload-cancel-btn"
+          onClick={onCancel}
+          aria-label="Cancel upload"
+        >
+          <XCircle size={16} strokeWidth={2} />
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  if (uploadState === 'polling') {
+    return (
+      <div className="upload-status-panel upload-status-polling" role="status" aria-live="polite">
+        <Loader size={18} strokeWidth={2} className="upload-spinner" aria-hidden="true" />
+        <div className="upload-status-text">
+          <strong>Validating recording…</strong>
+          <span>
+            The server is checking your audio quality.
+            {pollAttempt > 0 ? ` (check ${pollAttempt})` : ''}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="upload-cancel-btn"
+          onClick={onCancel}
+          aria-label="Cancel validation check"
+        >
+          <XCircle size={16} strokeWidth={2} />
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  if (uploadState === 'error') {
+    return (
+      <div className="upload-status-panel upload-status-error" role="alert">
+        <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
+        <div className="upload-status-text">
+          <strong>Upload failed.</strong>
+          <span>{errorMessage || 'Please try again.'}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 /* ── Page ─────────────────────────────────────────────────────────────── */
 
 export default function EnrolRecordPage() {
@@ -115,10 +197,22 @@ export default function EnrolRecordPage() {
     level,
     errorMessage,
     recordingUrl,
+    recordingBlob,
     startRecording,
     stopRecording,
     reRecord,
   } = useReferenceRecorder();
+
+  const {
+    uploadState,
+    errorMessage: uploadError,
+    rejectionReason,
+    pollAttempt,
+    isSubmitting,
+    submit,
+    cancel: cancelUpload,
+    reset: resetUpload,
+  } = useEnrolUpload();
 
   const isRecording  = recordingState === 'recording';
   const isRequesting = recordingState === 'requesting';
@@ -127,9 +221,9 @@ export default function EnrolRecordPage() {
   const isFailed     = recordingState === 'failed';
   const isIdle       = recordingState === 'idle';
 
-  const canStart = isIdle || isTooShort || isFailed;
-  const canStop  = isRecording;
-  const canReRecord = isCompleted || isTooShort || isFailed;
+  const canStart    = isIdle || isTooShort || isFailed;
+  const canStop     = isRecording;
+  const canReRecord = (isCompleted || isTooShort || isFailed) && !isSubmitting;
 
   const remainingSeconds = Math.max(0, MAX_DURATION_S - elapsedSeconds);
   const progress = progressPercent(elapsedSeconds, MAX_DURATION_S);
@@ -145,6 +239,54 @@ export default function EnrolRecordPage() {
     progress < 80 ? '#F59E0B' :
     'var(--c-red)';
 
+  // ── Navigate when the upload completes ──────────────────────────────
+
+  useEffect(() => {
+    if (uploadState === 'accepted') {
+      navigate('/enrol/validation', {
+        state: { accepted: true },
+      });
+    } else if (uploadState === 'rejected') {
+      navigate('/enrol/validation', {
+        state: {
+          rejected: true,
+          reason: rejectionReason || 'UNKNOWN_REJECTION_REASON',
+        },
+      });
+    }
+  }, [uploadState, rejectionReason, navigate]);
+
+  // ── Submit handler ───────────────────────────────────────────────────
+
+  const handleSubmit = useCallback(() => {
+    if (isSubmitting) return; // duplicate-submission guard
+
+    // Client-side pre-validation before touching the network
+    const preCheck = clientPreValidateRecording({
+      durationSeconds: elapsedSeconds,
+      avgLevel: level,
+      isConsentConfirmed: true,
+    });
+
+    if (!preCheck.valid) {
+      // Pre-validation caught something — go straight to validation feedback
+      navigate('/enrol/validation', {
+        state: { reason: preCheck.error.canonicalCode },
+      });
+      return;
+    }
+
+    // Real upload
+    submit(recordingBlob);
+  }, [isSubmitting, elapsedSeconds, level, recordingBlob, submit, navigate]);
+
+  // ── Re-record: also reset upload state ──────────────────────────────
+
+  const handleReRecord = useCallback(() => {
+    resetUpload();
+    reRecord();
+  }, [resetUpload, reRecord]);
+
   return (
     <main className="record-page" aria-labelledby="record-title">
       {/* Back link */}
@@ -153,6 +295,7 @@ export default function EnrolRecordPage() {
         type="button"
         className="record-back-btn"
         onClick={handleBack}
+        disabled={isSubmitting}
         aria-label="Go back to consent screen"
       >
         <ChevronLeft size={16} strokeWidth={2} />
@@ -167,7 +310,7 @@ export default function EnrolRecordPage() {
               Reference Recording
             </h1>
             <p className="record-subtitle">
-              Speak naturally for 30–60 seconds. The recording stays in your browser only.
+              Speak naturally for 30–60 seconds. Your recording will be submitted for voice validation.
             </p>
           </div>
           <StatusBadge state={recordingState} />
@@ -276,7 +419,7 @@ export default function EnrolRecordPage() {
             <CheckCircle2 size={16} strokeWidth={2} aria-hidden="true" />
             <div>
               <strong>Recording saved ({elapsedSeconds}s).</strong>
-              {' '}Your reference voice is ready. You can preview it below or record again.
+              {' '}Your reference voice is ready. Preview it below, then submit for validation.
             </div>
           </div>
         )}
@@ -294,6 +437,14 @@ export default function EnrolRecordPage() {
             />
           </div>
         )}
+
+        {/* Upload / polling / error panel */}
+        <UploadStatusPanel
+          uploadState={uploadState}
+          errorMessage={uploadError}
+          pollAttempt={pollAttempt}
+          onCancel={cancelUpload}
+        />
 
         {/* Guidance (visible when idle or in early recording) */}
         {(isIdle || isRequesting) && (
@@ -338,7 +489,7 @@ export default function EnrolRecordPage() {
               id="record-rerecord-btn"
               type="button"
               className="record-btn record-btn-rerecord"
-              onClick={reRecord}
+              onClick={handleReRecord}
               aria-label="Discard and record again"
             >
               <RefreshCw size={16} strokeWidth={2} />
@@ -346,34 +497,49 @@ export default function EnrolRecordPage() {
             </button>
           )}
 
+          {/* Submit button — only when completed and not already submitting */}
           {isCompleted && (
             <button
-              id="record-validate-btn"
+              id="record-submit-btn"
               type="button"
               className="record-btn record-btn-validate"
-              onClick={() => {
-                const preCheck = clientPreValidateRecording({
-                  durationSeconds: elapsedSeconds,
-                  avgLevel: level,
-                  isConsentConfirmed: true,
-                });
-                if (!preCheck.valid) {
-                  navigate('/enrol/validation', { state: { error: preCheck.error } });
-                } else {
-                  navigate('/enrol/validation', { state: { reason: 'TOO_SHORT' } });
-                }
-              }}
-              aria-label="Check recording validation"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              aria-disabled={isSubmitting}
+              aria-label={isSubmitting ? 'Submitting recording…' : 'Submit recording for validation'}
             >
-              <CheckCircle2 size={16} strokeWidth={2} />
-              Check Validation Feedback
+              {isSubmitting ? (
+                <>
+                  <Loader size={16} strokeWidth={2} className="upload-spinner" />
+                  {uploadState === 'uploading' ? 'Uploading…' : 'Validating…'}
+                </>
+              ) : (
+                <>
+                  <Upload size={16} strokeWidth={2} />
+                  Submit for Validation
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Retry button — shown after an upload error */}
+          {uploadState === 'error' && isCompleted && !isSubmitting && (
+            <button
+              id="record-retry-btn"
+              type="button"
+              className="record-btn record-btn-validate"
+              onClick={handleSubmit}
+              aria-label="Retry submitting the recording"
+            >
+              <RefreshCw size={16} strokeWidth={2} />
+              Retry Upload
             </button>
           )}
         </div>
 
         {/* Bottom note */}
         <p className="record-bottom-note">
-          Your recording is stored in browser memory only and is not sent to any server during this step.
+          Your recording will be sent to the Vaani backend for voice quality validation.
         </p>
       </div>
     </main>

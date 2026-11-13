@@ -476,3 +476,82 @@
   background: rgba(79, 70, 229, 0.08);
   border-color: rgba(79, 70, 229, 0.18);
 }
+
+/* ── Week 4 Day 1: Upload status panel ─────────────────────────────────── */
+
+.upload-status-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-md, 8px);
+  border: 1px solid transparent;
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.upload-status-uploading {
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.2);
+  color: var(--c-indigo, #4F46E5);
+}
+
+.upload-status-polling {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #92400E;
+}
+
+.upload-status-error {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #991B1B;
+}
+
+.upload-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.upload-status-text strong {
+  font-weight: 600;
+}
+
+.upload-status-text span {
+  opacity: 0.85;
+  font-size: 0.82rem;
+}
+
+.upload-cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm, 4px);
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.upload-cancel-btn:hover {
+  opacity: 1;
+}
+
+/* Spinner animation for Upload / Loader icons */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.upload-spinner {
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
