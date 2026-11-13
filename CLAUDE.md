@@ -80,17 +80,6 @@ I could explain this to my mentor after reading the learning document once.
 
 Point 9 is the real gate. If the document leaves me unable to say where a function lives, what it does, or why it beat the alternative, the document has failed and needs rewriting — not me.
 
-Weekly routine
-
-At the end of each week, generate docs/learning/week-N-review.md containing:
-
-What was built, with file paths.
-Every decision made, with the rejected alternative.
-Measured numbers: latency, cost, error rates.
-What broke and what fixed it.
-Ten questions a mentor could ask about this week's code, with answers.
-Any concept introduced this week, explained from scratch.
-What we are least confident about going into next week.
 Reality check
 
 The learning document is how I learn this project. My mentor will ask "where is the code that does this", "what happens if this fails", and "why not the other way" — so those answers must be in the document, in language I can absorb, before he asks.
