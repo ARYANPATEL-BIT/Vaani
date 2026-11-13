@@ -28,7 +28,14 @@
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
+/* The sidebar is sized in fixed px, not rem: the icon column has to stay
+   exactly as wide as the lucide icons (a px prop in Sidebar.jsx), so the
+   icons line up and stay centred in the collapsed rail. Sized for the 18px
+   root by hand. Every row, nav and footer alike, uses the same padding and
+   font size from these two variables, so their icons sit in one column. */
 .sidebar {
+  --row-pad: 11px 16px;
+  --row-font: 16px;
   width: var(--sidebar-w);
   height: 100vh;
   flex-shrink: 0;
@@ -57,21 +64,21 @@
   display: flex;
   align-items: flex-end;
   gap: 3px;
-  height: 28px;
+  height: 32px;
   flex-shrink: 0;
 }
 
 .logo-bar {
-  width: 3.5px;
+  width: 4px;
   border-radius: 2px;
   background: var(--logo-bar);
   animation: logoWave 1.6s ease-in-out infinite alternate;
 }
-.logo-bar:nth-child(1) { height: 12px; animation-delay: 0s; }
-.logo-bar:nth-child(2) { height: 22px; animation-delay: 0.15s; }
-.logo-bar:nth-child(3) { height: 16px; animation-delay: 0.3s; }
-.logo-bar:nth-child(4) { height: 26px; animation-delay: 0.45s; }
-.logo-bar:nth-child(5) { height: 14px; animation-delay: 0.6s; }
+.logo-bar:nth-child(1) { height: 14px; animation-delay: 0s; }
+.logo-bar:nth-child(2) { height: 25px; animation-delay: 0.15s; }
+.logo-bar:nth-child(3) { height: 18px; animation-delay: 0.3s; }
+.logo-bar:nth-child(4) { height: 30px; animation-delay: 0.45s; }
+.logo-bar:nth-child(5) { height: 16px; animation-delay: 0.6s; }
 
 @keyframes logoWave {
   0% { transform: scaleY(0.7); opacity: 0.7; }
@@ -79,7 +86,7 @@
 }
 
 .logo-wordmark {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--c-navy);
@@ -98,9 +105,9 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: 10px 14px;
+  padding: var(--row-pad);
   border-radius: var(--r-md);
-  font-size: 14.5px;
+  font-size: var(--row-font);
   font-weight: 500;
   color: var(--nav-text);
   text-decoration: none;
@@ -122,32 +129,38 @@
 .nav-item svg { flex-shrink: 0; opacity: 0.85; }
 .nav-item.active svg { opacity: 1; }
 
+/* The divider above the footer is this border; --sidebar-footer-border has
+   a light and a dark value in theme/colors.css. */
 .sidebar-footer {
-  padding: var(--sp-3) var(--sp-3) 0;
+  padding: var(--sp-4) var(--sp-3) 0;
   border-top: 1px solid var(--sidebar-footer-border);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-2); /* wider than the nav's 2px, so the three rows read apart */
 }
+
+/* Footer icons never shrink, even in the narrow collapsed rail. */
+.sidebar-footer svg { flex-shrink: 0; }
 
 .operator-row {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: 10px 14px;
+  padding: var(--row-pad);
   border-radius: var(--r-md);
   cursor: pointer;
   transition: background var(--t-fast);
 }
 .operator-row:hover { background: var(--row-hover-bg); }
 
+/* As wide as the icon column (ICON_SIZE in Sidebar.jsx), so it lines up. */
 .operator-avatar {
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--avatar-bg);
   color: var(--avatar-text);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -157,7 +170,11 @@
 
 .operator-name {
   flex: 1;
-  font-size: 14px;
+  min-width: 0; /* lets a long name shrink and end in "..." instead of overflowing */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--row-font);
   font-weight: 500;
   color: var(--c-navy);
 }
@@ -166,9 +183,9 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: 10px 14px;
+  padding: var(--row-pad);
   border-radius: var(--r-md);
-  font-size: 14px;
+  font-size: var(--row-font);
   font-weight: 500;
   color: var(--nav-text);
   cursor: pointer;
@@ -182,25 +199,29 @@
   align-items: center;
   gap: var(--sp-3);
   width: 100%;
-  padding: 10px 14px;
+  padding: var(--row-pad);
   border-radius: var(--r-md);
-  font-size: 14px;
+  font-size: var(--row-font);
+  /* A <button> does not inherit line-height (the browser resets it), which
+     made this row shorter than the others. */
+  line-height: inherit;
   font-weight: 500;
   color: var(--nav-text);
   transition: background var(--t-fast);
 }
 .sidebar-theme-toggle:hover { background: var(--row-hover-bg); }
-.sidebar-theme-toggle svg { flex-shrink: 0; } /* never squeezed in the 60px rail */
 .sidebar-theme-toggle:focus-visible { outline: 2px solid var(--c-navy); outline-offset: 2px; }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .sidebar { width: var(--sidebar-w-collapsed); }
-  .logo-wordmark, .nav-item span, .operator-name, .sidebar-logout span,
-  .sidebar-theme-toggle span { display: none; }
+  .logo-wordmark, .nav-item span, .operator-name, .operator-chevron,
+  .sidebar-logout span, .sidebar-theme-toggle span { display: none; }
   .sidebar-logo { justify-content: center; padding: var(--sp-3) 0 var(--sp-6); }
-  .nav-item { justify-content: center; padding: 12px; }
-  .operator-row { justify-content: center; }
-  .sidebar-logout, .sidebar-theme-toggle { justify-content: center; }
-  .sidebar-theme-toggle { padding: 10px 0; } /* the rail is too narrow for side padding */
+  /* Icon-only rows: 12px all round + a 20px icon = a 44x44 square, centred
+     in the 68px rail (12px side padding on the nav and footer). */
+  .nav-item, .operator-row, .sidebar-logout, .sidebar-theme-toggle {
+    justify-content: center;
+    padding: 12px;
+  }
 }
