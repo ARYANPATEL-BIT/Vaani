@@ -42,9 +42,9 @@
   --font-ui:     'Inter', 'Nirmala UI', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
   --font-serif:  'Fraunces', Georgia, serif;
 
-  /* Sidebar */
-  --sidebar-w: 205px;
-  --sidebar-w-collapsed: 60px;
+  /* Sidebar. Fixed px, so these do not follow the 18px root (see AppLayout.css). */
+  --sidebar-w: 230px;
+  --sidebar-w-collapsed: 68px;
 
   /* Right panel */
   --rpanel-w: 320px;

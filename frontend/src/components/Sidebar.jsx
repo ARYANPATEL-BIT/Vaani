@@ -12,6 +12,11 @@ import {
 import { applyTheme, saveTheme } from '../theme/theme.js';
 import './AppLayout.css';
 
+// Width of the sidebar's icon column in px. Every row (nav and footer) uses
+// it, and .operator-avatar in AppLayout.css matches it, so all the icons sit
+// in one vertical line. lucide takes the size as a px number.
+const ICON_SIZE = 20;
+
 const NAV_ITEMS = [
   { to: '/', label: 'Conversation', icon: Mic, end: true },
   { to: '/loopback', label: 'Studio', icon: Video },
@@ -34,8 +39,10 @@ export default function Sidebar() {
     const next = theme === 'dark' ? 'light' : 'dark';
     applyTheme(next, document.documentElement); // CSS recolours everything
     saveTheme(next, () => window.localStorage); // remembered for next visit
-    setTheme(next); // only this button's icon and pressed state re-render
+    setTheme(next); // only this button's icon and label re-render
   }
+
+  const toggleLabel = theme === 'dark' ? 'Light mode' : 'Dark mode';
 
   return (
     <aside className="sidebar">
@@ -52,7 +59,7 @@ export default function Sidebar() {
         {NAV_ITEMS.map(({ to, label, icon: Icon, end, disabled }) =>
           disabled ? (
             <div key={label} className="nav-item" style={{ opacity: 0.45, cursor: 'default' }}>
-              <Icon size={18} strokeWidth={1.8} />
+              <Icon size={ICON_SIZE} strokeWidth={1.8} />
               <span>{label}</span>
             </div>
           ) : (
@@ -62,7 +69,7 @@ export default function Sidebar() {
               end={end}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
             >
-              <Icon size={18} strokeWidth={1.8} />
+              <Icon size={ICON_SIZE} strokeWidth={1.8} />
               <span>{label}</span>
             </NavLink>
           )
@@ -71,28 +78,29 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        {/* A toggle button: the label stays "Dark mode" and aria-pressed says
-            whether it is on. The icon shows the theme a click switches to. */}
+        {/* The label names what a click does: "Dark mode" in light, "Light
+            mode" in dark. No aria-pressed: a label that changes AND a pressed
+            state would tell a screen reader two different things. aria-label
+            and title repeat the text for the collapsed, icon-only rail. */}
         <button
           type="button"
           className="sidebar-theme-toggle"
-          aria-label="Dark mode"
-          aria-pressed={theme === 'dark'}
-          title="Dark mode"
+          aria-label={toggleLabel}
+          title={toggleLabel}
           onClick={toggleTheme}
         >
           {theme === 'dark'
-            ? <Sun size={16} strokeWidth={1.8} aria-hidden="true" />
-            : <Moon size={16} strokeWidth={1.8} aria-hidden="true" />}
-          <span>Dark mode</span>
+            ? <Sun size={ICON_SIZE} strokeWidth={1.8} aria-hidden="true" />
+            : <Moon size={ICON_SIZE} strokeWidth={1.8} aria-hidden="true" />}
+          <span>{toggleLabel}</span>
         </button>
         <div className="operator-row">
           <div className="operator-avatar">A</div>
           <span className="operator-name">Operator</span>
-          <ChevronRight size={14} strokeWidth={2} color="var(--c-muted)" />
+          <ChevronRight className="operator-chevron" size={16} strokeWidth={2} color="var(--c-muted)" />
         </div>
         <div className="sidebar-logout">
-          <LogOut size={16} strokeWidth={1.8} />
+          <LogOut size={ICON_SIZE} strokeWidth={1.8} />
           <span>Logout</span>
         </div>
       </div>

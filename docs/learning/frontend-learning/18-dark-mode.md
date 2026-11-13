@@ -59,10 +59,30 @@ follows the operating system's light or dark setting. Light mode looks the same 
    `vite.config.js` or the backend.
 9. **The toggle.** `Sidebar.jsx` holds the theme in React state, starting from what the
    inline script set. A click sets the attribute, saves the choice and updates the button. It
-   is a real `<button>`, so it is reachable with Tab. Its accessible name is always "Dark mode",
-   and `aria-pressed` (true or false) tells a screen reader whether it is on. The icon is a moon
-   in light mode and a sun in dark mode. In the 60 px sidebar (under 1100 px wide) only the
-   icon shows. The old theme state and the unused `toggleTheme` in `AppLayout.jsx` are gone.
+   is a real `<button>`, so it is reachable with Tab. Its label names what a click will do:
+   moon + "Dark mode" in light, sun + "Light mode" in dark. A fixed "Dark mode" read like a
+   status in dark mode. `aria-label` (the name a screen reader speaks) repeats the visible text.
+   There is no `aria-pressed` (an on/off state for toggle buttons), because a name that changes
+   plus an on/off state would contradict each other. In the 68 px sidebar (under 1100 px wide)
+   only the icon shows, and `title` gives the same text as a hover tooltip. The focus ring is
+   on `:focus-visible`, not `:focus`: the browser shows it after Tab, not after a mouse click. The old theme state and the unused `toggleTheme` in `AppLayout.jsx` are gone.
+10. **Sidebar sizing.** CSS has two kinds of length. `px` is a fixed size. `rem` is a multiple
+   of the root font size, which `index.css` raised from 16 px to 18 px so page text grew. The
+   sidebar is written in `px`, so it did not grow with it, and next to the bigger page it
+   looked small and cramped. It stays in `px` on purpose: lucide icons take their size as a px
+   number, and the icons only line up, and stay centred in the narrow rail, if every row's
+   icon column is an exact width. So the sizes were raised by hand, about 10 to 15 percent:
+   width 205 to 230 px, collapsed rail 60 to 68 px (both in `index.css`), wordmark 18 to 20,
+   logo 28 to 32 tall, nav text 14.5 to 16, icons 18 to 20, rows 42 to 46 px tall.
+   One `ICON_SIZE = 20` in `Sidebar.jsx` sizes every icon, the operator avatar is 20 px to
+   match, and `.sidebar` in `AppLayout.css` defines `--row-pad` and `--row-font` once, which
+   the nav rows and all three footer rows use. So every icon has its centre 38 px from the
+   left edge (34 px when collapsed). The theme toggle also needed `line-height: inherit`: the
+   browser gives a `<button>` its own line height, which made it 5 px shorter than a nav row
+   (37 against 42). The footer rows are 8 px apart, under the existing divider line. When collapsed they
+   are 44 px squares and the operator chevron is hidden. At 1280x800 the three pickers on
+   the conversation page still fit on one line: the page column is capped at 1020 px, and
+   the main column is 1050 px wide, so it is still capped (measured in headless Chrome).
 
 ## 4. When
 
@@ -79,6 +99,7 @@ the conversation path: no WebSocket, audio, push-to-talk or orb animation code c
 | One `colors.css` for all themed colours | Each component file defines its own variables at its top | `ConversationPage.css` is already 497 lines; one file also shows the whole dark palette in one place |
 | Inline script in `index.html` | Set the theme in a React effect (the old way) | An effect runs after the first paint, so dark-mode users see a light flash on every load |
 | Saved choice, else the system setting | Always start in light | A user with a dark operating system would get a bright page until they find the toggle |
+| Sidebar sizes in `px`, raised by hand | Rewrite them in `rem`, so they grow with the root automatically (205 px is 12.8 rem, 230 px at 18 px) | Icon sizes are px props, so icons and text could drift apart, and the collapsed rail needs exact widths to keep icons centred; we give up the sidebar following a future root change on its own |
 
 ## 6. Known issues
 
