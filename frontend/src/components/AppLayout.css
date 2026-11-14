@@ -3,6 +3,10 @@
 .app-shell {
   display: flex;
   height: 100vh;
+  /* dvh = the height actually visible. On phones 100vh includes the area
+     behind the browser's address bar, which would hide the bottom bar.
+     Browsers without dvh keep the 100vh line above. */
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   position: relative;
@@ -15,6 +19,7 @@
   flex: 1;
   min-width: 0; /* a flex item may otherwise refuse to shrink below its content */
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
 }
 
@@ -224,4 +229,48 @@
     justify-content: center;
     padding: 12px;
   }
+}
+
+/* ── Phones: the sidebar becomes a bottom bar ─────────────────────────────
+   A media query applies the rules inside it only while its condition holds,
+   here "the viewport is at most 640px wide". Below that a 68px rail would
+   take a fifth of a 360px screen, so the same <aside> is laid out as a row
+   along the bottom instead. No second component: Sidebar.jsx is unchanged.
+   This block comes after the 1100px block, so where both match, these win. */
+@media (max-width: 640px) {
+  /* Column: page on top, bar below. The page keeps scrolling on its own. */
+  .app-shell { flex-direction: column; }
+  .app-main { order: 1; height: auto; flex: 1; min-height: 0; }
+
+  .sidebar {
+    order: 2;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0 var(--sp-2);
+    /* Keeps the bar above the iPhone home indicator. */
+    padding-bottom: env(safe-area-inset-bottom);
+    border-right: none;
+    border-top: 1px solid var(--sidebar-border);
+  }
+
+  /* Logo, operator and logout are placeholders; the bar has no room. */
+  .sidebar-logo, .operator-row, .sidebar-logout { display: none; }
+
+  .sidebar-nav { flex-direction: row; justify-content: space-around; padding: var(--sp-1) 0; gap: 0; }
+  .sidebar-footer { flex-direction: row; border-top: none; padding: var(--sp-1) 0; }
+
+  /* Tab-bar style: icon over a small label, at least 44x44 to tap. */
+  .nav-item, .sidebar-theme-toggle {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--sp-1) var(--sp-2);
+    font-size: 11px;
+  }
+  .nav-item span, .sidebar-theme-toggle span { display: block; }
 }

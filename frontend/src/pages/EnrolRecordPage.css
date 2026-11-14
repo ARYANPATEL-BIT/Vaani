@@ -555,3 +555,9 @@
   animation: spin 1s linear infinite;
   flex-shrink: 0;
 }
+
+/* ── Phones (same 640px breakpoint as the bottom bar in AppLayout.css) ── */
+@media (max-width: 640px) {
+  .record-page { min-height: 100%; padding: var(--sp-4) var(--sp-3); }
+  .record-card { padding: var(--sp-5); }
+}

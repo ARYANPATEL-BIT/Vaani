@@ -535,3 +535,15 @@
 [data-theme="dark"] .notice-text code {
   background: rgba(245, 158, 11, 0.2);
 }
+
+/* ── Phones (same 640px breakpoint as the bottom bar in AppLayout.css) ── */
+@media (max-width: 640px) {
+  /* 100vh would add the bottom bar's height again and leave a blank scroll. */
+  .consent-page { min-height: 100%; padding: var(--sp-4) var(--sp-3); }
+  .consent-card { padding: var(--sp-5); gap: var(--sp-5); }
+  .consent-icon-wrap { width: 40px; height: 40px; }
+  .consent-title { font-size: 1.35rem; }
+  /* Three steps side by side do not fit in 330px: list them top to bottom. */
+  .enrol-stepper { flex-direction: column; align-items: flex-start; gap: var(--sp-1); }
+  .step-divider { display: none; }
+}

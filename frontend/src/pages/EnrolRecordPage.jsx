@@ -207,6 +207,7 @@ export default function EnrolRecordPage() {
     uploadState,
     errorMessage: uploadError,
     rejectionReason,
+    enrolmentId,
     pollAttempt,
     isSubmitting,
     submit,
@@ -244,7 +245,9 @@ export default function EnrolRecordPage() {
   useEffect(() => {
     if (uploadState === 'accepted') {
       navigate('/enrol/validation', {
-        state: { accepted: true },
+        // enrolmentId: the verify step (/enrol/verify) needs it to render
+        // and approve the cloned voice.
+        state: { accepted: true, enrolmentId },
       });
     } else if (uploadState === 'rejected') {
       navigate('/enrol/validation', {
@@ -254,7 +257,7 @@ export default function EnrolRecordPage() {
         },
       });
     }
-  }, [uploadState, rejectionReason, navigate]);
+  }, [uploadState, rejectionReason, enrolmentId, navigate]);
 
   // ── Submit handler ───────────────────────────────────────────────────
 
