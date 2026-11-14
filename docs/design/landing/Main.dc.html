@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vaani landing page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Noto+Serif+Devanagari:wght@400&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+html{scroll-behavior:smooth}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+.sans{font-family:'Inter Tight',Inter,system-ui,sans-serif}
+.ser{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400}
+.mask{display:inline-block;overflow:hidden;vertical-align:bottom;padding:0 0.07em 0.16em;margin:0 -0.07em -0.16em}
+.hl{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 0.16em}
+.sl{align-self:center;font-size:0.44em;font-weight:400;line-height:1;transform:skewX(-10deg)}
+@media (max-width: 760px){.hl{justify-content:flex-start;gap:0 0.3em}.sl{display:none}}
+@keyframes vaaniFade{from{opacity:0}to{opacity:1}}
+.cur{position:fixed;top:0;left:0;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0B0B0B;pointer-events:none;opacity:0;transition:opacity .2s;z-index:40}
+.pre{position:fixed;inset:0;z-index:60;background:#05040C;color:#fff}
+.st1,.st2{margin-top:0}
+@media (min-width: 900px){.st1{margin-top:56px}.st2{margin-top:112px}}
+@keyframes vaaniWord{from{transform:translateY(110%)}to{transform:none}}
+@keyframes vaaniRise{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}
+@keyframes vaaniPre{to{opacity:0;visibility:hidden}}
+@keyframes vaaniFill{from{width:0}to{width:100%}}
+@keyframes vaaniPulse{from{transform:scaleY(0.55)}to{transform:scaleY(1)}}
+.fill{width:100%}
+@media (prefers-reduced-motion: no-preference){
+.pre{animation:vaaniPre .8s ease calc(var(--lead) - 0.2s) forwards}
+.mask > span{display:inline-block;animation:vaaniWord .95s cubic-bezier(.2,.7,.2,1) both}
+.w1{animation-delay:calc(var(--lead) + 0.05s)}
+.w2{animation-delay:calc(var(--lead) + 0.2s)}
+.w3{animation-delay:calc(var(--lead) + 0.35s)}
+.sl{animation:vaaniFade .7s ease calc(var(--lead) + 0.55s) both}
+.fill{animation:vaaniFill 5s linear forwards}
+.bp{animation:vaaniPulse 1.6s ease-in-out infinite alternate}
+}
+@media (prefers-reduced-motion: reduce){.pre{display:none}}
+@supports (animation-timeline: view()){
+@media (prefers-reduced-motion: no-preference){
+.rv{animation:vaaniRise linear both;animation-timeline:view();animation-range:entry 0% entry 45%}
+}
+}
+@media (hover: none){.cur{display:none}}
+</style>
+</helmet>
+<div id="top" style="--lead: {{lead}}; background: #000; color: #FFFFFF; overflow-x: clip" class="sans">
+
+<!-- Preloader: a waveform and a counter, then it lifts away -->
+<div class="pre" aria-hidden="true" style="display: {{preDisplay}}">
+<canvas ref="{{setPre}}" style="position: absolute; left: 50%; top: 50%; width: min(520px, 82vw); height: 130px; transform: translate(-50%, -50%)"></canvas>
+<span style="position: absolute; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #A3A3BA"><span style="width: 6px; height: 6px; border-radius: 3px; background: {{accent}}"></span>Tuning in</span>
+<span class="ser" style="position: absolute; right: 32px; bottom: 20px; font-size: 56px; line-height: 1">{{count}}</span>
+</div>
+
+<!-- Cursor blob (desktop, appears over the three cards) -->
+<div class="cur" ref="{{setCursor}}" aria-hidden="true" style="background: {{accent}}">
+<svg width="26" height="26" viewBox="0 0 22 22" fill="#0B0B0B"><rect x="3" y="7" width="3" height="8" rx="1.5"/><rect x="9.5" y="2" width="3" height="18" rx="1.5"/><rect x="16" y="6" width="3" height="10" rx="1.5"/></svg>
+</div>
+
+<!-- Hero -->
+<section style="position: relative; background: #05040C; overflow: hidden">
+<header style="position: relative; z-index: 3; max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+<a href="#top" style="display: flex; align-items: center; gap: 10px; min-height: 44px; color: #FFFFFF">
+<svg width="22" height="22" viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><rect x="3" y="7" width="3" height="8" rx="1.5"/><rect x="9.5" y="2" width="3" height="18" rx="1.5"/><rect x="16" y="6" width="3" height="10" rx="1.5"/></svg>
+<span style="font-size: 18px; font-weight: 500; letter-spacing: -0.02em">Vaani</span>
+</a>
+<nav aria-label="Sections" style="margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 28px; font-size: 13px">
+<a href="#what" style="line-height: 44px; border-bottom: 1px solid #FFFFFF; height: 43px; color: #FFFFFF">What it is</a>
+<a href="#interrupt" style="line-height: 44px; color: #A3A3BA">Interrupting</a>
+<a href="#pipeline" style="line-height: 44px; color: #A3A3BA">How it works</a>
+<a href="#latency" style="line-height: 44px; color: #A3A3BA">Latency</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 8px">
+<a href="#top" style="box-sizing: border-box; height: 40px; padding: 0 18px; border-radius: 20px; background: rgba(255,255,255,0.12); color: #FFFFFF; font-size: 13px; font-weight: 500; display: flex; align-items: center">Open the app</a>
+<a href="#top" aria-label="Start talking" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.12); color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></a>
+</div>
+</header>
+
+<h1 class="hl" style="position: relative; z-index: 2; max-width: 1200px; margin: 72px auto 0; box-sizing: border-box; padding: 0 24px; font-size: clamp(2.5rem, 6.9vw, 6.5rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #FFFFFF">
+<span class="mask"><span class="w1">SPEAK</span></span>
+<span class="sl" aria-hidden="true" style="color: {{accent}}">/</span>
+<span class="mask"><span class="w2 ser" style="font-size: 1.14em; letter-spacing: -0.01em">Interrupt</span></span>
+<span class="sl" aria-hidden="true" style="color: {{accent}}">/</span>
+<span class="mask"><span class="w3">LISTEN</span></span>
+</h1>
+
+<div style="position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 44px 24px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px">
+<p style="margin: 0; max-width: 500px; font-size: 18px; line-height: 1.5; color: #D5D3E6">A voice agent you can interrupt mid-sentence. It goes quiet the moment you speak, then listens to what you say next.</p>
+<a href="#top" style="box-sizing: border-box; height: 48px; padding: 0 24px; border-radius: 24px; background: #FFFFFF; color: #0B0B0B; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px">Start talking<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+</div>
+
+<div style="position: relative; height: 440px; margin-top: 4px; background: radial-gradient(36% 46% at 0% 52%, rgba(124,77,255,0.32), rgba(124,77,255,0) 72%), radial-gradient(36% 46% at 100% 46%, rgba(124,77,255,0.32), rgba(124,77,255,0) 72%), radial-gradient(46% 42% at 50% 60%, rgba(84,60,230,0.22), rgba(84,60,230,0) 72%)">
+<canvas ref="{{setCanvas}}" role="img" aria-label="Glowing ribbons of violet and blue light flowing across the page. They swell while Vaani speaks and pull flat the moment it is interrupted." style="position: absolute; inset: 0; width: 100%; height: 100%; display: block"></canvas>
+</div>
+
+<div style="position: relative; z-index: 2; max-width: 760px; margin: -28px auto 0; box-sizing: border-box; padding: 0 24px 96px">
+<div aria-live="off" style="box-sizing: border-box; min-height: 192px; padding: 22px 28px 26px; border-radius: 22px; background: rgba(14,11,30,0.8); border: 1px solid rgba(150,130,255,0.36); box-shadow: 0 0 70px rgba(110,80,255,0.16); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #C9C9D6">
+<span style="width: 8px; height: 8px; border-radius: 4px; background: {{dot}}"></span>
+<span>{{label}}</span>
+<span style="margin-left: auto">Scripted demo</span>
+</div>
+<p style="margin: 0; font-size: 18px; line-height: 1.45; color: #FFFFFF"><strong style="font-weight: 600">Vaani:</strong> {{a}}</p>
+<sc-if value="{{showU}}" hint-placeholder-val="{{ true }}">
+<p style="margin: 0; font-size: 18px; line-height: 1.45; color: #FFFFFF"><strong style="font-weight: 600">You:</strong> {{u}}</p>
+</sc-if>
+<sc-if value="{{showB}}" hint-placeholder-val="{{ true }}">
+<p style="margin: 0; font-size: 18px; line-height: 1.45; color: #FFFFFF"><strong style="font-weight: 600">Vaani:</strong> {{b}}</p>
+</sc-if>
+</div>
+</div>
+</section>
+
+<!-- What it is -->
+<section id="what" style="background: #FAFAFA; color: #0B0B0B">
+<div style="max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 96px 24px 120px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase">What it is</span>
+<span style="flex: 1; height: 1px; background: #E3E3E8"></span>
+</div>
+<div class="rv" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px">
+<h2 style="margin: 0; max-width: 860px; font-size: clamp(2.25rem, 5vw, 4.25rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.04">A voice agent that keeps <span class="ser" style="letter-spacing: -0.01em">listening</span> even while it talks.</h2>
+<svg aria-hidden="true" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#0B0B0B" stroke-width="1.2" style="flex: none"><circle cx="32" cy="22" r="14"/><circle cx="32" cy="32" r="14"/><circle cx="32" cy="42" r="14"/></svg>
+</div>
+<div onMouseMove="{{onMove}}" onMouseEnter="{{onEnter}}" onMouseLeave="{{onLeave}}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: start; margin-top: 24px">
+<sc-for list="{{cards}}" as="card" hint-placeholder-count="3">
+<article class="{{card.col}}" style="display: flex; flex-direction: column; gap: 16px">
+<div style="position: relative; box-sizing: border-box; height: 340px; border-radius: 20px; background: #EFEFF2; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<span class="ser" style="position: absolute; left: 20px; top: 14px; font-size: 28px; color: #5C5C66">{{card.num}}</span>
+<div aria-hidden="true" style="display: flex; align-items: center; gap: 3px">
+<sc-for list="{{card.bars}}" as="b" hint-placeholder-count="30">
+<span class="{{b.cls}}" style="display: block; width: 4px; border-radius: 2px; height: {{b.h}}px; background: {{b.c}}; animation-delay: {{b.dl}}s"></span>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{card.name}}</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5C5C66">{{card.text}}</p>
+</div>
+</article>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- Interrupting: ribbed dark backdrop with frosted cards -->
+<section id="interrupt" style="position: relative; overflow: hidden; color: #FFFFFF; background: radial-gradient(70% 60% at 50% -10%, rgba(124,107,255,0.34), rgba(124,107,255,0) 70%), repeating-linear-gradient(90deg, #050507 0px, #050507 16px, #13131c 16px, #1c1c2a 20px, #050507 24px, #050507 40px)">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: -1180px; width: 2200px; height: 1400px; margin-left: -1100px; border-radius: 50%; border-bottom: 2px solid rgba(200,190,255,0.75); box-shadow: 0 30px 120px rgba(124,107,255,0.45), inset 0 -60px 140px rgba(74,69,214,0.35)"></div>
+<div style="position: relative; max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 112px 24px 96px; display: flex; flex-direction: column; gap: 56px">
+<div class="rv" style="display: flex; flex-direction: column; gap: 16px; max-width: 720px">
+<p style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #C9C9D6">Interrupting</p>
+<h2 style="margin: 0; font-size: clamp(2.25rem, 5vw, 4rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.04">Silence first. <span class="ser" style="letter-spacing: -0.01em">Everything else after.</span></h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.55; color: #C9C9D6">When you speak over Vaani, three things happen in a fixed order. You hear it stop before the system has finished cleaning up.</p>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<li class="rv" style="box-sizing: border-box; min-height: 340px; padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); display: flex; flex-direction: column; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span class="ser" style="font-size: 30px; color: #C9C9D6">01</span>
+<h3 style="margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em">It hears you start</h3>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #C9C9D6">Speech detection runs on the CPU. Nothing on this path makes a network call, so noticing you never waits on the internet.</p>
+</li>
+<li class="rv" style="box-sizing: border-box; min-height: 340px; padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); display: flex; flex-direction: column; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span class="ser" style="font-size: 30px; color: #C9C9D6">02</span>
+<h3 style="margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em">Playback is flushed</h3>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #C9C9D6">The audio already queued in your browser is thrown away first. That is the moment the voice goes quiet.</p>
+</li>
+<li class="rv" style="box-sizing: border-box; min-height: 340px; padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); display: flex; flex-direction: column; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span class="ser" style="font-size: 30px; color: #C9C9D6">03</span>
+<h3 style="margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em">The work is cancelled</h3>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #C9C9D6">One cancel signal stops the speech synthesis and closes the stream from the language model, so nothing keeps running in the background.</p>
+</li>
+</ol>
+<div style="display: flex; justify-content: center">
+<a href="#pipeline" style="box-sizing: border-box; height: 44px; padding: 0 22px; border-radius: 22px; background: #FFFFFF; color: #0B0B0B; font-size: 13px; font-weight: 600; display: flex; align-items: center">See the pipeline</a>
+</div>
+</div>
+</section>
+
+<!-- How it works: tabs with a progress line that advances by itself -->
+<section id="pipeline" style="background: #FAFAFA; color: #0B0B0B">
+<div style="max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 96px 24px 96px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase">How it works</span>
+<span style="flex: 1; height: 1px; background: #E3E3E8"></span>
+</div>
+<h2 class="rv" style="margin: 0; max-width: 860px; font-size: clamp(2.25rem, 5vw, 4.25rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.04">Five steps between your voice and <span class="ser" style="letter-spacing: -0.01em">its reply.</span></h2>
+<div class="rv" style="box-sizing: border-box; min-height: 340px; padding: 32px; border-radius: 24px; background: #0B0B0B; color: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; gap: 32px">
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+<span class="ser" style="font-size: clamp(4rem, 10vw, 8rem); line-height: 0.9">{{cur.num}}</span>
+<span style="font-size: 13px; color: #A3A3BA">{{cur.of}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: {{accent}}">{{cur.kind}}</span>
+<h3 style="margin: 0; font-size: clamp(1.75rem, 3.4vw, 2.75rem); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08">{{cur.name}}</h3>
+<p style="margin: 0; font-size: 17px; line-height: 1.55; color: #C9C9D6">{{cur.text}}</p>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 20px">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+<button onClick="{{tab.pick}}" style="box-sizing: border-box; min-height: 44px; padding: 0; border: 0; background: none; color: #0B0B0B; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 10px">
+<span style="position: relative; display: block; width: 100%; height: 2px; background: #E3E3E8">
+<sc-if value="{{tab.active}}" hint-placeholder-val="{{ false }}">
+<span class="fill" style="position: absolute; left: 0; top: 0; height: 2px; background: #0B0B0B"></span>
+</sc-if>
+</span>
+<span style="font-size: 14px; font-weight: 600; letter-spacing: -0.01em; opacity: {{tab.op}}">{{tab.num}} {{tab.kind}}</span>
+<span style="font-size: 13px; line-height: 1.45; color: #5C5C66">{{tab.short}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- Latency and principles -->
+<section id="latency" style="background: #FAFAFA; color: #0B0B0B; border-top: 1px solid #E3E3E8">
+<div style="max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 96px 24px 112px; display: flex; flex-direction: column; gap: 72px">
+<div style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 32px 56px">
+<div class="rv" style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 20px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase">The quality bar</span>
+<h2 style="margin: 0; font-size: clamp(2.25rem, 4.6vw, 3.75rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.04">Fast enough to <span class="ser" style="letter-spacing: -0.01em">interrupt.</span></h2>
+<p style="margin: 0; max-width: 520px; font-size: 17px; line-height: 1.55; color: #5C5C66">Latency is the main measure of quality. The goal is a median under one second from the moment you stop talking to the first sound you hear.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span class="ser" style="padding: 6px 16px; border-radius: 999px; border: 1px solid #E3E3E8; background: #FFFFFF; font-size: 19px">Interruptible</span>
+<span class="ser" style="padding: 6px 16px; border-radius: 999px; border: 1px solid #E3E3E8; background: #FFFFFF; font-size: 19px">CPU first</span>
+<span class="ser" style="padding: 6px 16px; border-radius: 999px; border: 1px solid #E3E3E8; background: #FFFFFF; font-size: 19px">Cancellable</span>
+<span class="ser" style="padding: 6px 16px; border-radius: 999px; border: 1px solid #E3E3E8; background: #FFFFFF; font-size: 19px">Spend-capped</span>
+</div>
+</div>
+<div class="rv" style="flex: 1 1 380px; min-width: 0; box-sizing: border-box; min-height: 380px; padding: 32px; border-radius: 24px; background: #0B0B0B; color: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; gap: 24px">
+<span style="font-size: 13px; color: #A3A3BA">Target, mic stop to first sound</span>
+<p style="margin: 0; font-size: clamp(4rem, 10vw, 8.5rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.95">&lt;1,000<span class="ser" style="font-size: 0.3em; letter-spacing: 0; color: {{accent}}; margin-left: 0.2em">ms</span></p>
+<span style="font-size: 13px; color: #A3A3BA">Measured so far: [YOUR MEASURED P50]</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 32px">
+<div class="rv" style="border-top: 2px solid #0B0B0B; padding-top: 20px; display: flex; flex-direction: column; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">Runs on a CPU</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #5C5C66">The default setup needs no graphics card. A GPU is an option, not a requirement.</p>
+</div>
+<div class="rv" style="border-top: 1px solid #E3E3E8; padding-top: 21px; display: flex; flex-direction: column; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9h6v6H9z"/></svg>
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">Everything can be cancelled</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #5C5C66">Every model call and long task carries a stop signal, and stopping closes the network stream cleanly.</p>
+</div>
+<div class="rv" style="border-top: 1px solid #E3E3E8; padding-top: 21px; display: flex; flex-direction: column; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">Vendors are settings</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #5C5C66">Model providers sit behind one adapter and are chosen in configuration, so swapping one never means rewriting the app.</p>
+</div>
+<div class="rv" style="border-top: 1px solid #E3E3E8; padding-top: 21px; display: flex; flex-direction: column; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">Spend is capped</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #5C5C66">The spending limit is checked before any paid call is sent, not after the bill arrives.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Closing call to action -->
+<section style="position: relative; overflow: hidden; background: #000; color: #FFFFFF">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 62%; width: 2400px; height: 1400px; margin-left: -1200px; border-radius: 50%; border-top: 2px solid rgba(210,200,255,0.9); background: radial-gradient(50% 45% at 50% 0%, rgba(124,107,255,0.5), rgba(74,69,214,0.14) 55%, rgba(0,0,0,0) 75%); box-shadow: 0 -30px 120px rgba(124,107,255,0.5), 0 -6px 30px rgba(127,162,255,0.5)"></div>
+<div class="rv" style="position: relative; max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 128px 24px 220px; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center">
+<h2 style="margin: 0; max-width: 780px; font-size: clamp(2.25rem, 5vw, 4.25rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.04">Say something. Then <span class="ser" style="letter-spacing: -0.01em">change your mind</span> halfway.</h2>
+<p style="margin: 0; max-width: 460px; font-size: 17px; line-height: 1.55; color: #C9C9D6">Start a conversation, and interrupt whenever you like.</p>
+<a href="#top" style="box-sizing: border-box; height: 48px; padding: 0 26px; border-radius: 24px; background: #FFFFFF; color: #0B0B0B; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Start a conversation</a>
+</div>
+</section>
+
+<!-- Footer -->
+<footer style="background: #000; color: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 64px 24px 56px; display: flex; flex-wrap: wrap; gap: 40px 64px">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px">
+<span class="ser" style="font-size: 34px; line-height: 1">Vaani</span>
+<span lang="hi" style="font-family: 'Noto Serif Devanagari', serif; font-size: 16px; color: #A3A3BA">वाणी</span>
+<span style="font-size: 13px; color: #A3A3BA">A real-time voice agent you can interrupt.</span>
+</div>
+<nav aria-label="Footer" style="display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+<span style="font-size: 12px; font-weight: 600; margin-bottom: 8px">Explore</span>
+<a href="#what" style="line-height: 32px; color: #A3A3BA">What it is</a>
+<a href="#interrupt" style="line-height: 32px; color: #A3A3BA">Interrupting</a>
+<a href="#pipeline" style="line-height: 32px; color: #A3A3BA">How it works</a>
+<a href="#latency" style="line-height: 32px; color: #A3A3BA">Latency</a>
+</nav>
+<div style="display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+<span style="font-size: 12px; font-weight: 600; margin-bottom: 8px">Built by</span>
+<span style="line-height: 32px; color: #A3A3BA">Aryan and Samyak</span>
+</div>
+</div>
+<div aria-hidden="true" style="height: 200px; background: radial-gradient(60% 120% at 25% 100%, rgba(124,107,255,0.4), rgba(124,107,255,0) 70%), repeating-linear-gradient(90deg, #050507 0px, #050507 16px, #13131c 16px, #1c1c2a 20px, #050507 24px, #050507 40px)"></div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A99BFF","options":["#A99BFF","#7FA2FF","#6EE7B7"]},"showPreloader":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":5800}}'>
+class Component extends DCLogic {
+steps() {
+return [
+{ kind: 'Capture', name: 'Your microphone', short: 'Audio leaves your browser in tiny frames.', text: 'The browser cuts your voice into 20 millisecond frames and sends them to the gateway over a WebSocket while you speak.' },
+{ kind: 'Detect', name: 'Silero VAD', short: 'Knows when you start and stop.', text: 'A small model on the CPU decides when you started and stopped talking. Nothing on this step touches the network.' },
+{ kind: 'Transcribe', name: 'faster-whisper', short: 'Speech becomes text.', text: 'Turns what you said into text. The default setup runs it on the CPU, so no graphics card is needed.' },
+{ kind: 'Think', name: 'Groq, with Gemini as backup', short: 'A hosted model writes the reply.', text: 'A hosted language model writes the reply as a stream. If the first provider fails, the second takes over.' },
+{ kind: 'Speak', name: 'Piper', short: 'The reply becomes a voice.', text: 'Turns the reply into spoken audio and sends it to your browser to play. Interrupt it, and this is what stops.' }
+];
+}
+bars(kind, acc) {
+var out = [], n = 30;
+for (var i = 0; i < n; i++) {
+var d = (i - 14.5) / 14.5, env = Math.exp(-d * d * 3.2), wob = Math.abs(Math.sin(i * 1.7 + 1));
+var h = 5, c = '#0B0B0B';
+if (kind === 'speak') h = 5 + env * 120 * (0.4 + 0.6 * wob);
+if (kind === 'cut') { h = (i === 15) ? 150 : 5; c = (i === 15) ? acc : '#0B0B0B'; }
+if (kind === 'listen') { h = 5 + env * 38 * wob; if (Math.abs(d) < 0.2) c = acc; }
+out.push({ h: Math.round(h), c: c, dl: ((i * 0.07) % 1.2).toFixed(2), cls: kind === 'speak' ? 'bp' : '' });
+}
+return out;
+}
+pick(i) {
+var self = this;
+this.setState({ step: i });
+if (this.timer) { clearInterval(this.timer); this.timer = setInterval(function () { self.setState({ step: ((self.state.step || 0) + 1) % 5 }); }, 5000); }
+}
+renderVals() {
+var self = this;
+if (!this._init) {
+this._init = true;
+this._setCanvas = function (el) { self.cv = el; };
+this._setPre = function (el) { self.pc = el; };
+this._setCursor = function (el) { self.cur = el; };
+this._onMove = function (e) { if (self.cur) self.cur.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)'; };
+this._onEnter = function () { if (self.cur) self.cur.style.opacity = '1'; };
+this._onLeave = function () { if (self.cur) self.cur.style.opacity = '0'; };
+}
+var acc = this.props.accent || '#A99BFF';
+var pre = this.props.showPreloader !== false;
+var s = this.state || {};
+var phase = s.phase || 'speak';
+var labels = { speak: 'Now speaking', cut: 'Interrupted, playback stopped', listen: 'Listening to you', think: 'Thinking', idle: 'Your turn' };
+var dots = { speak: acc, cut: '#FBBF24', listen: acc, think: '#A3A3BA', idle: acc };
+var step = s.step || 0;
+var st = this.steps();
+var cur = st[step];
+var cnt = s.count == null ? 0 : s.count;
+return {
+accent: acc,
+lead: pre ? '3.1s' : '0s',
+preDisplay: pre ? 'block' : 'none',
+count: ('00' + cnt).slice(-3),
+setCanvas: this._setCanvas, setPre: this._setPre, setCursor: this._setCursor,
+onMove: this._onMove, onEnter: this._onEnter, onLeave: this._onLeave,
+label: labels[phase], dot: dots[phase],
+a: s.a || '', u: s.u || '', b: s.b || '',
+showU: !!s.u, showB: !!s.b,
+cards: [
+{ col: '', num: '01', name: 'It speaks', text: 'Replies arrive as a stream and play as they come.', bars: this.bars('speak', acc) },
+{ col: 'st1', num: '02', name: 'You cut in', text: 'Start talking and playback stops at once.', bars: this.bars('cut', acc) },
+{ col: 'st2', num: '03', name: 'It listens', text: 'Then it answers what you actually said.', bars: this.bars('listen', acc) }
+],
+cur: { num: '0' + (step + 1), of: (step + 1) + ' / 5', kind: cur.kind, name: cur.name, text: cur.text },
+tabs: st.map(function (x, i) { return { num: '0' + (i + 1), kind: x.kind, short: x.short, active: i === step, op: i === step ? 1 : 0.55, pick: function () { self.pick(i); } }; })
+};
+}
+script(t) {
+// One 14 second loop: speak, get cut off, listen, think, answer, rest.
+var A = 'Sure. First rinse one cup of lentils, then heat the';
+var U = 'Wait, I don’t have a pressure cooker.';
+var B = 'No problem. A covered pot works too. It just takes a little longer.';
+var cl = function (x) { return Math.max(0, Math.min(1, x)); };
+var a = A.slice(0, Math.round(cl((t - 0.5) / 4.3) * A.length));
+if (t >= 4.9) a = A + '…';
+var u = t >= 5.3 ? U.slice(0, Math.round(cl((t - 5.3) / 1.9) * U.length)) : '';
+var b = t >= 8.4 ? B.slice(0, Math.round(cl((t - 8.4) / 3.1) * B.length)) : '';
+var phase = t < 4.9 ? 'speak' : t < 5.5 ? 'cut' : t < 7.6 ? 'listen' : t < 8.4 ? 'think' : t < 11.7 ? 'speak' : 'idle';
+return { a: a, u: u, b: b, phase: phase };
+}
+componentDidMount() {
+var self = this;
+this.amp = 0;
+this.t0 = performance.now();
+var pre = this.props.showPreloader !== false;
+var lead = pre ? 3.1 : 0;
+var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (still) {
+// Reduced motion: one calm frame, the finished transcript, no auto-advance.
+var f = this.script(11.6); f.count = 100; this.setState(f);
+this.amp = 1; this.ph = 1.0;
+this.draw(2, 2, 'speak');
+return;
+}
+this.timer = setInterval(function () { self.setState({ step: ((self.state.step || 0) + 1) % 5 }); }, 5000);
+var frame = function (now) {
+var el = (now - self.t0) / 1000;
+var t = Math.max(0, el - lead) % 14;
+var next = self.script(t);
+next.count = pre ? Math.min(100, Math.round(100 * Math.min(1, el / 2.7))) : 100;
+var s = self.state || {};
+if (next.a !== s.a || next.u !== s.u || next.b !== s.b || next.phase !== s.phase || next.count !== s.count) self.setState(next);
+if (pre && el < 4) self.drawPre(el);
+self.draw(t, now / 1000, next.phase);
+self.raf = requestAnimationFrame(frame);
+};
+this.raf = requestAnimationFrame(frame);
+}
+componentWillUnmount() { if (this.raf) cancelAnimationFrame(this.raf); if (this.timer) clearInterval(this.timer); }
+drawPre(clock) {
+var cv = this.pc; if (!cv) return;
+var dpr = Math.min(window.devicePixelRatio || 1, 2);
+var w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+var g = cv.getContext('2d');
+g.setTransform(dpr, 0, 0, dpr, 0, 0);
+g.clearRect(0, 0, w, h);
+var acc = this.props.accent || '#A99BFF';
+var n = 61, step = w / n;
+for (var i = 0; i < n; i++) {
+var d = (i - 30) / 30, env = Math.exp(-d * d * 5);
+var bh = 3 + env * (h - 12) * (0.3 + 0.7 * Math.abs(Math.sin(i * 0.9 + clock * 6 + Math.sin(i * 0.37) * 2)));
+g.fillStyle = (i === 25 || i === 36) ? acc : '#FFFFFF';
+g.fillRect(i * step + step * 0.25, h / 2 - bh / 2, Math.max(2, step * 0.45), bh);
+}
+}
+draw(t, clock, phase) {
+var cv = this.cv; if (!cv) return;
+var w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+var dpr = Math.min(window.devicePixelRatio || 1, 2, 3400 / w);
+if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+var g = cv.getContext('2d');
+g.setTransform(dpr, 0, 0, dpr, 0, 0);
+g.clearRect(0, 0, w, h);
+// Ease the energy toward the phase target; an interruption pulls it flat fast.
+var target = { speak: 1, cut: 0.05, listen: 0.4, think: 0.24, idle: 0.3 }[phase];
+if (this.amp == null) this.amp = 0;
+this.amp += (target - this.amp) * (phase === 'cut' ? 0.3 : 0.05);
+var amp = this.amp;
+// The wave keeps its own clock, so it slows when quiet instead of jumping.
+var dt = this.last == null ? 0 : Math.min(0.05, clock - this.last);
+this.last = clock;
+this.ph = (this.ph || 0) + dt * (0.22 + amp * 0.95);
+var ph = this.ph;
+var cycles = Math.max(0.8, Math.min(2.05, w / 900));
+var k = Math.PI * 2 * cycles / w;
+var cy = h * 0.5;
+var A = Math.min(h * 0.26, w * 0.17) * (0.2 + 0.8 * amp); // gentler on a narrow phone screen
+var step = Math.max(5, Math.round(w / 280));
+var n = Math.ceil(w / step) + 3;
+// Three ribbons, back to front. Each is the surface between two edge curves that
+// cross each other, which is what makes the twists.
+var ribbons = [
+{ p: 2.0, sp: 0.55, fr: 0.72, f2: 0.9, a1: 1.2, a2: 0.8, lag: 1.5, off: -0.04, fill: 0.05, line: 0.09, lines: 24, edge: 0.14, c1: [118, 98, 255], c2: [160, 96, 255] },
+{ p: 3.6, sp: 0.8, fr: 0.9, f2: 1.16, a1: 0.85, a2: 1.0, lag: -1.1, off: 0.05, fill: 0.16, line: 0.12, lines: 26, edge: 0.4, c1: [184, 112, 255], c2: [112, 140, 255] },
+{ p: 0.5, sp: 1.0, fr: 1.0, f2: 0.8, a1: 1.0, a2: 0.92, lag: 1.25, off: 0, fill: 0.42, line: 0.26, lines: 38, edge: 1, c1: [128, 176, 255], c2: [196, 112, 255] }
+];
+var rgba = function (c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')'; };
+var path = function (ys) { g.beginPath(); for (var i = 0; i < n; i++) { var x = (i - 1) * step; if (i === 0) g.moveTo(x, ys[i]); else g.lineTo(x, ys[i]); } };
+g.globalCompositeOperation = 'lighter'; // light adds up where ribbons overlap
+g.lineJoin = 'round';
+for (var r = 0; r < ribbons.length; r++) {
+var rb = ribbons[r];
+var T = new Array(n), Bt = new Array(n), cross = [];
+for (var i = 0; i < n; i++) {
+var x = (i - 1) * step, th = k * x * rb.fr + rb.p + ph * rb.sp, th2 = k * x * rb.fr * rb.f2 + rb.p - rb.lag + ph * rb.sp * 0.9; // the second edge runs at its own pace, so twists are uneven
+T[i] = cy + h * rb.off + A * rb.a1 * Math.sin(th) + A * 0.1 * Math.sin(th * 2.1 + rb.p - ph * 0.6);
+Bt[i] = cy + h * rb.off + A * rb.a2 * Math.sin(th2) + A * 0.09 * Math.sin(th * 1.7 + ph * 0.45);
+if (i > 0 && (T[i] - Bt[i]) * (T[i - 1] - Bt[i - 1]) < 0) cross.push([x - step * 0.5, (T[i] + Bt[i]) * 0.5]);
+}
+// A soft halo hugging the brighter ribbons.
+if (rb.edge >= 0.4) {
+var mid = new Array(n);
+for (var m = 0; m < n; m++) mid[m] = (T[m] + Bt[m]) * 0.5;
+path(mid);
+g.strokeStyle = rgba([110, 76, 255], 0.035 * rb.edge); g.lineWidth = h * 0.3; g.stroke();
+g.strokeStyle = rgba([110, 86, 255], 0.05 * rb.edge); g.lineWidth = h * 0.16; g.stroke();
+}
+// Translucent body.
+if (rb.fill > 0) {
+var body = g.createLinearGradient(0, 0, w, 0);
+body.addColorStop(0, rgba([104, 60, 255], rb.fill));
+body.addColorStop(0.3, rgba([72, 92, 255], rb.fill * 0.85));
+body.addColorStop(0.55, rgba([124, 70, 255], rb.fill));
+body.addColorStop(0.8, rgba([168, 76, 255], rb.fill * 0.9));
+body.addColorStop(1, rgba([84, 80, 255], rb.fill));
+g.fillStyle = body;
+g.beginPath();
+for (var i2 = 0; i2 < n; i2++) { if (i2 === 0) g.moveTo(-step, T[0]); else g.lineTo((i2 - 1) * step, T[i2]); }
+for (var i3 = n - 1; i3 >= 0; i3--) g.lineTo((i3 - 1) * step, Bt[i3]);
+g.closePath(); g.fill();
+}
+// Fine strands across the surface, bunched toward the lit edge.
+g.lineWidth = 0.8;
+var ys = new Array(n);
+for (var j = 1; j < rb.lines; j++) {
+var f = Math.pow(j / rb.lines, 1.5);
+for (var i4 = 0; i4 < n; i4++) ys[i4] = T[i4] + (Bt[i4] - T[i4]) * f;
+g.strokeStyle = rgba([186, 170, 255], rb.line * (0.45 + 0.9 * (1 - f)));
+path(ys); g.stroke();
+}
+// Glowing edges: wide faint passes under a thin bright one (cheaper than a blur).
+var passes = [[34, 0.03], [20, 0.055], [10, 0.1], [4.5, 0.24]];
+var edges = [[T, rb.c1, 1], [Bt, rb.c2, 0.75]];
+for (var e = 0; e < edges.length; e++) {
+var ed = edges[e], strength = rb.edge * ed[2];
+path(ed[0]);
+for (var q = 0; q < passes.length; q++) { g.lineWidth = passes[q][0]; g.strokeStyle = rgba(ed[1], passes[q][1] * strength); g.stroke(); }
+var hot = g.createLinearGradient(0, 0, w, 0);
+var white = [240, 244, 255], sky = [140, 196, 255], pink = [214, 140, 255];
+hot.addColorStop(0, rgba(ed[1], 0.7 * strength));
+hot.addColorStop(0.16, rgba(sky, 0.95 * strength));
+hot.addColorStop(0.36, rgba(white, strength));
+hot.addColorStop(0.55, rgba(ed[1], 0.8 * strength));
+hot.addColorStop(0.72, rgba(pink, 0.95 * strength));
+hot.addColorStop(0.88, rgba(white, 0.95 * strength));
+hot.addColorStop(1, rgba(sky, 0.85 * strength));
+g.lineWidth = 1.8; g.strokeStyle = hot; g.stroke();
+}
+// A bloom of light at every twist.
+for (var c = 0; rb.edge >= 0.4 && c < cross.length; c++) {
+var rad = 84 * (0.55 + 0.45 * amp) * (0.4 + 0.6 * rb.edge);
+var bloom = g.createRadialGradient(cross[c][0], cross[c][1], 0, cross[c][0], cross[c][1], rad);
+bloom.addColorStop(0, rgba([214, 224, 255], 0.5 * rb.edge));
+bloom.addColorStop(0.3, rgba([132, 124, 255], 0.2 * rb.edge));
+bloom.addColorStop(1, rgba([132, 124, 255], 0));
+g.fillStyle = bloom; g.fillRect(cross[c][0] - rad, cross[c][1] - rad, rad * 2, rad * 2);
+}
+}
+// The moment of interruption: one thin white line flashes across.
+if (t >= 4.9 && t < 5.7) {
+var p2 = (t - 4.9) / 0.8;
+var flash = g.createLinearGradient(0, 0, w, 0);
+flash.addColorStop(0, 'rgba(255,255,255,0)'); flash.addColorStop(0.5, rgba([255, 255, 255], 0.9 * (1 - p2))); flash.addColorStop(1, 'rgba(255,255,255,0)');
+g.strokeStyle = flash; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, cy); g.lineTo(w, cy); g.stroke();
+}
+g.globalCompositeOperation = 'source-over';
+}
+}
+</script>
+</body>
+</html>

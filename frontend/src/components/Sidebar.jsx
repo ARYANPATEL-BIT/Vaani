@@ -18,7 +18,7 @@ import './AppLayout.css';
 const ICON_SIZE = 20;
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Conversation', icon: Mic, end: true },
+  { to: '/talk', label: 'Conversation', icon: Mic, end: true },
   { to: '/loopback', label: 'Studio', icon: Video },
   // Week 3 Day 3: enrolment screens
   { to: '/enrol', label: 'Enrol', icon: UserCheck },

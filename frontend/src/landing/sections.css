@@ -1,0 +1,162 @@
+/**
+ * sections.css -- the sections below the hero: What it is, Interrupting,
+ * How it works, Latency, the closing call to action and the footer.
+ * Every selector starts with .lp (see landing.css for why).
+ */
+
+/* ── Shared ─────────────────────────────────────────────────────────── */
+.lp .lp-stack-40 { padding-top: 96px; padding-bottom: 112px; display: flex; flex-direction: column; gap: 40px; }
+.lp .lp-eyebrow-row { display: flex; align-items: center; gap: 16px; }
+.lp .lp-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.lp .lp-rule { flex: 1; height: 1px; background: #E3E3E8; }
+.lp .lp-h2 {
+  max-width: 860px; font-size: clamp(36px, 5vw, 68px); font-weight: 500;
+  letter-spacing: -0.035em; line-height: 1.04;
+}
+.lp .lp-h2-sm { font-size: clamp(36px, 4.6vw, 60px); }
+.lp .lp-lead { font-size: 17px; line-height: 1.55; }
+.lp .lp-soft { color: #C9C9D6; }
+.lp .lp-grey { color: #5C5C66; }
+.lp .lp-muted-sm { font-size: 13px; color: #A3A3BA; }
+.lp .lp-center { display: flex; justify-content: center; }
+
+/* ── What it is ─────────────────────────────────────────────────────── */
+.lp .lp-what-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.lp .lp-what-head svg { flex: none; }
+.lp .lp-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px; align-items: start; margin-top: 24px;
+}
+.lp .lp-card { display: flex; flex-direction: column; gap: 4px; }
+.lp .lp-card-art {
+  position: relative; height: 340px; margin-bottom: 12px; border-radius: 20px; background: #EFEFF2;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.lp .lp-card-num { position: absolute; left: 20px; top: 14px; font-size: 28px; color: #5C5C66; }
+.lp .lp-bars { display: flex; align-items: center; gap: 3px; }
+.lp .lp-bar { display: block; width: 4px; border-radius: 2px; }
+.lp .lp-card h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.lp .lp-card p { font-size: 14px; color: #5C5C66; }
+/* On wide screens the cards step down, like stairs. */
+@media (min-width: 900px) {
+  .lp .lp-card-1 { margin-top: 56px; }
+  .lp .lp-card-2 { margin-top: 112px; }
+}
+
+/* ── Interrupting ───────────────────────────────────────────────────── */
+.lp .lp-interrupt {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(70% 60% at 50% -10%, rgba(124,107,255,0.34), rgba(124,107,255,0) 70%),
+    repeating-linear-gradient(90deg, #050507 0px, #050507 16px, #13131c 16px, #1c1c2a 20px, #050507 24px, #050507 40px);
+}
+.lp .lp-arc {
+  /* top: the arc's lowest point sits about 15px above the "INTERRUPTING"
+     label (section padding-top is 112px), so the line never crosses text. */
+  position: absolute; left: 50%; top: -1303px; width: 2200px; height: 1400px; margin-left: -1100px;
+  border-radius: 50%; border-bottom: 2px solid rgba(200,190,255,0.75);
+  box-shadow: 0 30px 120px rgba(124,107,255,0.45), inset 0 -60px 140px rgba(74,69,214,0.35);
+}
+.lp .lp-int-inner { position: relative; padding-top: 112px; padding-bottom: 96px; display: flex; flex-direction: column; gap: 56px; }
+.lp .lp-int-head { display: flex; flex-direction: column; gap: 16px; max-width: 720px; }
+.lp .lp-int-list {
+  list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;
+}
+.lp .lp-glass {
+  min-height: 340px; padding: 24px; border-radius: 20px;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
+}
+.lp .lp-glass > div { display: flex; flex-direction: column; gap: 14px; }
+.lp .lp-glass-num { font-size: 30px; color: #C9C9D6; }
+.lp .lp-glass h3 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+.lp .lp-glass p { font-size: 15px; line-height: 1.55; color: #C9C9D6; }
+
+/* ── How it works ───────────────────────────────────────────────────── */
+.lp #pipeline .lp-stack-40 { padding-bottom: 96px; }
+.lp .lp-pipe { display: flex; flex-direction: column; gap: 40px; }
+.lp .lp-pipe-panel {
+  min-height: 340px; padding: 32px; border-radius: 24px; background: #0B0B0B;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+}
+.lp .lp-pipe-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.lp .lp-pipe-num { font-size: clamp(64px, 10vw, 128px); line-height: 0.9; }
+.lp .lp-pipe-text { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.lp .lp-pipe-kind { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-accent); }
+.lp .lp-pipe-text h3 { font-size: clamp(28px, 3.4vw, 44px); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
+.lp .lp-pipe-text p { font-size: 17px; line-height: 1.55; color: #C9C9D6; }
+.lp .lp-pipe-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 20px; }
+.lp .lp-pipe-step {
+  min-height: 44px; padding: 0; border: 0; background: none; color: #0B0B0B; text-align: left;
+  cursor: pointer; display: flex; flex-direction: column; gap: 10px;
+}
+.lp .lp-track { position: relative; display: block; width: 100%; height: 2px; background: #E3E3E8; }
+.lp .lp-fill { position: absolute; left: 0; top: 0; width: 100%; height: 2px; background: #0B0B0B; }
+.lp .lp-pipe-step-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: #5C5C66; }
+.lp .lp-pipe-step[aria-pressed='true'] .lp-pipe-step-name { color: #0B0B0B; }
+.lp .lp-pipe-step-short { font-size: 13px; line-height: 1.45; color: #5C5C66; }
+/* Hovering or focusing the steps holds the progress line still. */
+.lp .lp-pipe:hover .lp-fill-run,
+.lp .lp-pipe:focus-within .lp-fill-run { animation-play-state: paused; }
+
+/* ── Latency ────────────────────────────────────────────────────────── */
+.lp .lp-latency { border-top: 1px solid #E3E3E8; }
+.lp .lp-lat-inner { padding-top: 96px; padding-bottom: 112px; display: flex; flex-direction: column; gap: 72px; }
+.lp .lp-lat-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 32px 56px; }
+.lp .lp-lat-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+.lp .lp-lat-copy .lp-lead { max-width: 520px; }
+.lp .lp-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.lp .lp-chips li { padding: 6px 16px; border-radius: 999px; border: 1px solid #E3E3E8; background: #fff; font-size: 19px; }
+.lp .lp-lat-card {
+  flex: 1 1 380px; min-width: 0; min-height: 380px; padding: 32px; border-radius: 24px; background: #0B0B0B;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
+}
+.lp .lp-lat-number { font-size: clamp(64px, 10vw, 136px); font-weight: 500; letter-spacing: -0.045em; line-height: 0.95; }
+.lp .lp-lat-unit { font-size: 0.3em; letter-spacing: 0; color: var(--lp-accent); margin-left: 0.2em; }
+/* The not-yet-measured marker: dashed, so it reads as unfinished. */
+.lp .lp-placeholder {
+  align-self: flex-start; padding: 4px 10px; border: 1px dashed #FBBF24; border-radius: 6px;
+  font-size: 13px; color: #FBBF24;
+}
+.lp .lp-principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
+.lp .lp-principle { border-top: 1px solid #E3E3E8; padding-top: 21px; display: flex; flex-direction: column; gap: 10px; }
+.lp .lp-principle-first { border-top: 2px solid #0B0B0B; padding-top: 20px; }
+.lp .lp-principle h3 { font-size: 15px; font-weight: 600; }
+.lp .lp-principle p { font-size: 14px; line-height: 1.55; color: #5C5C66; }
+
+/* ── Closing call to action ─────────────────────────────────────────── */
+.lp .lp-closing { position: relative; overflow: hidden; background: #000; }
+.lp .lp-horizon {
+  /* 3000px wide so its curved sides stay off screen up to a 1920px window. */
+  position: absolute; left: 50%; top: 62%; width: 3000px; height: 1400px; margin-left: -1500px;
+  border-radius: 50%; border-top: 2px solid rgba(210,200,255,0.9);
+  background: radial-gradient(50% 45% at 50% 0%, rgba(124,107,255,0.5), rgba(74,69,214,0.14) 55%, rgba(0,0,0,0) 75%);
+  box-shadow: 0 -30px 120px rgba(124,107,255,0.5), 0 -6px 30px rgba(127,162,255,0.5);
+}
+.lp .lp-closing-inner {
+  position: relative; padding-top: 128px; padding-bottom: 220px;
+  display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;
+}
+.lp .lp-closing-inner .lp-h2 { max-width: 780px; }
+.lp .lp-closing-inner .lp-lead { max-width: 460px; }
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.lp .lp-footer { background: #000; }
+.lp .lp-footer-inner { padding-top: 64px; padding-bottom: 56px; display: flex; flex-wrap: wrap; gap: 40px 64px; }
+.lp .lp-footer-brand { flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px; }
+.lp .lp-footer-name { font-size: 34px; line-height: 1; }
+/* No web font for four Devanagari letters: the system's own (Kohinoor on
+   macOS, Nirmala UI on Windows, Noto where installed). */
+.lp .lp-footer-hindi { font-family: 'Kohinoor Devanagari', 'Nirmala UI', 'Noto Serif Devanagari', 'Noto Sans Devanagari', serif; font-size: 16px; color: #A3A3BA; }
+.lp .lp-footer-col { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.lp .lp-footer-col a, .lp .lp-footer-col > span:not(.lp-footer-label) { line-height: 32px; color: #A3A3BA; }
+.lp .lp-footer-col a { line-height: 44px; } /* links are tap targets: 44px tall */
+.lp .lp-footer-col a:hover { color: #fff; }
+.lp .lp-footer-label { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.lp .lp-footer-strip {
+  height: 200px;
+  background:
+    radial-gradient(60% 120% at 25% 100%, rgba(124,107,255,0.4), rgba(124,107,255,0) 70%),
+    repeating-linear-gradient(90deg, #050507 0px, #050507 16px, #13131c 16px, #1c1c2a 20px, #050507 24px, #050507 40px);
+}
