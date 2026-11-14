@@ -122,7 +122,7 @@ export default function EnrolConsentPage() {
 
   // Navigation handlers
   const handleCancel = useCallback(() => {
-    navigate('/');
+    navigate('/talk');
   }, [navigate]);
 
   const handleProceedToReference = useCallback(() => {

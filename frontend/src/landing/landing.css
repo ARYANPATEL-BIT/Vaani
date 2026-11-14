@@ -1,0 +1,233 @@
+/**
+ * landing.css -- fonts, page frame, header, hero, preloader, motion rules.
+ * Section styles are in sections.css.
+ *
+ * EVERY selector starts with .lp. Vite never removes a stylesheet once it is
+ * loaded, so after a visitor goes from "/" to "/talk" these rules are still
+ * in the page; scoping them keeps them off the app's own elements.
+ *
+ * Sizes are in px, not rem: the app's index.css sets the root font size to
+ * 18px, which would scale every rem by 18/16.
+ */
+
+/* Self-hosted fonts (OFL licence in ./fonts). The browser downloads a font
+   only when some text actually uses it, so the app never fetches these. */
+@font-face {
+  font-family: 'Vaani Inter Tight';
+  src: url('./fonts/InterTight-latin-wght.woff2') format('woff2');
+  font-weight: 100 900; /* one variable file covers every weight */
+  font-style: normal;
+  font-display: swap;   /* show fallback text at once, swap when loaded */
+}
+@font-face {
+  font-family: 'Vaani Instrument Serif';
+  src: url('./fonts/InstrumentSerif-latin-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ── Page frame ─────────────────────────────────────────────────────── */
+.lp {
+  /* The page scrolls inside this box (body has overflow: hidden). */
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #000;
+  color: #fff;
+  font-family: 'Vaani Inter Tight', Inter, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  --lp-focus: var(--lp-accent);
+}
+.lp a { color: inherit; text-decoration: none; }
+.lp button { font: inherit; }
+.lp .lp-serif {
+  font-family: 'Vaani Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.lp .lp-dark { background-color: #05040C; color: #fff; --lp-focus: var(--lp-accent); }
+.lp .lp-light { background: #FAFAFA; color: #0B0B0B; --lp-focus: #4338CA; }
+
+/* Visible keyboard focus on every link and button. The ring colour is set
+   per section so it contrasts: accent on dark, deep indigo on light. */
+.lp a:focus-visible,
+.lp button:focus-visible {
+  outline: 3px solid var(--lp-focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.lp .lp-inner { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+
+/* Shared buttons. */
+.lp .lp-cta {
+  height: 48px; padding: 0 24px; border-radius: 24px;
+  background: #fff; color: #0B0B0B; font-size: 15px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.lp .lp-cta-sm { height: 44px; padding: 0 22px; font-size: 13px; }
+.lp .lp-pill {
+  height: 44px; padding: 0 18px; border-radius: 22px;
+  background: rgba(255,255,255,0.12); font-size: 13px; font-weight: 500;
+  display: flex; align-items: center;
+}
+.lp .lp-round {
+  width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+}
+.lp .lp-pill:hover, .lp .lp-round:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.lp .lp-header-inner {
+  max-width: 1200px; margin: 0 auto; padding: 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+}
+.lp .lp-logo { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.lp .lp-logo span { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
+.lp .lp-nav {
+  margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0 28px; font-size: 13px;
+}
+.lp .lp-nav a { line-height: 44px; color: #A3A3BA; }
+.lp .lp-nav a:hover { color: #fff; }
+.lp .lp-header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.lp .lp-hero { position: relative; overflow: hidden; }
+.lp .lp-headline {
+  position: relative; z-index: 2; max-width: 1200px; margin: 72px auto 0; padding: 0 24px;
+  font-size: clamp(40px, 6.9vw, 104px); font-weight: 600; letter-spacing: -0.03em; line-height: 1;
+  /* The three words spread across the full width, slashes between them. */
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 0.16em;
+}
+/* Each word sits in a clipping box, so it can rise into view from below.
+   The padding/negative margin pair gives the italic's overhang room. */
+.lp .lp-mask {
+  display: inline-block; overflow: hidden; vertical-align: bottom;
+  padding: 0 0.07em 0.16em; margin: 0 -0.07em -0.16em;
+}
+.lp .lp-mask > span { display: inline-block; }
+.lp .lp-w2 { font-size: 1.14em; }
+.lp .lp-slash {
+  align-self: center; font-size: 0.44em; font-weight: 400; line-height: 1;
+  transform: skewX(-10deg); color: var(--lp-accent);
+}
+@media (max-width: 760px) {
+  .lp .lp-headline { justify-content: flex-start; gap: 0 0.3em; }
+  .lp .lp-slash { display: none; }
+}
+/* On the narrowest phones a smaller gap keeps the four links on one row. */
+@media (max-width: 400px) {
+  .lp .lp-nav { gap: 0 16px; }
+}
+
+.lp .lp-hero-row {
+  position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; padding: 44px 24px 0;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px;
+}
+.lp .lp-hero-row p { max-width: 500px; font-size: 18px; color: #D5D3E6; }
+
+.lp .lp-wave {
+  position: relative; height: clamp(280px, 50vw, 440px); margin-top: 4px;
+  background:
+    radial-gradient(36% 46% at 0% 52%, rgba(124,77,255,0.32), rgba(124,77,255,0) 72%),
+    radial-gradient(36% 46% at 100% 46%, rgba(124,77,255,0.32), rgba(124,77,255,0) 72%),
+    radial-gradient(46% 42% at 50% 60%, rgba(84,60,230,0.22), rgba(84,60,230,0) 72%);
+}
+.lp .lp-wave-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.lp .lp-demo-wrap {
+  position: relative; z-index: 2; max-width: 760px; margin: -28px auto 0; padding: 0 24px 96px;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.lp .lp-demo {
+  width: 100%; min-height: 192px; padding: 22px 28px 26px; border-radius: 22px;
+  background: rgba(14,11,30,0.8); border: 1px solid rgba(150,130,255,0.36);
+  box-shadow: 0 0 70px rgba(110,80,255,0.16);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.lp .lp-demo p { font-size: 18px; line-height: 1.45; }
+.lp .lp-demo strong { font-weight: 600; }
+.lp .lp-demo-head { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #C9C9D6; }
+.lp .lp-demo-dot { width: 8px; height: 8px; border-radius: 4px; flex: none; }
+.lp .lp-demo-badge { margin-left: auto; }
+.lp .lp-pause {
+  min-height: 44px; padding: 0 16px; border: 1px solid rgba(255,255,255,0.2); border-radius: 22px;
+  background: transparent; color: #C9C9D6; font-size: 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.lp .lp-pause:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+/* Tall enough for the whole transcript on a narrow screen, so the card (and
+   the pause button under it) does not grow as the demo types. It sits after
+   the .lp-demo rule above on purpose: same selector weight, so the later
+   rule wins. */
+@media (max-width: 760px) {
+  .lp .lp-demo { min-height: 300px; }
+}
+
+/* ── Preloader ──────────────────────────────────────────────────────── */
+.lp .lp-pre { position: fixed; inset: 0; z-index: 60; background: #05040C; color: #fff; }
+.lp .lp-pre-canvas {
+  position: absolute; left: 50%; top: 50%; width: min(520px, 82vw); height: 130px;
+  transform: translate(-50%, -50%);
+}
+.lp .lp-pre-label {
+  position: absolute; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #A3A3BA;
+}
+.lp .lp-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--lp-accent); }
+.lp .lp-pre-count { position: absolute; right: 32px; bottom: 20px; font-size: 56px; line-height: 1; }
+
+/* ── Cursor blob (What it is cards, mouse only) ─────────────────────── */
+.lp .lp-cursor {
+  position: fixed; top: 0; left: 0; width: 76px; height: 76px; margin: -38px 0 0 -38px;
+  border-radius: 50%; background: var(--lp-accent); color: #0B0B0B;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 40;
+}
+@media (hover: none) { .lp .lp-cursor { display: none; } }
+
+/* ── Motion: only when the visitor has not asked for less ───────────── */
+@keyframes lp-word { from { transform: translateY(110%); } to { transform: none; } }
+@keyframes lp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lp-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+@keyframes lp-pre-out { to { opacity: 0; transform: translateY(-24px); visibility: hidden; } }
+@keyframes lp-fill { from { width: 0; } to { width: 100%; } }
+@keyframes lp-pulse { from { transform: scaleY(0.55); } to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lp { scroll-behavior: smooth; }
+  .lp .lp-pre { animation: lp-pre-out var(--lp-pre-fade) ease var(--lp-pre-delay) forwards; }
+  .lp .lp-mask > span { animation: lp-word 0.95s cubic-bezier(.2,.7,.2,1) both; }
+  .lp .lp-w1 { animation-delay: calc(var(--lp-lead) + 0.05s); }
+  .lp .lp-w2 { animation-delay: calc(var(--lp-lead) + 0.2s); }
+  .lp .lp-w3 { animation-delay: calc(var(--lp-lead) + 0.35s); }
+  .lp .lp-slash { animation: lp-fade 0.7s ease calc(var(--lp-lead) + 0.55s) both; }
+  .lp .lp-bar-pulse { animation: lp-pulse 1.6s ease-in-out infinite alternate; }
+  .lp .lp-fill-run { animation-name: lp-fill; animation-timing-function: linear; animation-fill-mode: forwards; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .lp-cursor { display: none; }
+}
+/* "Pause animation" stops every CSS loop too, not only the canvas. */
+.lp.lp-paused .lp-bar-pulse,
+.lp.lp-paused .lp-fill-run { animation-play-state: paused; }
+
+/* Scroll-driven reveal. animation-timeline: view() ties the animation's
+   progress to how far the element has scrolled into view, instead of to the
+   clock. Only where the browser supports it AND motion is allowed;
+   everywhere else .lp-reveal is simply visible. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lp .lp-reveal {
+      animation: lp-rise linear both;
+      animation-timeline: view();          /* after the shorthand, which resets it */
+      animation-range: entry 0% entry 45%; /* done when 45% of the way in */
+    }
+  }
+}

@@ -21,11 +21,19 @@ import LoopbackPage from './pages/LoopbackPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
 const router = createBrowserRouter([
+  // Landing page at "/": no sidebar. `lazy` loads it as a separate chunk,
+  // so the voice app's pages never download the landing page's code.
   {
     path: '/',
+    lazy: async () => ({ Component: (await import('./landing/LandingPage.jsx')).default }),
+    // Shown while that chunk downloads: the page's black, not a white flash.
+    hydrateFallbackElement: <div style={{ position: 'fixed', inset: 0, background: '#000' }} />,
+  },
+  {
+    // No path: this route only wraps its children in the sidebar layout.
     element: <AppLayout />,
     children: [
-      { index: true, element: <ConversationPage /> },
+      { path: 'talk', element: <ConversationPage /> },
       // Week 2 Day 5: loopback measurement rig (speaker → mic round-trip delay)
       { path: 'loopback', element: <LoopbackPage /> },
       // Week 3 Day 3: enrolment — consent + reference voice recording

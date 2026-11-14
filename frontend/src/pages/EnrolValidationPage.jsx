@@ -166,7 +166,7 @@ export default function EnrolValidationPage() {
 
   const handleBack = () => {
     if (isAccepted) {
-      navigate('/');
+      navigate('/talk');
     } else if (feedback.action === 'consent') {
       navigate('/enrol');
     } else {
@@ -329,7 +329,7 @@ export default function EnrolValidationPage() {
                 id="validation-cancel-btn"
                 type="button"
                 className="validation-btn validation-btn-secondary"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/talk')}
                 aria-label="Return to conversation screen"
               >
                 Cancel Enrolment
