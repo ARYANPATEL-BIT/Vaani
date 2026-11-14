@@ -42,7 +42,7 @@ import {
   CheckCircle2,
   FileQuestion,
   ShieldCheck,
-  Home,
+  Play,
 } from 'lucide-react';
 import {
   REJECTION_REASONS,
@@ -85,7 +85,7 @@ function CategoryIcon({ category, code }) {
 /**
  * AcceptedView — shown when the server validated the recording successfully.
  */
-function AcceptedView({ onGoHome }) {
+function AcceptedView({ onContinue }) {
   return (
     <div className="validation-accepted-box" role="status" data-testid="accepted-box">
       <div className="accepted-icon-wrap" aria-hidden="true">
@@ -95,18 +95,18 @@ function AcceptedView({ onGoHome }) {
         Voice Enrolment Accepted
       </h2>
       <p className="accepted-message" data-testid="accepted-message">
-        Your reference voice recording has been validated and accepted. Your voice
-        profile is now active on Vaani.
+        Your reference recording passed validation. Next, listen to a test
+        sentence in your cloned voice and approve it. The voice is not active
+        until you approve it.
       </p>
       <button
         id="validation-go-home-btn"
         type="button"
         className="validation-btn validation-btn-primary"
-        onClick={onGoHome}
-        aria-label="Return to the conversation screen"
+        onClick={onContinue}
       >
-        <Home size={16} strokeWidth={2} />
-        Start Using Vaani
+        <Play size={16} strokeWidth={2} />
+        Continue to voice check
       </button>
     </div>
   );
@@ -174,8 +174,10 @@ export default function EnrolValidationPage() {
     }
   };
 
-  const handleGoHome = () => {
-    navigate('/');
+  // Week 4 Tuesday: an accepted recording goes on to the verify step,
+  // carrying the enrolment id the record page put in router state.
+  const handleContinueToVerify = () => {
+    navigate('/enrol/verify', { state: { enrolmentId: navState.enrolmentId } });
   };
 
   return (
@@ -218,7 +220,7 @@ export default function EnrolValidationPage() {
 
         {/* Accepted view */}
         {isAccepted && (
-          <AcceptedView onGoHome={handleGoHome} />
+          <AcceptedView onContinue={handleContinueToVerify} />
         )}
 
         {/* Rejected view */}

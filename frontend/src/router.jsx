@@ -16,6 +16,7 @@ import ConversationPage from './pages/ConversationPage.jsx';
 import EnrolConsentPage from './pages/EnrolConsentPage.jsx';
 import EnrolRecordPage from './pages/EnrolRecordPage.jsx';
 import EnrolValidationPage from './pages/EnrolValidationPage.jsx';
+import EnrolVerifyPage from './pages/EnrolVerifyPage.jsx';
 import LoopbackPage from './pages/LoopbackPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
@@ -32,6 +33,8 @@ const router = createBrowserRouter([
       { path: 'enrol/record', element: <EnrolRecordPage /> },
       // Week 3 Day 5: enrolment validation feedback
       { path: 'enrol/validation', element: <EnrolValidationPage /> },
+      // Week 4 Tuesday: hear the cloned voice, approve it or record again
+      { path: 'enrol/verify', element: <EnrolVerifyPage /> },
       // Future routes:
       // { path: 'profiles', lazy: () => import('./pages/ProfilesPage.jsx') },
       // { path: 'settings', lazy: () => import('./pages/SettingsPage.jsx') },

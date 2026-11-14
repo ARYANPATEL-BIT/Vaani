@@ -1,0 +1,124 @@
+/**
+ * EnrolVerifyPage.css — /enrol/verify. Every colour is a theme token from
+ * theme/colors.css or index.css, so light and dark both work unchanged.
+ */
+
+.verify-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-6) var(--sp-4) var(--sp-8);
+}
+
+.verify-card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-8);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--r-xl);
+}
+
+.verify-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--c-navy);
+}
+
+.verify-demo-note {
+  font-size: 0.8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+}
+
+.verify-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.9rem;
+  color: var(--c-slate);
+}
+
+.verify-spinner { animation: verify-spin 1s linear infinite; }
+@keyframes verify-spin { to { transform: rotate(360deg); } }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.verify-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 44px; /* touch target */
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background var(--t-fast), opacity var(--t-fast);
+}
+.verify-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.verify-btn:focus-visible { outline: 2px solid var(--c-navy); outline-offset: 2px; }
+
+.verify-btn-primary {
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  box-shadow: var(--cta-shadow);
+}
+.verify-btn-primary:not(:disabled):hover { background: var(--cta-bg-hover); }
+
+.verify-btn-secondary,
+.verify-play-btn {
+  background: var(--pill-bg);
+  color: var(--c-navy);
+  border: 1px solid var(--pill-border);
+}
+.verify-btn-secondary:not(:disabled):hover,
+.verify-play-btn:not(:disabled):hover { background: var(--chip-hover-bg); }
+
+.verify-actions {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+/* ── Error and approved ───────────────────────────────────────────────── */
+.verify-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  color: var(--err-text);
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+}
+.verify-error svg { flex-shrink: 0; margin-top: 2px; }
+
+.verify-approved {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--status-ready-text);
+  background: var(--status-ready-bg);
+  border: 1px solid var(--status-ready-border);
+  border-radius: var(--r-md);
+}
+.verify-approved p { color: var(--c-slate); font-size: 0.9rem; }
+
+/* ── Narrow screens: less padding, stacked buttons ────────────────────── */
+@media (max-width: 480px) {
+  .verify-page { padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  .verify-card { padding: var(--sp-5); }
+  .verify-actions { flex-direction: column; }
+}
