@@ -17,16 +17,21 @@ import './AppLayout.css';
 // in one vertical line. lucide takes the size as a px number.
 const ICON_SIZE = 20;
 
+// hidden: true keeps an item out of the sidebar only. Its route and page
+// still exist, so /loopback and /enrol/* still open when typed as a URL.
+// Remove the flag to bring an item back.
 const NAV_ITEMS = [
-  { to: '/talk', label: 'Conversation', icon: Mic, end: true },
-  { to: '/loopback', label: 'Studio', icon: Video },
+  { to: '/', label: 'Conversation', icon: Mic, end: true },
+  { to: '/loopback', label: 'Studio', icon: Video, hidden: true },
   // Week 3 Day 3: enrolment screens
-  { to: '/enrol', label: 'Enrol', icon: UserCheck },
+  { to: '/enrol', label: 'Enrol', icon: UserCheck, hidden: true },
   { to: '/history', label: 'History', icon: History, disabled: true },
-  { to: '/identity', label: 'Identity', icon: User, disabled: true },
-  { to: '/spend', label: 'Spend & Quota', icon: BarChart2, disabled: true },
-  { to: '/settings', label: 'Settings', icon: Settings, disabled: true },
+  { to: '/identity', label: 'Identity', icon: User, disabled: true, hidden: true },
+  { to: '/spend', label: 'Spend & Quota', icon: BarChart2, disabled: true, hidden: true },
+  { to: '/settings', label: 'Settings', icon: Settings, disabled: true, hidden: true },
 ];
+
+const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter((item) => !item.hidden);
 
 export default function Sidebar() {
   // The inline script in index.html already chose the theme and set it on
@@ -56,7 +61,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav" aria-label="Main navigation">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end, disabled }) =>
+        {VISIBLE_NAV_ITEMS.map(({ to, label, icon: Icon, end, disabled }) =>
           disabled ? (
             <div key={label} className="nav-item" style={{ opacity: 0.45, cursor: 'default' }}>
               <Icon size={ICON_SIZE} strokeWidth={1.8} />

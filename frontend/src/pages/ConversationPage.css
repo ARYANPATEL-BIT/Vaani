@@ -15,6 +15,11 @@
   padding: 1.5rem 2rem 2rem;
   position: relative;
   box-sizing: border-box;
+  /* The orb's wave ribbons (VoiceOrb.css) reach 20% past the orb on each
+     side. Where the page is narrower than that (phones, 768px tablets) they
+     made the page scroll sideways. clip cuts them at this container's edge;
+     unlike hidden, it does not turn the container into a scroll box. */
+  overflow-x: clip;
 }
 
 /* -------------------------------------------------------------------------
@@ -492,4 +497,10 @@
   .ptt-hint {
     display: none;
   }
+}
+
+/* Phones: the bottom nav bar (AppLayout.css) takes part of the screen, so
+   fill the space left in .app-main instead of a full 100vh. */
+@media (max-width: 640px) {
+  .conversation-container { min-height: 100%; padding: 1rem 1rem 1.5rem; }
 }

@@ -381,3 +381,9 @@
   border-top: 1px solid var(--border);
   padding-top: 12px;
 }
+
+/* ── Phones (same 640px breakpoint as the bottom bar in AppLayout.css) ── */
+@media (max-width: 640px) {
+  .loopback-page { min-height: 100%; padding: var(--sp-6) var(--sp-4); }
+  .loopback-page h1 { font-size: 1.6rem; }
+}

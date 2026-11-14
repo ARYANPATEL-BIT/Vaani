@@ -276,6 +276,108 @@ export async function pollUntilComplete(enrolmentId, options = {}) {
   return { ok: false, error: 'Validation timed out — the server is still processing.' };
 }
 
+/* ── Voice verification (Week 4 Tuesday) ─────────────────────────────── */
+/*
+ * ASSUMED endpoints. They do not exist on the backend yet and are not in
+ * docs/contracts.md. Aryan to confirm or change them:
+ *
+ *   POST /api/enrol/verify/{enrolmentId}/render
+ *     Request:  no body.
+ *     Response: 200, Content-Type audio/* (e.g. audio/wav), the test
+ *               sentence spoken in the cloned voice, as raw audio bytes.
+ *
+ *   POST /api/enrol/verify/{enrolmentId}/approve
+ *     Request:  no body.
+ *     Response: 200, JSON { "status": "approved" }.
+ *     Anything else (another status, non-2xx, bad JSON) is NOT an approval.
+ */
+
+/** Rendering a sentence in a cloned voice may be slow on CPU, so allow longer. */
+const VERIFY_RENDER_TIMEOUT_MS = 60_000;
+
+/**
+ * Ask the server to render the test sentence in the cloned voice.
+ * @param {string} enrolmentId
+ * @param {{ signal?: AbortSignal, timeoutMs?: number }} [options]
+ * @returns {Promise<{ ok: boolean, audioBlob?: Blob, error?: string,
+ *   httpStatus?: number, networkError?: boolean }>}
+ */
+export async function renderVerificationSample(enrolmentId, options = {}) {
+  const url = `${API_BASE_URL}/api/enrol/verify/${encodeURIComponent(enrolmentId)}/render`;
+  const result = await postWithTimeout(url, options.signal, options.timeoutMs ?? VERIFY_RENDER_TIMEOUT_MS);
+  if (!result.ok) return result;
+
+  // Reading the body can still fail (connection drops, or the caller
+  // cancels mid-download), so it is caught like the request itself.
+  let audioBlob;
+  try {
+    audioBlob = await result.response.blob();
+  } catch (err) {
+    return { ok: false, error: `Could not download the sample: ${err.message}`, networkError: true };
+  }
+  if (audioBlob.size === 0 || !audioBlob.type.startsWith('audio/')) {
+    return { ok: false, error: 'Server did not return an audio sample.' };
+  }
+  return { ok: true, audioBlob };
+}
+
+/**
+ * Tell the server the operator approves this voice. Only a 200 with
+ * { status: "approved" } counts; the UI shows the voice as active only then.
+ * @param {string} enrolmentId
+ * @param {{ signal?: AbortSignal, timeoutMs?: number }} [options]
+ * @returns {Promise<{ ok: boolean, error?: string, httpStatus?: number, networkError?: boolean }>}
+ */
+export async function approveVoice(enrolmentId, options = {}) {
+  const url = `${API_BASE_URL}/api/enrol/verify/${encodeURIComponent(enrolmentId)}/approve`;
+  const result = await postWithTimeout(url, options.signal, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  if (!result.ok) return result;
+
+  const data = await safeParseJson(result.response);
+  if (data?.status !== 'approved') {
+    return { ok: false, error: 'Server did not confirm the approval.' };
+  }
+  return { ok: true };
+}
+
+/**
+ * POST with no body, a timeout and an optional external cancel signal.
+ * Both verification calls above need exactly this, so it is shared here.
+ * @returns {Promise<{ ok: true, response: Response } | { ok: false, error: string,
+ *   httpStatus?: number, networkError?: boolean }>}
+ */
+async function postWithTimeout(url, externalSignal, timeoutMs) {
+  if (externalSignal?.aborted) return { ok: false, error: 'Request was cancelled.' };
+
+  // One controller per request. Aborting it makes fetch() stop the HTTP
+  // request and throw an AbortError. Two things can abort it: the timer
+  // below, or the caller's signal (e.g. the page was left).
+  const controller = new AbortController();
+  externalSignal?.addEventListener('abort', () => controller.abort(), { once: true });
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { method: 'POST', signal: controller.signal });
+    if (!response.ok) {
+      const body = await safeParseJson(response);
+      return {
+        ok: false,
+        error: body?.error || body?.message || `Server returned ${response.status}`,
+        httpStatus: response.status,
+      };
+    }
+    return { ok: true, response };
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      if (externalSignal?.aborted) return { ok: false, error: 'Request was cancelled.' };
+      return { ok: false, error: `Request timed out after ${Math.round(timeoutMs / 1000)} seconds.`, networkError: true };
+    }
+    return { ok: false, error: `Network error: ${err.message || 'Could not reach the server.'}`, networkError: true };
+  } finally {
+    clearTimeout(timeoutId); // runs on every path, so no timer is left behind
+  }
+}
+
 /* ── Helpers ──────────────────────────────────────────────────────────── */
 
 /**
