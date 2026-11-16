@@ -1,32 +1,50 @@
 /**
- * LandingPage -- the public page at "/". It puts the sections together and
- * owns the three page-wide switches: whether the preloader plays, whether
- * the visitor has paused the animation, and reduced motion.
+ * LandingPage -- the public page at "/" ("On Air" design). It puts the
+ * sections together, turns the palette into CSS variables, and decides once
+ * whether the loader plays (first visit in this browser session, and never
+ * under reduced motion).
  *
- * It never asks for the microphone and never opens a WebSocket: every
- * button leads to the real app at APP_PATH (landingContent.js).
+ * It never asks for the microphone and never opens a WebSocket: the tape is
+ * a scripted demo and every button leads to the real app at APP_PATH.
  *
- * router.jsx loads this file lazily, so its code, CSS and fonts are a
- * separate download that the voice app's pages never wait for.
+ * router.jsx loads this file lazily, so its code, CSS, fonts and images are
+ * a separate download that the voice app's pages never wait for.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ACCENT, PRELOADER } from './landingContent.js';
+import { CURSOR_HOTSPOT, HERO, IMAGES, PALETTE, PRELOADER, TAPE } from './landingContent.js';
 import useReducedMotion from './useReducedMotion.js';
 import Preloader from './Preloader.jsx';
-import Hero, { SiteHeader } from './Hero.jsx';
-import WhatSection from './WhatSection.jsx';
-import InterruptSection from './InterruptSection.jsx';
-import PipelineSection from './PipelineSection.jsx';
+import SiteNav from './SiteNav.jsx';
+import Hero from './Hero.jsx';
+import CutBand from './CutBand.jsx';
+import Ticker from './Ticker.jsx';
+import IdeaSection from './IdeaSection.jsx';
+import StorySection from './StorySection.jsx';
+import VoicesSection from './VoicesSection.jsx';
+import ChainSection from './ChainSection.jsx';
 import LatencySection from './LatencySection.jsx';
 import ClosingSection from './ClosingSection.jsx';
 import Footer from './Footer.jsx';
 import './landing.css';
+import './tape.css';
 import './sections.css';
 
-// Play the preloader only on the first visit in this browser session.
+// PALETTE.paperDeep -> --lp-paper-deep, and so on. The stylesheets use only
+// these variables, so every colour still comes from landingContent.js.
+const kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+const PAGE_VARS = {
+  ...Object.fromEntries(Object.entries(PALETTE).map(([k, v]) => [`--lp-${kebab(k)}`, v])),
+  // The scissors cursor over the tape: image, hotspot, then a fallback.
+  '--lp-cursor': `url("${IMAGES.cursor}") ${CURSOR_HOTSPOT.x} ${CURSOR_HOTSPOT.y}, crosshair`,
+  '--lp-letter-step': `${HERO.letterStepS}s`,
+  '--lp-tape-h': `${TAPE.heightPx}px`,
+  '--lp-pre-delay': `${PRELOADER.liftStartS}s`,
+  '--lp-pre-lift': `${PRELOADER.liftS}s`,
+};
+
 // sessionStorage can throw (private windows, blocked site data); then we
-// cannot remember, and it simply plays again.
+// cannot remember, and the loader simply plays again.
 function shouldPlayPreloader(reducedMotion) {
   if (reducedMotion) return false;
   try {
@@ -41,8 +59,10 @@ export default function LandingPage() {
   // Decided once, on the first render, so it does not flip mid-visit.
   const [playPreloader] = useState(() => shouldPlayPreloader(reducedMotion));
   const [preloaderDone, setPreloaderDone] = useState(false);
-  const [paused, setPaused] = useState(false);
   const hidePreloader = useCallback(() => setPreloaderDone(true), []);
+  // The tape's Pause button. Held here, not in LiveTape, because it also
+  // stops the signal chain's running dot (.lp-paused in sections.css).
+  const [paused, setPaused] = useState(false);
   const togglePause = useCallback(() => setPaused((p) => !p), []);
 
   useEffect(() => {
@@ -55,44 +75,40 @@ export default function LandingPage() {
   }, [playPreloader]);
 
   const showPreloader = playPreloader && !preloaderDone;
-  // How long the headline waits before its words rise (CSS reads --lp-lead).
+  // How long the headline and the tape wait for the loader to lift.
   const leadS = playPreloader ? PRELOADER.leadS : 0;
 
   return (
     // .lp is its own scroll container: the app's global CSS sets
     // body { overflow: hidden }, so the page cannot scroll the body.
-    <div
-      className={paused ? 'lp lp-paused' : 'lp'}
-      style={{
-        '--lp-accent': ACCENT,
-        '--lp-lead': `${leadS}s`,
-        '--lp-pre-delay': `${PRELOADER.fadeStartS}s`,
-        '--lp-pre-fade': `${PRELOADER.fadeS}s`,
-      }}
-    >
+    <div className={paused ? 'lp lp-paused' : 'lp'} style={{ ...PAGE_VARS, '--lp-lead': `${leadS}s` }}>
+      {/* Paper grain over everything. Decorative, and pointer-events: none
+          in CSS so it never blocks a click. */}
+      <svg className="lp-grain" aria-hidden="true">
+        <filter id="lp-grain-f">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#lp-grain-f)" />
+      </svg>
       {showPreloader && <Preloader onDone={hidePreloader} />}
-      {/* inert: while the preloader covers the page, nothing under it can
-          be focused or clicked, so a keyboard user cannot tab into links
-          they cannot see.
-          id="top" is here, not on .lp: the logo's "#top" link scrolls .lp
-          to bring this element into view, and a scroll container never
-          scrolls to reveal itself. */}
+      {/* inert: while the loader covers the page, nothing under it can be
+          focused or clicked. id="top" is here, not on .lp: a "#top" link
+          scrolls .lp to this element, and a scroll container never scrolls
+          to reveal itself. */}
       <div id="top" inert={showPreloader}>
-        <SiteHeader />
+        <Hero reducedMotion={reducedMotion} leadS={leadS} paused={paused} onTogglePause={togglePause} />
         <main>
-          <Hero
-            paused={paused}
-            onTogglePause={togglePause}
-            reducedMotion={reducedMotion}
-            leadS={leadS}
-          />
-          <WhatSection reducedMotion={reducedMotion} />
-          <InterruptSection />
-          <PipelineSection reducedMotion={reducedMotion} />
+          <CutBand />
+          <Ticker />
+          <IdeaSection />
+          <StorySection />
+          <VoicesSection reducedMotion={reducedMotion} />
+          <ChainSection />
           <LatencySection />
           <ClosingSection />
         </main>
         <Footer />
+        <SiteNav />
       </div>
     </div>
   );

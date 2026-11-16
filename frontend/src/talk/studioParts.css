@@ -1,0 +1,101 @@
+/**
+ * studioParts.css -- the tape box, the Script column, the dock, and (last,
+ * so they win) the tablet and phone layouts. See studio.css for the
+ * conventions. The tape box is dark in both themes.
+ */
+
+/* ── Tape box ───────────────────────────────────────────────────────── */
+.tk .tk-tape {
+  margin-top: auto; flex: none; border-radius: 22px; overflow: hidden;
+  background: var(--tk-tapeBg); border: 1px solid var(--tk-tapeEdge); color: var(--tk-tape-head);
+}
+.tk .tk-tape-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 14px 20px; font-size: 10px; color: var(--tk-tape-rulerText); border-bottom: 1px solid var(--tk-tape-rule);
+}
+.tk .tk-tape-title { display: flex; align-items: center; gap: 9px; color: var(--tk-tape-head); white-space: nowrap; }
+.tk .tk-ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--tk-red); }
+.tk .tk-tape-body { display: flex; }
+.tk .tk-tracks { width: 88px; flex: none; display: flex; flex-direction: column; font-size: 10px; }
+.tk .tk-track-ruler { height: 24px; border-bottom: 1px solid var(--tk-tape-rule); }
+.tk .tk-track { height: 104px; display: flex; align-items: center; padding-left: 18px; color: var(--tk-tape-label); border-bottom: 1px dashed var(--tk-tape-rule); }
+.tk .tk-track-you { color: var(--tk-red); border-bottom: 0; }
+/* 24 px ruler + two 104 px tracks, matching the labels on the left. */
+.tk .tk-canvas { display: block; flex: 1; min-width: 0; height: 232px; }
+
+/* ── Script column ──────────────────────────────────────────────────── */
+.tk .tk-script { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tk .tk-script-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 12px; }
+.tk .tk-script-title { margin: 0; font-size: 30px; }
+.tk .tk-chip { font-size: 10px; padding: 3px 8px; border: 1px solid var(--tk-text); border-radius: 999px; }
+.tk .tk-script-list { flex: 1; min-height: 0; overflow-y: auto; }
+.tk .tk-turns { list-style: none; margin: 0; padding: 0; }
+.tk .tk-turn {
+  display: grid; grid-template-columns: 34px 64px minmax(0, 1fr); gap: 10px;
+  padding: 14px 0; border-top: 1px solid var(--tk-rule);
+}
+.tk .tk-turn-live { background: linear-gradient(90deg, var(--tk-wash), transparent); }
+.tk .tk-turn-n { font-size: 22px; line-height: 1; }
+.tk .tk-turn-tag { font-size: 9px; line-height: 1.7; color: var(--tk-muted); }
+.tk .tk-turn-you { color: var(--tk-redText); }
+.tk .tk-turn-time { display: block; color: var(--tk-muted); }
+.tk .tk-turn-text { margin: 0; font-size: 15px; line-height: 1.45; }
+.tk .tk-tag-cut {
+  display: inline-block; margin-left: 6px; padding: 2px 6px; vertical-align: 2px;
+  background: var(--tk-red); color: var(--tk-onRed); font-size: 9px; font-weight: 500;
+}
+.tk .tk-live-dot { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--tk-red); }
+.tk .tk-latency {
+  flex: none; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  border-top: 1.5px solid var(--tk-line); padding-top: 14px; margin-top: 8px;
+}
+.tk .tk-latency-num { font-size: 34px; line-height: 1; }
+.tk .tk-latency-unit { font-size: 11px; font-weight: 400; margin-left: 4px; }
+.tk .tk-latency-note { text-align: right; line-height: 1.7; }
+
+/* ── Dock ───────────────────────────────────────────────────────────── */
+.tk .tk-dock {
+  flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+  padding: 14px 28px; border-top: 1.5px solid var(--tk-line);
+}
+.tk .tk-counter-num { font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.tk .tk-dock-buttons { grid-column: 2; display: flex; align-items: center; gap: 14px; }
+.tk .tk-dock-hints { justify-self: end; margin: 0; font-size: 10px; line-height: 1.7; text-align: right; }
+
+/* ── Tablet: a narrower script, the header on two rows ─────────────── */
+@media (max-width: 1199px) {
+  .tk .tk-aside { width: 300px; padding: 18px 18px 14px; }
+  .tk .tk-stage { padding: 20px 24px; }
+  .tk .tk-header { grid-template-columns: 1fr auto; row-gap: 4px; padding: 10px 20px; }
+  .tk .tk-header-settings { grid-column: 1 / -1; grid-row: 2; }
+  .tk .tk-lamp { grid-column: 2; grid-row: 1; }
+  .tk .tk-brand { flex-direction: row; align-items: baseline; gap: 14px; }
+  .tk .tk-tape-meta { display: none; }
+}
+
+/* ── Phone: one column, no rail ─────────────────────────────────────── */
+@media (min-width: 768px) {
+  .tk .tk-phone-only { display: none; }
+}
+@media (max-width: 767px) {
+  .tk .tk-wide-only, .tk .tk-rail { display: none; }
+  .tk .tk-header { display: flex; justify-content: space-between; padding: 8px 16px; }
+  .tk .tk-brand { flex-direction: row; align-items: center; gap: 10px; }
+  .tk .tk-brand-mark { font-size: 20px; }
+  .tk .tk-title { font-size: 24px; }
+  .tk .tk-error { margin: 10px 16px 0; }
+  .tk .tk-stage { padding: 16px 16px 12px; gap: 14px; }
+  .tk .tk-status { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .tk .tk-hint { text-align: left; margin: 0; }
+  .tk .tk-live { min-height: 88px; padding-top: 12px; }
+  .tk .tk-tape { margin-top: 0; border-radius: 18px; }
+  .tk .tk-tape-head { padding: 10px 14px; }
+  .tk .tk-canvas { height: 150px; }
+  .tk .tk-turn { grid-template-columns: 28px 52px minmax(0, 1fr); gap: 8px; padding: 10px 0; }
+  .tk .tk-turn-text { font-size: 14px; }
+  .tk .tk-mini-script .tk-script-list { overflow: visible; }
+  .tk .tk-dock { display: flex; justify-content: center; padding: 12px 16px 16px; }
+  .tk .tk-dock-buttons { gap: 10px; }
+  .tk .tk-big { height: 58px; padding: 0 26px; font-size: 12px; }
+  .tk .tk-ghost { height: 52px; padding: 0 16px; font-size: 10px; }
+}

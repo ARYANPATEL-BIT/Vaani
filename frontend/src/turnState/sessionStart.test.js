@@ -9,7 +9,7 @@
  * 2. The reply language shown while connected is the server's echo; a
  *    missing or unknown echo (an older server) reads as 'any'.
  *
- * Not covered: that ConversationPage passes its picker's choice into
+ * Not covered: that StudioPage (src/talk/StudioPage.jsx) passes its picker's choice into
  * startCapture, and startCapture into buildSessionStart. There is no React
  * test setup; that wiring is checked by reading the code.
  *

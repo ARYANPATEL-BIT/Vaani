@@ -5,10 +5,10 @@
  * layout) and how many pixels it actually holds (canvas.width/height). On a
  * "retina" screen one CSS pixel is 2 or 3 real pixels (devicePixelRatio), so
  * a canvas the same size in both looks blurry. We give it more pixels, but
- * cap the ratio: 3x on a phone means 9x the pixels to paint every frame for
- * a glow that is soft anyway.
+ * cap the ratio: 3x on a phone means 9x the pixels to paint every frame,
+ * and at 2x the thin tape bars already look sharp.
  *
- * Used by HeroWave.jsx and Preloader.jsx.
+ * Used by drawTape.js.
  */
 
 // Returns the 2D context, already scaled so drawing code can use CSS pixels,

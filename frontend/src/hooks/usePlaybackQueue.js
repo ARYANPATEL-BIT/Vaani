@@ -214,10 +214,33 @@ export function usePlaybackQueue() {
     }
   }, []);
 
+  /**
+   * Loudness (RMS, 0..1) of what is playing right now, or 0. For the Studio
+   * tape only: called from its animation loop, never from enqueue or flush.
+   * It only READS: the audio clock, the sources already scheduled, and about
+   * 20 ms of the playing buffer's samples. Nothing in the audio graph changes.
+   */
+  const readPlaybackLevel = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return 0;
+    const now = ctx.currentTime;
+    for (const { source, startAt } of activeSourcesRef.current) {
+      const buffer = source.buffer;
+      if (!buffer || now < startAt || now >= startAt + buffer.duration) continue;
+      const data = buffer.getChannelData(0);
+      const from = Math.floor((now - startAt) * buffer.sampleRate);
+      const to = Math.min(data.length, from + Math.round(buffer.sampleRate * 0.02));
+      let sum = 0;
+      for (let i = from; i < to; i++) sum += data[i] * data[i];
+      return to > from ? Math.sqrt(sum / (to - from)) : 0;
+    }
+    return 0;
+  }, []);
+
   // Release resources when the component using this hook unmounts.
   useEffect(() => {
     return cleanup;
   }, [cleanup]);
 
-  return { enqueue, flushPlayback, cleanup, setPlaybackSampleRate };
+  return { enqueue, flushPlayback, cleanup, setPlaybackSampleRate, readPlaybackLevel };
 }

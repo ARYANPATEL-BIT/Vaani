@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Radio call to action — phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}
+.cd{font-family:'Archivo',system-ui,sans-serif;font-stretch:62%;font-weight:800;text-transform:uppercase}
+.mo{font-family:'JetBrains Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:0.06em}
+.radio-cta{display:block;position:relative;border-radius:28px;outline:none}
+.radio-cta:focus-visible{outline:3px solid #141312;outline-offset:10px}
+.radio-cta .needle{left:12%}
+.radio-cta .label{transition:color .3s ease}
+@media (prefers-reduced-motion: no-preference){
+.radio-cta .needle{transition:left .9s cubic-bezier(.6,0,.2,1)}
+.radio-cta:hover .needle,.radio-cta:focus-visible .needle{left:86%}
+.radio-cta:hover .grille,.radio-cta:focus-visible .grille{animation:vxPulse .9s ease-out 1}
+.radio-cta:active{transform:scale(0.985)}
+}
+.radio-cta:hover .label,.radio-cta:focus-visible .label{color:#C8280C}
+@keyframes vxPulse{from{box-shadow:0 0 0 0 rgba(255,59,28,0.55)}to{box-shadow:0 0 0 28px rgba(255,59,28,0)}}
+.alink:hover{text-decoration:underline;text-underline-offset:4px}
+</style>
+</helmet>
+<section style="overflow: hidden; width: 390px; height: 844px; box-sizing: border-box; padding: 32px 24px; background: #EEE9DF; color: #141312; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; text-align: center">
+<p class="mo" style="margin: 0; font-size: 11px; color: #5E5950">Say something. Then change your mind halfway.</p>
+<a href="#" class="radio-cta" aria-label="Start talking: open the Vaani app" style="width: 450px; max-width: none; flex: none">
+<img src="/_blob/2bac8d96865aa5e31c45495894c70527" alt="" aria-hidden="true" style="display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 28px rgba(20,19,18,0.22))">
+<span class="grille" aria-hidden="true" style="position: absolute; left: 16.1%; top: 32.7%; width: 33.8%; aspect-ratio: 1; border-radius: 50%"></span>
+<span aria-hidden="true" style="position: absolute; left: 52.1%; top: 38.9%; width: 28.9%; height: 18.5%; box-sizing: border-box; border-radius: 6px; background: #EEE3D0; border: 2px solid #141312; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center">
+<span class="cd label" style="font-size: 19px; line-height: 0.92; letter-spacing: 0.01em; text-align: left; margin-bottom: 8%"><span style="display: block">Start</span><span style="display: block">talking ↗</span></span>
+<span style="position: absolute; left: 6%; right: 6%; bottom: 14%; height: 18%; background: repeating-linear-gradient(90deg, #141312 0 1.5px, transparent 1.5px 9%); opacity: 0.55"></span>
+<span class="needle" style="position: absolute; top: 8%; bottom: 8%; width: 3px; background: #FF3B1C"></span>
+</span>
+</a>
+<a href="#" class="mo alink" style="min-height: 44px; display: flex; align-items: center; font-size: 11px; color: #141312">or open the app →</a>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

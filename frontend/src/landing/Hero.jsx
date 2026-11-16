@@ -1,99 +1,80 @@
 /**
- * Hero -- the dark top of the landing page: the header (SiteHeader), the
- * "SPEAK / Interrupt / LISTEN" headline, the call to action, the ribbon
- * wave and the scripted demo card with its pause button.
+ * Hero -- the header ("On air" clock, Open the app), the headline "TALK
+ * OVER IT." whose letters rise one by one, the description, the Start
+ * talking pill, the live tape and the spec strip.
  */
 
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Mic, Pause, Play } from 'lucide-react';
-import { APP_PATH, NAV_LINKS, HERO, DEMO } from './landingContent.js';
-import { demoAt } from './demoScript.js';
-import HeroWave from './HeroWave.jsx';
-import DemoCard from './DemoCard.jsx';
+import { APP_PATH, BRAND, CLOCK, HERO, SPECS } from './landingContent.js';
+import useIstClock from './useIstClock.js';
+import LiveTape from './LiveTape.jsx';
+import Arrow from './Arrow.jsx';
 
-export function LogoMark({ size = 22 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 22 22" fill="currentColor" aria-hidden="true">
-      <rect x="3" y="7" width="3" height="8" rx="1.5" />
-      <rect x="9.5" y="2" width="3" height="18" rx="1.5" />
-      <rect x="16" y="6" width="3" height="10" rx="1.5" />
-    </svg>
-  );
-}
+// Each letter gets its position in the whole headline (--i): CSS delays its
+// rise by --i steps. Each word is one unbreakable box, so the headline only
+// ever wraps between words, never inside one.
+let letterCount = 0;
+const HEADLINE = HERO.headline.map((word) => ({
+  word,
+  letters: [...word].map((ch) => ({ ch, i: letterCount++, red: HERO.redChars.includes(ch) })),
+}));
 
-// The top bar: logo, section links, and the two ways into the app.
-export function SiteHeader() {
+export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
+  const clock = useIstClock();
+
   return (
-    <header className="lp-header lp-dark">
-      <div className="lp-header-inner">
-        <a href="#top" className="lp-logo">
-          <LogoMark />
-          <span>Vaani</span>
+    <>
+      <header className="lp-header lp-wrap">
+        <a href="#top" className="lp-brand" aria-label={HERO.backToTop}>
+          <span className="lp-dv lp-brand-hi">{BRAND.hindi}</span>
+          <span className="lp-cd lp-brand-latin">{BRAND.latin}</span>
         </a>
-        <nav aria-label="Sections" className="lp-nav">
-          {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href}>{link.label}</a>
-          ))}
-        </nav>
-        <div className="lp-header-actions">
-          <Link to={APP_PATH} className="lp-pill">{HERO.openApp}</Link>
-          <Link to={APP_PATH} className="lp-round" aria-label={HERO.cta}>
-            <Mic size={18} strokeWidth={1.8} aria-hidden="true" />
-          </Link>
+        <div className="lp-header-right">
+          <span className="lp-mono lp-onair">
+            <span className="lp-dot lp-blink" aria-hidden="true" />
+            {HERO.onAir} &middot; {CLOCK.label} {clock}
+          </span>
+          <Link to={APP_PATH} className="lp-mono lp-outline-pill">{HERO.openApp}</Link>
         </div>
-      </div>
-    </header>
-  );
-}
+      </header>
 
-export default function Hero({ paused, onTogglePause, reducedMotion, leadS }) {
-  // Updated by HeroWave's loop when the demo text or phase changes.
-  const [liveDemo, setLiveDemo] = useState(() => demoAt(0));
-  const demo = reducedMotion ? demoAt(DEMO.stillFrameAt) : liveDemo;
-  const [first, middle, last] = HERO.words;
+      <section className="lp-hero lp-wrap" aria-labelledby="lp-hero-title">
+        <div className="lp-mono lp-hero-meta">
+          <span>{HERO.fileLabel}</span>
+          <span>{HERO.languages}</span>
+        </div>
+        <h1 id="lp-hero-title" className="lp-cd lp-headline">
+          {/* Screen readers read this one plain sentence; the animated
+              letters below are hidden from them. */}
+          <span className="lp-sr">{HERO.headlineSpoken}</span>
+          {HEADLINE.map(({ word, letters }) => (
+            <span key={word} className="lp-hword" aria-hidden="true">
+              {letters.map((l) => (
+                <span key={l.i} className="lp-lm">
+                  <span className={l.red ? 'lp-red-text' : undefined} style={{ '--i': l.i }}>{l.ch}</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </h1>
+        <div className="lp-hero-row">
+          <p className="lp-hero-desc">{HERO.description}</p>
+          <Link to={APP_PATH} className="lp-mono lp-pill lp-pill-lg">{HERO.cta}<Arrow /></Link>
+        </div>
 
-  return (
-    <section className="lp-hero lp-dark" aria-labelledby="lp-hero-title">
-      <h1 id="lp-hero-title" className="lp-headline">
-        <span className="lp-mask"><span className="lp-w1">{first}</span></span>
-        <span className="lp-slash" aria-hidden="true">/</span>
-        <span className="lp-mask"><span className="lp-w2 lp-serif">{middle}</span></span>
-        <span className="lp-slash" aria-hidden="true">/</span>
-        <span className="lp-mask"><span className="lp-w3">{last}</span></span>
-      </h1>
+        <LiveTape reducedMotion={reducedMotion} leadS={leadS} paused={paused} onTogglePause={onTogglePause} />
 
-      <div className="lp-hero-row">
-        <p>{HERO.description}</p>
-        <Link to={APP_PATH} className="lp-cta">
-          {HERO.cta}
-          <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
-        </Link>
-      </div>
-
-      <div className="lp-wave">
-        <HeroWave
-          paused={paused}
-          reducedMotion={reducedMotion}
-          leadS={leadS}
-          onDemoChange={setLiveDemo}
-        />
-      </div>
-
-      <div className="lp-demo-wrap">
-        <DemoCard demo={demo} />
-        {/* Under reduced motion nothing moves, so there is nothing to pause.
-            The label names what a click does, like the sidebar's theme
-            toggle; no aria-pressed, which would say the same thing twice. */}
-        {!reducedMotion && (
-          <button type="button" className="lp-pause" onClick={onTogglePause}>
-            {paused
-              ? <Play size={14} strokeWidth={2} aria-hidden="true" />
-              : <Pause size={14} strokeWidth={2} aria-hidden="true" />}
-            {paused ? HERO.play : HERO.pause}
-          </button>
-        )}
-      </div>
-    </section>
+        <dl className="lp-specs">
+          {SPECS.map((s) => (
+            <div key={s.label} className="lp-spec">
+              <dt className="lp-mono">{s.label}</dt>
+              <dd className="lp-cd">
+                {s.num}<span className="lp-mono lp-spec-unit">{s.unit}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    </>
   );
 }
