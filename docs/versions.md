@@ -3,7 +3,8 @@
 The learning documents cite this file for the exact version of every library
 and tool in use. Generated 2026-10-11 from `backend/uv.lock` and
 `frontend/package-lock.json`: every version below is the one those lock files
-pin, nothing else (the tzdata row was added on 2026-10-14, from the same
+pin, nothing else (the tzdata row was added on 2026-10-14, and the google-auth,
+requests and their transitive rows on 2026-11-16, from the same
 `backend/uv.lock`). Regenerate this file after any `uv lock` or `npm install`
 that changes a lock file.
 
@@ -34,6 +35,8 @@ classifier); frontend licences come from the `license` field that
 | faster-whisper | 1.2.1 | MIT | Speech recognition: Whisper on CTranslate2 |
 | piper-tts | 1.8.0 | GPL-3.0-or-later | Speech synthesis: Piper voices on ONNX Runtime |
 | tzdata | 2026.5 | Apache-2.0 | IANA time zones for `zoneinfo` (`[llm].timezone`, the date and time line in every system prompt); Windows has no zone database of its own. Added in feat/guardrails |
+| google-auth | 2.62.2 | Apache-2.0 | Verifies Google sign-in ID tokens (signature, audience, issuer, expiry); imported only in `backend/vaani/auth.py`. Added in feat/google-auth |
+| requests | 2.34.2 | Apache-2.0 | google-auth's HTTP transport, to download Google's certificates (google-auth has no httpx transport). Added in feat/google-auth |
 
 ## Backend optional `gpu` extra (`uv sync --extra gpu`)
 
@@ -70,6 +73,9 @@ Only for `asr.whisper.device = "cuda"`. CI and CPU machines never install these.
 | av | 18.1.0 on Python 3.11 (19.0.0 on 3.12+) | faster-whisper (audio file decoding; wheels bundle FFmpeg) |
 | tokenizers | 0.23.2 | faster-whisper (Whisper's text tokenizer) |
 | huggingface-hub | 1.33.0 | faster-whisper (model download) |
+| cryptography | 50.0.2 | google-auth |
+| pyasn1, pyasn1-modules | 0.6.5, 0.4.2 | google-auth |
+| urllib3, charset-normalizer | 2.8.0, 3.5.2 | requests |
 
 ## Frontend runtime dependencies (direct)
 

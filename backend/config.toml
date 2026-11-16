@@ -371,6 +371,37 @@ path = "data/vaani.db"
 # a stuck disk must never hang the server's exit.
 close_timeout_s = 2.0
 
+[auth]
+# Google sign-in (vaani/auth.py, docs/contracts.md 2.9). Only the Google
+# accounts in allowed_emails can use the app; /ws/session refuses a handshake
+# without a valid session cookie or from another origin.
+# NOT here, environment or backend/.env only (see backend/.env.example):
+#   VAANI_AUTH__GOOGLE_CLIENT_ID, VAANI_AUTH__SESSION_SECRET,
+#   VAANI_AUTH__ALLOWED_EMAILS (real addresses must never be committed).
+# When true and one of those is missing, the server refuses to start.
+# Set false (e.g. VAANI_AUTH__ENABLED=false in .env) to run without sign-in.
+enabled = true
+
+# Exact browser origins allowed to sign in and to open /ws/session; also the
+# CORS allow-list. localhost, not 127.0.0.1: they are different origins, and
+# the cookie set for one is never sent to the other.
+allowed_origins = ["http://localhost:5173"]
+
+# HTTPS-only cookie. false for http://localhost in development; true behind
+# HTTPS (override with VAANI_AUTH__SECURE_COOKIE=true there).
+secure_cookie = false
+
+# A sign-in lasts this many days, then the user signs in again.
+cookie_days = 7
+
+# Seconds of clock difference with Google tolerated when checking a token's
+# issued-at and expiry times. 0 rejects good tokens when our clock lags.
+clock_skew_s = 10
+
+# Longest a sign-in waits to download Google's certificates. Without it
+# google-auth waits up to 120 s.
+google_timeout_s = 5.0
+
 [guardrail]
 # Input guardrail. Each pattern is a regular expression matched,
 # case-insensitively, against the user's TRANSCRIPT before it is placed in a

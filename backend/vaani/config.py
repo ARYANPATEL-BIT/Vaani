@@ -297,6 +297,41 @@ class DbSettings(BaseModel):
     close_timeout_s: float = 2.0
 
 
+class AuthSettings(BaseModel):
+    """Google sign-in and the session cookie, under [auth] (vaani/auth.py).
+
+    google_client_id, session_secret and allowed_emails come from the
+    environment or backend/.env only (VAANI_AUTH__...), never config.toml.
+    create_app refuses to start, naming the variable, when auth is enabled
+    and one is missing.
+    """
+
+    # When false nothing is checked: no sign-in, every socket accepted.
+    enabled: bool = True
+    # The OAuth client ID our Google ID tokens must be issued for (their aud).
+    google_client_id: str | None = None
+    # Key for the cookie's HMAC signature. At least 32 characters.
+    session_secret: SecretStr | None = None
+    # The only Google accounts allowed in. Compared lowercased.
+    allowed_emails: list[str] = []
+    # Exact browser origins (scheme://host:port) allowed to sign in and to
+    # open /ws/session. Also the CORS allow-list.
+    allowed_origins: list[str] = []
+    # Send the cookie over HTTPS only. False for http://localhost in dev.
+    secure_cookie: bool = False
+    # Days a sign-in lasts before the cookie expires.
+    cookie_days: int = 7
+    # Seconds of clock difference with Google tolerated on iat/exp.
+    clock_skew_s: int = 10
+    # Seconds to wait for Google's certificate download on sign-in.
+    google_timeout_s: float = 5.0
+
+    @field_validator("allowed_emails")
+    @classmethod
+    def _lowercase(cls, emails: list[str]) -> list[str]:
+        return [email.strip().lower() for email in emails]
+
+
 class Settings(BaseSettings):
     """The one typed settings object for the whole backend.
 
@@ -332,6 +367,7 @@ class Settings(BaseSettings):
     chunker: ChunkerSettings
     guardrail: GuardrailSettings
     db: DbSettings = DbSettings()
+    auth: AuthSettings = AuthSettings()
     # Persona key -> system prompt. session.start's "persona" must be a key.
     personas: dict[str, str]
 

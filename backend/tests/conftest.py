@@ -16,6 +16,10 @@ Speech synthesis is off too: gateway tests inject a fake synthesiser
 
 The database is off too, so no test writes to backend/data/vaani.db; the
 database tests pass a temporary file (tests/test_db.py).
+
+Sign-in is off too, so existing gateway tests connect with no cookie or
+Origin, as before v0.11, and the app needs no client ID or session secret.
+tests/test_auth.py and tests/test_auth_gateway.py pass an enabled `auth=`.
 """
 
 import os
@@ -24,3 +28,4 @@ os.environ["VAANI_ASR__ENABLED"] = "false"
 os.environ["VAANI_LLM__ENABLED"] = "false"
 os.environ["VAANI_TTS__ENABLED"] = "false"
 os.environ["VAANI_DB__ENABLED"] = "false"
+os.environ["VAANI_AUTH__ENABLED"] = "false"

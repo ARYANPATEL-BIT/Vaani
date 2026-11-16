@@ -31,6 +31,9 @@ Session beside the mode, and echoed in session.started the same way.
 
 Database (feat/database): how the session ended (end_reason) is decided here
 and handed to the pipeline's close, which records it (turn_log.py).
+
+Sign-in (v0.11): before accept, the Origin header and the session cookie are
+checked (auth.handshake_refusal); a refused handshake is never accepted.
 """
 
 import asyncio
@@ -38,11 +41,13 @@ import json
 import logging
 import uuid
 from contextlib import suppress
+from time import perf_counter
 
 from fastapi import APIRouter, WebSocket
 from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
+from vaani.auth import handshake_refusal
 from vaani.config import AudioSettings, Settings
 from vaani.protocol import (
     ErrorCode,
@@ -129,6 +134,16 @@ async def session_endpoint(websocket: WebSocket) -> None:
     interval_s = settings.gateway.frame_log_interval_s
     vad_enabled = settings.vad.enabled
 
+    # Closing BEFORE accept refuses the upgrade itself: uvicorn answers the
+    # HTTP request with 403 and no socket ever opens. Local work only.
+    auth_started = perf_counter()
+    refusal = handshake_refusal(websocket, settings.auth)
+    if refusal is not None:
+        log.warning("handshake refused: %s", refusal)
+        await websocket.close()
+        return
+    if settings.auth.enabled:
+        log.info("handshake auth ok in %.3fms", (perf_counter() - auth_started) * 1000)
     await websocket.accept()
 
     session: Session | None = None
