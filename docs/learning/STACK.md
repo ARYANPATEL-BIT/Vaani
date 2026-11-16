@@ -41,6 +41,7 @@ A few words used throughout:
 | Speech synthesis (TTS) | piper-tts 1.8.0 (espeak-ng + a VITS network on onnxruntime), local CPU | No network hop and no cost per chunk | `backend/vaani/tts/piper.py` |
 | Clock line | Python `zoneinfo` with tzdata 2026.5 | The model gets the real date and time | `backend/vaani/reply.py:91,180`, `[llm].timezone` |
 | Database | SQLite through Python's standard `sqlite3`, raw SQL, WAL mode | A file inside our process: no server, no new dependency | `backend/vaani/db.py`, `schema.sql` |
+| Sign-in (feat/google-auth) | Google ID tokens checked with google-auth 2.62.2 (+ requests 2.34.2); our own HMAC-SHA256 cookie (standard `hmac`); FastAPI's `CORSMiddleware` | Only allowlisted Google accounts get in, so strangers cannot spend the free LLM quota; no passwords stored, no sessions table | `backend/vaani/auth.py`, `app.py`, `[auth]` |
 | Tests and lint | pytest 9.1.1, ruff 0.16.8; frontend `npm test` (plain Node scripts) | Every stage tested with fakes, no models or keys | `backend/tests/`, `frontend/package.json:10` |
 | CI | GitHub Actions, uv 0.11.28, `uv sync --frozen` | Every PR checked the same way on a clean machine | `.github/workflows/ci.yml`, `asr-slow.yml` |
 | External: Groq | Groq's OpenAI-compatible REST API; key in the `Authorization` header | Fastest first token we measured (p50 788 ms, `config.toml:221-226`) | `providers/groq.py:89`, `[llm.groq]` |
@@ -55,14 +56,21 @@ GPL-3.0-or-later, and both Hindi voices are CC BY-NC-SA 4.0 (non-commercial)
 
 ### 2a. HTTP routes
 
-The app has one route of its own and one WebSocket. FastAPI also adds its
+The app has four routes of its own and one WebSocket. FastAPI also adds its
 documentation routes by default, because `app.py:86` does not switch them off.
 
 | Route | What it returns | Who calls it | Where |
 |---|---|---|---|
 | `GET /health` (and `HEAD`) | `{"status": "ok", "version": "0.1.0"}`. The version is the app's (`vaani/__init__.py:10`), not the protocol's. It reads no settings, so it can leak no config | A person checking the server is up (`README.md:69`), and `backend/tests/test_health.py`. **The frontend never calls it**: `API_BASE_URL` in `frontend/src/config.js:14` is defined but unused | `backend/vaani/app.py:141-149` |
 | `GET /docs`, `/docs/oauth2-redirect`, `/redoc`, `/openapi.json` | FastAPI's generated API pages and schema | Nobody in our code; a developer in a browser | Added by FastAPI. Checked on a bare FastAPI 0.141.1 app, not by starting ours |
+| `POST /auth/google` | Body `{"credential": "<Google ID token>"}`. `200 {email, name}` and the `vaani_session` cookie, or `401`/`403`/`503` with an `AUTH_*` code (2d). Refuses an `Origin` not in `[auth] allowed_origins`. `404` when auth is disabled | The login page (frontend commit of feat/google-auth) | `backend/vaani/auth.py` (`google_sign_in`) |
+| `GET /auth/me` | `200 {email, name}` from the cookie, or `401 AUTH_REQUIRED`. With auth disabled: `200 {email: null, name: null}` | The frontend, on app load | `auth.py` (`me`) |
+| `POST /auth/logout` | `204` and the cookie cleared (in the browser only: the signed value stays valid until it expires) | The sidebar's Logout | `auth.py` (`logout`) |
 | `WS /ws/session` | The voice session (2b) | `useAudioCapture.js:248`, URL from `config.js:21-22` | `backend/vaani/gateway.py:120-319`, added by `app.py:152` |
+
+Every `/auth/*` answer carries CORS headers for `[auth] allowed_origins` with
+`Access-Control-Allow-Credentials: true` (`app.py`), because the page
+(`localhost:5173`) and the server (`localhost:8000`) are different origins.
 
 ### 2b. The WebSocket
 
@@ -72,6 +80,12 @@ message at any moment. HTTP, by contrast, is "the browser asks, the server answe
 - **One socket per session.** A session is one connection. Its state (the
   `Session` object, `session.py:31-68`) belongs to the one coroutine that serves
   that socket (`gateway.py:1-8`). Nothing is shared between sessions.
+- **Who may open it (v0.11).** Before `accept()`, `handshake_refusal` (`auth.py`,
+  called from `gateway.py`) checks the `Origin` header against `[auth]
+  allowed_origins` and the `vaani_session` cookie (signature, expiry, allowlist).
+  Either fails: the gateway closes before accepting, uvicorn answers HTTP 403, and
+  no socket, session or pipeline is ever made. The browser sees only close code
+  1006. `[auth] enabled = false` skips both checks.
 - **How it starts.** The user clicks Start. The browser opens the mic, opens the
   socket and, when it opens, sends `session.start` with the persona, the mode, the
   reply language (v0.10) and the audio format (`useAudioCapture.js:277-289`). The server
@@ -89,7 +103,9 @@ message at any moment. HTTP, by contrast, is "the browser asks, the server answe
   be the first thing after a cut. Messages on one WebSocket arrive in the order they
   were sent (`contracts.md` 2.8). Two sockets give no order between them.
 
-### 2c. Every message in protocol v0.10
+### 2c. Every message in protocol v0.11
+
+v0.11 (sign-in) added no socket message or field: only the handshake check in 2b.
 
 Control messages are JSON text with a `type` field. Audio is raw binary. The
 models are in `backend/vaani/protocol.py`; the browser side is in
@@ -144,6 +160,18 @@ carries a `turn_id`, so the browser cannot tell which turn an error is about.
 If a barge-in lands while an error is being sent, the error still goes out but the
 move to `idle` does not: the barge-in owns the state from then on (`reply.py:280-283`).
 
+**HTTP-only codes (v0.11).** Sent only as the JSON body of an `/auth/*` answer,
+never on the socket, in the same `{type, code, message}` shape (`auth.py`, `_fail`).
+
+| Code | HTTP status | When |
+|---|---|---|
+| `AUTH_REQUIRED` | 401 | `GET /auth/me` with no valid cookie |
+| `AUTH_INVALID_TOKEN` | 401 | google-auth rejected the ID token: signature, audience (not our client ID), issuer or expiry |
+| `AUTH_EMAIL_UNVERIFIED` | 403 | The token's `email_verified` is false |
+| `AUTH_NOT_ALLOWED` | 403 | The email is not in `[auth] allowed_emails` |
+| `AUTH_BAD_ORIGIN` | 403 | `POST /auth/google` or `/auth/logout` from an `Origin` not in `[auth] allowed_origins` |
+| `AUTH_UNAVAILABLE` | 503 | Google's certificates could not be downloaded within `[auth] google_timeout_s` (5 s) |
+
 ### 2e. The design decisions behind the protocol
 
 | Choice | What we do | Why | The one alternative | Why not the alternative |
@@ -159,7 +187,9 @@ move to `idle` does not: the barge-in owns the state from then on (`reply.py:280
 | Start and end pairs | `session.start`/`session.end`, `audio.start`/`audio.end`, `ptt.start`/`ptt.end` | Each pair brackets a span, so both sides know what is open; one naming rule for all three | One toggle message (for example `ptt` with `pressed: true/false`) | A lost or repeated toggle flips the meaning; a repeated `ptt.start` is simply ignored (`turns.py:202-205`) |
 | Mode fixed per session | `mode` only in `session.start`; a second `session.start` changes nothing (`gateway.py:196-202`) | The pipeline is built once from the mode: a press buffer or an endpointer, never both (`turns.py:95-120`) | A message to switch mode mid-session | Rules needed for an open press, an open utterance and VAD's memory at the switch. Reconnecting does the same job |
 | Reply language fixed per session (v0.10) | `reply_language` only in `session.start`, kept on the `Session`; a second `session.start` changes nothing. `"en"`/`"hi"` add one line after the clock line (`persona.py:51-76`) and pick the voice for every reply (`speaker.py:200-216`) | One choice for a whole conversation, read once by `reply.py` (`reply.py:90-96`): the prompt, the voice and the history stay in one language | Send it on every turn (a field the server reads per reply) | A language switch mid-conversation leaves history in the other language, which pulls the model back to it, and a turn already being answered would need a rule for which value it uses. Reconnecting does the same job |
-| Versioning | `contracts.md` is the source of truth; v0.10 now; only the PR that changes it bumps it (`contracts.md:38-40`). Wording fixes are "editorial, no version change" (`contracts.md:387,389,391,392`) | One place to read; the history table says what each version added | A version field on the wire, checked at `session.start` | Two developers, one repo, deployed together. **Cost:** nothing at runtime checks the version. `/health` reports the app version `0.1.0`, not the protocol's |
+| Who may connect (v0.11) | `Origin` and cookie checked before `accept()`; refused with HTTP 403, no socket (`auth.py` `handshake_refusal`, `gateway.py`) | A browser attaches our cookie to a WebSocket opened by ANY site (cross-site WebSocket hijacking), and CORS does not cover WebSockets; the page's real `Origin` is the one thing that site cannot fake | Accept, then require a token in the first message | A socket, pipeline and log task would exist for every stranger, and a hijacked socket would still carry the cookie |
+| Session proof | An HMAC-SHA256-signed `HttpOnly`, `SameSite=Lax` cookie holding `sub\|email\|expiry\|name` (`auth.py` `sign_cookie`, `read_cookie`) | Page JavaScript cannot read it, the browser sends it on the WebSocket upgrade by itself, and the signature needs no database | A JWT in `localStorage`, sent by our JavaScript | Any injected script can read `localStorage`; and a browser WebSocket cannot send custom headers, so the token would go in the URL, where servers log it |
+| Versioning | `contracts.md` is the source of truth; v0.11 now; only the PR that changes it bumps it (`contracts.md:38-40`). Wording fixes are "editorial, no version change" (`contracts.md:387,389,391,392`) | One place to read; the history table says what each version added | A version field on the wire, checked at `session.start` | Two developers, one repo, deployed together. **Cost:** nothing at runtime checks the version. `/health` reports the app version `0.1.0`, not the protocol's |
 
 ### 2f. Two walkthroughs, message by message
 
@@ -213,6 +243,7 @@ sent, and T1's own `transcript.final` may arrive after step 6. In ptt mode, step
 | Piper (piper-tts 1.8.0) | espeak-ng turns letters into sounds, then a VITS network makes the audio, on CPU (`tts/piper.py:3-5`) | Local: no network hop and no cost on every chunk. A short first chunk took 36 ms p50 (`docs/findings/tts-day12/measure_tts_20261006-111202.txt`) | A hosted voice, Sarvam Bulbul, named as the intended alternative in `tts/base.py:4-5` | A network round trip and a cost on every chunk, and an API key on the reply path |
 | FastAPI 0.141.1 + uvicorn 0.53.0 | An async web framework and the server that runs it | One process reads many sockets while it waits on the network; WebSocket support built in | Flask | Synchronous: one request per worker, a poor fit for long-lived real-time sockets (`backend-learning/01-repo-setup.md:119`) |
 | httpx 0.28.1 | An async HTTP client | We send the request and read the stream ourselves, and close it the moment the token is set (`providers/streaming.py:43-77`) | The vendors' Python SDKs | They hide the HTTP stream, so we could not be sure a cancel closes the connection; and a vendor SDK is banned outside `providers/` (`CLAUDE.md`) |
+| google-auth 2.62.2 (+ requests 2.34.2) | Google's library for checking its own ID tokens: signature, audience, issuer, expiry (`auth.py` `verify_google`). It downloads Google's certificates on EVERY call (no cache), so it runs on a worker thread with our timeout | We do not write signature and audience checks ourselves, the usual place for an auth bug | Our own JWT check with `cryptography` and Google's key list | Every rule (key rotation, `aud`, `iss`, clock skew) would be ours to get right. Cost: a vendor library, allowed only in `auth.py` (`CLAUDE.md`) |
 | tzdata 2026.5 | The IANA time zone database, for Python's `zoneinfo` | The clock line in every prompt names `Asia/Kolkata` (`[llm].timezone`); Windows has no zone database of its own (`pyproject.toml:23`) | A fixed offset (+05:30) in config | Wrong twice a year for any zone with daylight saving, and it prints no zone name (`PROJECT.md` section b) |
 | React 19.3.0 | A UI library: the page is drawn from state | Transcript, turn state, mode and press state all change many times a second | Plain JavaScript with hand-written DOM updates | Every state change would need its own DOM code. No learning document recorded this choice; this reason is ours |
 | Vite 8.3.0 | Build tool and dev server | Fast start, little configuration | Webpack | Slower to configure and to run (`frontend-learning/01-frontend-setup.md:116`) |
@@ -468,7 +499,8 @@ not measured by us; where a cell says "not measured", it means exactly that.
 | What I learn | WebSockets, async code, cancellation, state machines, VAD, SQL: each built and explainable | How to configure a framework; the hard parts live inside it | How to call APIs; less of the pipeline is ours | As ours, plus serving a model |
 
 Also: a framework or a vendor SDK would bring vendor code into the turn path, which
-`CLAUDE.md` forbids outside `providers/`, `asr/` and `tts/`.
+`CLAUDE.md` forbids outside `providers/`, `asr/`, `tts/` and (google-auth, sign-in only)
+`auth.py`.
 
 ## 6. Known costs of these choices
 
@@ -531,3 +563,12 @@ they are not repeated here.
     ours, and we must be able to explain and time every step (section 5).
 15. **Why Piper and not a hosted voice?** No network hop and no cost on every chunk;
     the price is the Hindi voice's trouble with Latin script (sections 3 and 6).
+16. **Why check `Origin` on the WebSocket when we already check the cookie?** The
+    browser sends our cookie on a socket opened by any site; only `Origin` says which
+    page opened it (2e, "Who may connect").
+17. **Why does sign-in run on a thread?** google-auth downloads Google's certificates
+    with a blocking call on every sign-in; on the event loop it would freeze every
+    session's audio until the download ends (`auth.py` `verify_google`).
+18. **How do you lock someone out?** Remove the email from `[auth] allowed_emails` and
+    restart: `read_cookie` checks the allowlist on every request. There is no sessions
+    table to delete a row from.

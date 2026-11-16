@@ -21,6 +21,8 @@ dependencies = [
     "faster-whisper>=1.2.1",    # speech recognition: Whisper weights on CTranslate2
     "piper-tts>=1.8.0",         # speech synthesis: Piper voices on ONNX Runtime (GPL-3.0)
     "tzdata>=2024.1",           # IANA time zones for zoneinfo; Windows has none built in
+    "google-auth>=2.62.2",      # verifies Google sign-in ID tokens; imported only in vaani/auth.py
+    "requests>=2.34.2",         # google-auth's HTTP transport for Google's certificates
 ]
 
 [project.optional-dependencies]

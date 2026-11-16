@@ -7,7 +7,7 @@ Stack planned: SQLite database. Phase 2 (studio) is out of scope until phase 1 s
 
 Non-negotiable constraints
 CPU by default. The committed config runs everything on CPU: ASR is cpu / int8 / small. GPU runs (e.g. cuda / float16 / large-v3) come only from local overrides in the gitignored backend/.env, never from committed config. VAD always stays on CPU.
-No vendor SDK is imported outside backend/vaani/providers/ (hosted LLMs), backend/vaani/asr/ (faster-whisper) or backend/vaani/tts/ (Piper). Today no vendor SDK is imported at all: Groq and Gemini are called over plain HTTP in providers/. Vendors are configuration values, never code dependencies.
+No vendor SDK is imported outside backend/vaani/providers/ (hosted LLMs), backend/vaani/asr/ (faster-whisper), backend/vaani/tts/ (Piper) or `backend/vaani/auth.py` (google-auth, ID-token verification). Today no vendor SDK is imported at all: Groq and Gemini are called over plain HTTP in providers/. Vendors are configuration values, never code dependencies.
 Latency is the primary quality bar. Any change to the conversation path carries a measured before/after. Target: P50 under 1,000 ms, mic-stop to first audible sample.
 Cancellation is first-class. Every provider call, tool call, and long-running operation takes a cancellation token and aborts the underlying HTTP stream cleanly.
 Nothing that makes a network call goes in the endpointing hot path.
