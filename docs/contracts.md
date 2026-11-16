@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.10.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.11.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -51,6 +51,7 @@ Only the PR that changes this file bumps the version.
 | v0.8 | English replies. No new message or field. `agent.text` / `agent.done` can be Latin script; `audio.start.sample_rate` can change between replies of one session | 2.2, 2.5 |
 | v0.9 | Push-to-talk. `session.start.mode` (`"vad"` default, or `"ptt"`); `session.started.mode`; `ptt.start`, `ptt.end`; `BAD_MESSAGE` also for a ptt message in a vad session | 2.3, 2.8 |
 | v0.10 | Reply language. `session.start.reply_language` (`"any"` default, `"en"` or `"hi"`); `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language` | 2.3, 2.5 |
+| v0.11 | Sign-in. No new socket message or field. The `/ws/session` handshake is refused (HTTP 403) without an allowed `Origin` and a valid `vaani_session` cookie; `/auth/google`, `/auth/me`, `/auth/logout` HTTP routes; `AUTH_*` error codes (HTTP only) | 2.9 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -371,6 +372,59 @@ sequenceDiagram
     T->>B: thinking, transcript.final, agent.text, audio ..., idle
 ```
 
+### 2.9 Sign-in — SHARED PROTOCOL v0.11 (Proposed — backend implemented, frontend pending)
+
+Only Google accounts on the server's allowlist can use the app. The browser
+signs in over HTTP **before** opening the socket; the socket itself gains no
+message or field.
+
+**Signing in.** Google's sign-in button gives the browser an ID token
+(a JWT signed by Google). The browser sends it to `POST /auth/google` with
+`credentials: "include"`. On success the server sets the cookie
+`vaani_session`: `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age` =
+`[auth] cookie_days` days, `Secure` when `[auth] secure_cookie` is true. The
+browser sends it by itself from then on, including on the WebSocket upgrade.
+
+**The handshake.** Before accepting `/ws/session` the server checks:
+
+1. the `Origin` header is exactly one of `[auth] allowed_origins`, and
+2. `vaani_session` is present, correctly signed, unexpired, and its email is
+   still in the allowlist.
+
+If either fails the server **refuses the upgrade with HTTP 403**: no socket
+opens and no message is sent. A browser cannot read that status; it sees the
+socket's `error` and then `close` with code 1006, without `open` ever firing.
+The client should then call `GET /auth/me`; on 401, send the user to sign in.
+
+With `[auth] enabled = false` neither check runs (v0.10 behaviour) and
+`/auth/me` answers `200 { "email": null, "name": null }`.
+
+**HTTP routes.** Errors use the socket's error shape,
+`{ "type": "error", "code": "...", "message": "..." }`. Browsers on another
+origin need `credentials: "include"`; the server's CORS allow-list is
+`[auth] allowed_origins`.
+
+| Route | Request | Success | Errors |
+|---|---|---|---|
+| `POST /auth/google` | JSON `{ "credential": "<Google ID token>" }`, from an allowed `Origin` | `200 { "email", "name" }` + `Set-Cookie: vaani_session=…` | `401 AUTH_INVALID_TOKEN` (bad signature, audience, issuer or expiry); `403 AUTH_EMAIL_UNVERIFIED`; `403 AUTH_NOT_ALLOWED` (email not on the allowlist); `403 AUTH_BAD_ORIGIN`; `503 AUTH_UNAVAILABLE` (Google's certificates could not be fetched; try again); `404` when auth is disabled |
+| `GET /auth/me` | the cookie | `200 { "email", "name" }` | `401 AUTH_REQUIRED` |
+| `POST /auth/logout` | from an allowed `Origin` | `204`, cookie cleared | `403 AUTH_BAD_ORIGIN` |
+
+```mermaid
+sequenceDiagram
+    participant G as Google
+    participant B as Browser
+    participant S as Server (auth.py, gateway.py)
+    B->>G: user picks an account (sign-in button)
+    G->>B: ID token
+    B->>S: POST /auth/google { credential }
+    S->>G: fetch Google's public certificates
+    S->>B: 200 { email, name } + Set-Cookie vaani_session
+    B->>S: WebSocket upgrade /ws/session (Origin + cookie)
+    S->>B: 101 accepted (or 403 refused: no socket)
+    B->>S: session.start ... (unchanged)
+```
+
 ---
 
 ## 3. Future Contracts (Planned)
@@ -401,3 +455,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-13 | Aryan   | Editorial, no version change (fix/frontend-demo): §2.8 status "Proposed, pending Samyak" changed to "Implemented: backend #46, frontend fix/frontend-demo"; the browser now sends `session.start.mode`, `ptt.start` and `ptt.end` |
 | 2026-10-14 | Aryan   | Editorial, no version change (fix/cut-turn-race): §2.4's stale "a turn that is flushed gets no transcript at all" replaced; a turn cut by a barge-in still gets its `transcript.final` (possibly after `audio.flush`), because its words are carried into the next reply |
 | 2026-11-11 | Aryan   | Shared protocol v0.10 (feat/reply-language): `session.start.reply_language` (`any` default, `en`, `hi`) and `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language`; §2.5 note: a forced language is asked of the model and picks the voice for the whole reply |
+| 2026-11-16 | Aryan   | Shared protocol v0.11 (feat/google-auth): §2.9 sign-in. `/ws/session` handshake refused (HTTP 403, no socket) without an allowed `Origin` and a valid `vaani_session` cookie; `POST /auth/google`, `GET /auth/me`, `POST /auth/logout`; `AUTH_REQUIRED`, `AUTH_INVALID_TOKEN`, `AUTH_EMAIL_UNVERIFIED`, `AUTH_NOT_ALLOWED`, `AUTH_BAD_ORIGIN`, `AUTH_UNAVAILABLE` (HTTP only). No new socket message or field |

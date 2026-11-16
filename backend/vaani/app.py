@@ -5,21 +5,27 @@ FastAPI instance rather than creating one at import time. That keeps tests
 isolated (each test can build its own app) and keeps construction explicit.
 
 Routes: GET /health here, a liveness check that reports status and version
-and DELIBERATELY exposes no configuration or secrets; and the /ws/session
-WebSocket, defined in gateway.py and added with include_router.
+and DELIBERATELY exposes no configuration or secrets; the /ws/session
+WebSocket, defined in gateway.py; and Google sign-in (/auth/google, /auth/me,
+/auth/logout), defined in auth.py. Both are added with include_router.
 
 The session and turn database (db.py) is opened here, at startup, and its
 writer thread is stopped on shutdown (the lifespan below).
 """
 
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from vaani import __version__
 from vaani.asr import Recognizer, build_recognizer
-from vaani.config import Settings, get_settings
+from vaani.auth import check_settings
+from vaani.auth import router as auth_router
+from vaani.auth import verify_google as google_verifier
+from vaani.config import AuthSettings, Settings, get_settings
 from vaani.db import DbWriter, open_db
 from vaani.gateway import router as gateway_router
 from vaani.language import LANGUAGES
@@ -54,6 +60,7 @@ def create_app(
     recognizer: Recognizer | None = None,
     llm: LLMProvider | None = None,
     synthesizer: Synthesizer | None = None,
+    verify_google: Callable[[str, AuthSettings], dict] | None = None,
 ) -> FastAPI:
     """Build and return a configured FastAPI application.
 
@@ -64,11 +71,15 @@ def create_app(
     pass an explicit Settings object to, for example, shrink the gateway's
     frame-log interval without touching the environment.
 
-    `recognizer`, `llm` and `synthesizer` are for tests only: stand-ins used
-    instead of the real ones named in settings.
+    `recognizer`, `llm`, `synthesizer` and `verify_google` are for tests
+    only: stand-ins used instead of the real ones (no test calls Google).
     """
     settings = settings or get_settings()
     _configure_logging()
+    # Sign-in first of all: enabled with a missing client ID, secret or
+    # allowlist raises AuthConfigError naming the variable (never its value).
+    if settings.auth.enabled:
+        check_settings(settings.auth)
     # The database first: a file that cannot be opened raises DbOpenError and
     # the server refuses to start, its message naming [db].enabled = false.
     db = None
@@ -88,6 +99,20 @@ def create_app(
     app.state.db = db
     # Stash settings so the WebSocket endpoint can read them off the app.
     app.state.settings = settings
+    # What POST /auth/google calls to check a Google ID token.
+    app.state.verify_google = verify_google or google_verifier
+    # The browser app (e.g. http://localhost:5173) is another origin than this
+    # server (:8000), so its fetch() calls need CORS: these headers tell the
+    # browser that page may call us and read the answer. allow_credentials
+    # lets the cookie go along; it requires an exact origin list, never "*".
+    # WebSockets are not covered by CORS: gateway.py checks their Origin.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.auth.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
     # Load the VAD model now, at startup, never per session or per frame.
     # load_model is cached, so every app built in this process (tests build
     # many) shares the one loaded copy; the load time is logged once.
@@ -150,6 +175,8 @@ def create_app(
 
     # The /ws/session WebSocket endpoint (session lifecycle + audio ingest).
     app.include_router(gateway_router)
+    # POST /auth/google, GET /auth/me, POST /auth/logout.
+    app.include_router(auth_router)
 
     return app
 

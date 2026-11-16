@@ -1,0 +1,53 @@
+feat/google-auth: WebSocket handshake cost, before and after the sign-in check
+Date: 2026-11-16. Machine: the development laptop (Windows 11), CPU only.
+
+What was timed
+  Client side: connect to ws://127.0.0.1:<port>/ws/session -> send session.start
+  -> receive session.started. 200 timed connections per run, after 10 warm-up
+  connections. One connection at a time.
+  Server side (after only): the gateway's own log line "handshake auth ok in
+  X ms", which times handshake_refusal() (Origin check + cookie HMAC + expiry
+  + allowlist), read from the server log of the "after" runs.
+
+Server for every run
+  uvicorn vaani.app:app on a private port, started with real environment
+  variables VAANI_ASR__ENABLED=false, VAANI_LLM__ENABLED=false,
+  VAANI_TTS__ENABLED=false, VAANI_DB__ENABLED=false (env beats backend/.env).
+  So no Whisper, no Piper, no provider chain: no paid call was possible. VAD on.
+  No audio frame was sent.
+  before: VAANI_AUTH__ENABLED=false (first two runs: the code before this
+          branch's gateway change; third run: this branch, auth off).
+  after:  VAANI_AUTH__ENABLED=true, a random 32-byte session secret generated
+          for the run (never printed), a cookie signed with it, Origin
+          http://localhost:5173.
+
+Why 127.0.0.1 and not localhost
+  On this Windows machine "localhost" is tried as IPv6 ::1 first; uvicorn
+  listens on IPv4 only, so each connect waited about 2 s to fall back
+  (a first attempt measured that wait, not our code, and was discarded).
+
+Results, connect -> session.started (ms)
+  run                         p50    p95    min    max
+  before (pre-change code)    1.80   2.18   1.54   2.74
+  before (pre-change code)    1.81   2.23   1.50   3.15
+  after  (auth on)            1.37   1.70   1.16   2.02
+  after  (auth on)            1.44   1.83   1.23   2.33
+  before (this branch, off)   1.34   1.65   1.11   2.05
+
+  The first two "before" runs were taken earlier in the session; the last
+  three back to back. The drop from 1.8 to 1.3-1.4 ms between those groups is
+  machine variance between sittings, not a code effect: the same code (auth
+  off) measured 1.80 and later 1.34. Compared back to back, auth on costs
+  0.03 to 0.10 ms at p50, within run-to-run noise.
+
+Results, the check itself, server side (ms), n=211 (warm-up + timed + probes)
+  p50 0.017   p95 0.028   max 0.141
+
+Not measured
+  - The mic-stop to first-audio span: this change does not touch it (the
+    check runs once per connection, before accept).
+  - POST /auth/google: needs a real Google ID token and Google's certificate
+    download (one HTTPS GET per sign-in; google-auth does not cache it).
+  - Concurrent connections.
+
+Method: a throwaway script in the session scratchpad (not committed).
