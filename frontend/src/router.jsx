@@ -12,7 +12,7 @@
 
 import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from './components/AppLayout.jsx';
-import ConversationPage from './pages/ConversationPage.jsx';
+import StudioPage from './talk/StudioPage.jsx';
 import EnrolConsentPage from './pages/EnrolConsentPage.jsx';
 import EnrolRecordPage from './pages/EnrolRecordPage.jsx';
 import EnrolValidationPage from './pages/EnrolValidationPage.jsx';
@@ -29,11 +29,13 @@ const router = createBrowserRouter([
     // Shown while that chunk downloads: the page's black, not a white flash.
     hydrateFallbackElement: <div style={{ position: 'fixed', inset: 0, background: '#000' }} />,
   },
+  // The conversation page ("Studio" design): it brings its own icon rail,
+  // so it sits outside the sidebar layout below.
+  { path: '/talk', element: <StudioPage /> },
   {
     // No path: this route only wraps its children in the sidebar layout.
     element: <AppLayout />,
     children: [
-      { path: 'talk', element: <ConversationPage /> },
       // Week 2 Day 5: loopback measurement rig (speaker → mic round-trip delay)
       { path: 'loopback', element: <LoopbackPage /> },
       // Week 3 Day 3: enrolment — consent + reference voice recording

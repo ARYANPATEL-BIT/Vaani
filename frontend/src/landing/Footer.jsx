@@ -1,30 +1,29 @@
 /**
- * Footer -- name, section links and credits, over a ribbed glow strip.
+ * Footer -- name and tagline, the section links, credits and the IST clock,
+ * then a huge वाणी cropped by the bottom edge.
  */
 
-import { FOOTER, NAV_LINKS } from './landingContent.js';
+import { BRAND, CLOCK, FOOTER, NAV_LINKS } from './landingContent.js';
+import useIstClock from './useIstClock.js';
 
 export default function Footer() {
+  const clock = useIstClock();
   return (
-    <footer className="lp-dark lp-footer">
-      <div className="lp-inner lp-footer-inner">
-        <div className="lp-footer-brand">
-          <span className="lp-serif lp-footer-name">{FOOTER.name}</span>
-          <span lang="hi" className="lp-footer-hindi">{FOOTER.nameHindi}</span>
-          <span className="lp-muted-sm">{FOOTER.tagline}</span>
-        </div>
-        <nav aria-label="Footer" className="lp-footer-col">
-          <span className="lp-footer-label">{FOOTER.exploreLabel}</span>
-          {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href}>{link.label}</a>
-          ))}
-        </nav>
+    <footer className="lp-footer lp-on-ink">
+      <div className="lp-wrap lp-footer-grid">
         <div className="lp-footer-col">
-          <span className="lp-footer-label">{FOOTER.builtByLabel}</span>
+          <span className="lp-cd lp-footer-name">{BRAND.latin}</span>
+          <span className="lp-muted lp-footer-tag">{FOOTER.tagline}</span>
+        </div>
+        <nav aria-label="Footer" className="lp-mono lp-footer-nav">
+          {NAV_LINKS.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
+        </nav>
+        <div className="lp-mono lp-muted lp-footer-col">
           <span>{FOOTER.builtBy}</span>
+          <span>{CLOCK.label} {clock}</span>
         </div>
       </div>
-      <div className="lp-footer-strip" aria-hidden="true" />
+      <p className="lp-dv lp-footer-mark" aria-hidden="true">{BRAND.hindi}</p>
     </footer>
   );
 }

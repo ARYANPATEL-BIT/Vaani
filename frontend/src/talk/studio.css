@@ -1,0 +1,183 @@
+/**
+ * studio.css -- the Studio /talk page: fonts, base, layout, rail, header,
+ * settings controls, buttons, sheets and the error banner.
+ * studioLive.css: status word and live line. studioParts.css: tape, script,
+ * dock, and the phone/wide switches (last, so they win).
+ *
+ * Every selector starts with .tk, so nothing here reaches the enrol pages.
+ * Colours are the --tk-* variables StudioPage.jsx sets from talkContent.js
+ * (PAPER or INK). Sizes are px, like the landing page.
+ */
+
+/* The landing page's self-hosted fonts, the same files: Vite emits each
+   once, and a browser downloads a font only when text actually uses it. */
+@font-face {
+  font-family: 'Vaani Archivo';
+  src: url('../landing/fonts/Archivo-latin-wdth.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vaani Mono';
+  src: url('../landing/fonts/JetBrainsMono-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vaani Mono';
+  src: url('../landing/fonts/JetBrainsMono-latin-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vaani Tiro';
+  src: url('../landing/fonts/TiroDevanagariHindi-devanagari-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+/* The page is fixed to the window and lays itself out; only the stage and
+   the script list scroll. (body has overflow: hidden in index.css.) */
+.tk {
+  position: fixed; inset: 0; display: flex; overflow: hidden;
+  background: var(--tk-bg); color: var(--tk-text);
+  font-family: 'Vaani Archivo', 'Vaani Tiro', system-ui, sans-serif; font-size: 15px; line-height: 1.45;
+}
+.tk .tk-cd { font-family: 'Vaani Archivo', 'Vaani Tiro', system-ui, sans-serif; font-stretch: 62%; font-weight: 800; text-transform: uppercase; }
+.tk .tk-mono { font-family: 'Vaani Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+.tk .tk-dv { font-family: 'Vaani Tiro', serif; }
+.tk .tk-small { display: block; font-size: 9px; color: var(--tk-muted); }
+.tk .tk-dot { color: var(--tk-red); } /* the red full stop: decoration */
+
+/* Keyboard focus: text colour on its own background, so at least 3:1. */
+.tk a:focus-visible, .tk button:focus-visible { outline: 3px solid var(--tk-text); outline-offset: 3px; }
+
+.tk .tk-grain {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 5; opacity: var(--tk-grain); mix-blend-mode: multiply;
+}
+
+.tk .tk-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tk .tk-body { flex: 1; min-height: 0; display: flex; }
+/* The stage is a size container, so the big type can scale with the
+   stage's own width (cqw), not the window's. */
+.tk .tk-stage {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;
+  padding: 24px 36px; overflow-y: auto; container-type: inline-size;
+}
+.tk .tk-aside {
+  width: 400px; flex: none; display: flex; flex-direction: column; min-height: 0;
+  border-left: 1.5px solid var(--tk-line); padding: 22px 26px 18px;
+}
+
+/* ── Rail ───────────────────────────────────────────────────────────── */
+.tk .tk-rail {
+  width: 72px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 0; border-right: 1.5px solid var(--tk-line);
+}
+.tk .tk-rail-mark { min-width: 44px; font-size: 22px; line-height: 44px; text-align: center; color: var(--tk-text); }
+.tk .tk-rail-group { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tk .tk-rail-foot { margin-top: auto; }
+.tk .tk-rail-btn {
+  width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  color: var(--tk-text); background: transparent;
+}
+.tk .tk-rail-btn.active { background: var(--tk-text); color: var(--tk-bg); }
+.tk .tk-rail-btn[aria-disabled='true'] { color: var(--tk-muted); cursor: default; }
+.tk .tk-avatar {
+  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--tk-text); color: var(--tk-bg); font-size: 11px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.tk .tk-header {
+  flex: none; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; align-items: center; gap: 24px;
+  padding: 12px 28px; border-bottom: 1.5px solid var(--tk-line);
+}
+.tk .tk-brand { display: flex; flex-direction: column; gap: 6px; }
+.tk .tk-file { font-size: 10px; color: var(--tk-muted); }
+.tk .tk-title { margin: 0; font-size: 30px; line-height: 0.9; }
+/* Fixed width: the lamp's text changes with every state, and an auto width
+   would make the station dial jump each time. */
+.tk .tk-lamp { margin: 0; width: 190px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 10px; white-space: nowrap; }
+.tk .tk-lamp-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--tk-muted); }
+.tk .tk-lamp-on .tk-lamp-dot { background: var(--tk-red); }
+.tk .tk-lamp-wait .tk-lamp-dot { background: var(--tk-text); }
+
+/* ── Settings: station dial, reply language, mode switch ───────────── */
+.tk .tk-settings { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.tk .tk-dial { position: relative; flex: 1; min-width: 220px; height: 76px; margin: 0 12px; }
+.tk .tk-dial-ticks {
+  position: absolute; left: 0; right: 0; top: 46px; height: 12px; opacity: 0.6;
+  background: repeating-linear-gradient(90deg, var(--tk-text) 0 1px, transparent 1px 12px);
+  border-bottom: 1.5px solid var(--tk-text);
+}
+.tk .tk-dial-needle { position: absolute; top: 36px; width: 3px; height: 34px; background: var(--tk-red); transform: translateX(-50%); }
+.tk .tk-dial-label { position: absolute; left: 0; top: 62px; font-size: 9px; color: var(--tk-muted); }
+.tk .tk-station {
+  position: absolute; top: 0; transform: translateX(-50%); height: 44px; padding: 0 10px;
+  font-size: 11px; color: var(--tk-muted); white-space: nowrap;
+}
+.tk .tk-station[aria-pressed='true'] { color: var(--tk-text); font-weight: 500; }
+.tk .tk-station:disabled { cursor: not-allowed; }
+.tk .tk-seg { display: flex; flex: none; border: 1.5px solid var(--tk-text); border-radius: 999px; overflow: hidden; }
+.tk .tk-seg-btn { height: 44px; min-width: 44px; padding: 0 12px; font-size: 10px; color: var(--tk-text); }
+.tk .tk-seg-btn.tk-dv { font-size: 15px; padding: 0 14px; letter-spacing: 0; }
+.tk .tk-seg-btn[aria-pressed='true'] { background: var(--tk-text); color: var(--tk-bg); }
+.tk .tk-seg-btn:disabled, .tk .tk-switch:disabled { cursor: not-allowed; }
+.tk .tk-seg-btn:focus-visible { outline-offset: -5px; } /* inside the pill's clip */
+.tk .tk-switch {
+  flex: none; height: 44px; padding: 0 6px 0 12px; display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--tk-text); border-radius: 999px; font-size: 10px; color: var(--tk-text); white-space: nowrap;
+}
+.tk .tk-switch-track { position: relative; width: 30px; height: 18px; border-radius: 9px; border: 1.5px solid var(--tk-text); }
+.tk .tk-switch-knob { position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--tk-text); }
+.tk .tk-switch[aria-checked='true'] .tk-switch-track { background: var(--tk-text); }
+.tk .tk-switch[aria-checked='true'] .tk-switch-knob { left: 14px; background: var(--tk-bg); }
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.tk .tk-pill {
+  min-height: 44px; padding: 0 16px; border: 1.5px solid var(--tk-text); border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; color: var(--tk-text);
+}
+.tk .tk-big {
+  height: 62px; padding: 0 36px; border-radius: 999px; display: inline-flex; align-items: center; gap: 10px;
+  background: var(--tk-red); color: var(--tk-onRed); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 0 var(--tk-line);
+}
+.tk .tk-big:disabled { opacity: 0.6; cursor: wait; }
+.tk .tk-big-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--tk-onRed); }
+.tk .tk-big-on .tk-big-dot { border-radius: 2px; } /* a stop square while talking */
+.tk .tk-ghost {
+  height: 52px; padding: 0 22px; border: 1.5px solid var(--tk-text); border-radius: 999px;
+  background: var(--tk-bg); color: var(--tk-text); font-size: 11px; box-shadow: 0 3px 0 var(--tk-line);
+}
+.tk .tk-big:active:not(:disabled), .tk .tk-ghost:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--tk-line); }
+
+/* ── Sheets (phone settings, full script) ───────────────────────────── */
+.tk .tk-sheet {
+  width: min(420px, calc(100% - 32px)); max-height: 85vh; margin: auto; padding: 20px;
+  background: var(--tk-bg); color: var(--tk-text); border: 1.5px solid var(--tk-line); border-radius: 20px;
+}
+.tk .tk-sheet[open] { display: flex; flex-direction: column; gap: 16px; }
+.tk .tk-sheet::backdrop { background: var(--tk-backdrop); }
+.tk .tk-sheet-title { margin: 0; font-size: 30px; }
+.tk .tk-sheet .tk-settings { flex-direction: column; align-items: stretch; }
+/* In a column, flex: 1 would size the dial's HEIGHT to zero: undo it. */
+.tk .tk-sheet .tk-dial { flex: none; margin: 8px 24px 0; }
+.tk .tk-sheet .tk-seg, .tk .tk-sheet .tk-switch, .tk .tk-sheet > .tk-pill { align-self: flex-start; }
+.tk .tk-sheet-close { align-self: flex-end; }
+.tk .tk-sheet-script { width: min(560px, calc(100% - 24px)); height: 85vh; }
+.tk .tk-sheet-script .tk-script { flex: 1; min-height: 0; }
+
+/* ── Error banner ───────────────────────────────────────────────────── */
+.tk .tk-error {
+  flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 12px 28px 0; padding: 12px 16px; border: 1.5px solid var(--tk-redText); border-radius: 14px;
+  background: var(--tk-wash);
+}
+.tk .tk-error-title { display: block; font-size: 11px; color: var(--tk-redText); }
+.tk .tk-error-text p { margin: 4px 0 0; font-size: 14px; }
+.tk .tk-error-actions { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -1,61 +1,67 @@
 /**
- * LatencySection -- the quality bar: the project's latency TARGET, the
- * measured P50 (a marked placeholder until LATENCY.measuredP50Ms is set in
- * landingContent.js), and the four design principles.
+ * LatencySection -- "05 The quality bar": the target "<1,000 ms" whose
+ * digits roll into place on scroll, a plain statement that it is not yet
+ * measured, and the four principles.
+ *
+ * Each digit is a column of ten numbers in a box one number tall. The
+ * scroll-driven animation (sections.css) slides the column up, so the
+ * digits flick past and the real one lands last. The timeline is the whole
+ * number line's trip through the screen (--lp-digits), not each column's:
+ * a column is ten digits tall, so its own trip would end far too late.
+ * Without scroll-driven CSS the column simply sits at its end, showing the
+ * real digit.
  */
 
-import { Cpu, CircleStop, SlidersHorizontal, ShieldCheck } from 'lucide-react';
 import { LATENCY } from './landingContent.js';
 
-const ICONS = { cpu: Cpu, stop: CircleStop, sliders: SlidersHorizontal, shield: ShieldCheck };
-
-function Measured() {
-  if (LATENCY.measuredP50Ms === null) {
-    // Deliberately looks unfinished (dashed outline): no number is shown
-    // until a real run has measured one.
-    return <span className="lp-placeholder">Measured P50: not measured yet (placeholder)</span>;
-  }
-  return (
-    <span className="lp-muted-sm">
-      Measured P50: {LATENCY.measuredP50Ms} ms{LATENCY.measuredSource && ` (${LATENCY.measuredSource})`}
-    </span>
-  );
-}
+const { from, to, step } = LATENCY.roll;
+const DIGITS = [...LATENCY.target].map((ch, i) => {
+  if (!/\d/.test(ch)) return { ch, still: true };
+  // Nine decoy digits (a fixed pattern, so the page renders the same each
+  // time), then the real one at the bottom of the column.
+  const seq = Array.from({ length: 9 }, (_, j) => String((j * 7 + i * 3 + 4) % 10));
+  seq.push(ch);
+  return { ch, seq, range: `cover ${from + i * step}% cover ${to + i * step}%` };
+});
 
 export default function LatencySection() {
+  const ms = LATENCY.measuredP50Ms;
   return (
-    <section id="latency" className="lp-light lp-latency" aria-labelledby="lp-lat-title">
-      <div className="lp-inner lp-lat-inner">
-        <div className="lp-lat-row">
-          <div className="lp-reveal lp-lat-copy">
-            <span className="lp-eyebrow">{LATENCY.eyebrow}</span>
-            <h2 id="lp-lat-title" className="lp-h2 lp-h2-sm">
-              {LATENCY.title[0]}<span className="lp-serif">{LATENCY.title[1]}</span>
-            </h2>
-            <p className="lp-lead lp-grey">{LATENCY.text}</p>
-            <ul className="lp-chips">
-              {LATENCY.chips.map((chip) => <li key={chip} className="lp-serif">{chip}</li>)}
-            </ul>
-          </div>
-          <div className="lp-reveal lp-lat-card lp-dark">
-            <span className="lp-muted-sm">{LATENCY.targetLabel}</span>
-            <p className="lp-lat-number">
-              {LATENCY.target}<span className="lp-serif lp-lat-unit">{LATENCY.unit}</span>
-            </p>
-            <Measured />
+    <section id="latency" className="lp-latency-sec lp-on-ink" aria-labelledby="lp-latency-title">
+      <div className="lp-wrap lp-latency">
+        <h2 id="lp-latency-title" className="lp-mono lp-eyebrow">{LATENCY.eyebrow}</h2>
+        <div className="lp-latency-row">
+          <p className="lp-cd lp-latency-num">
+            <span className="lp-sr">{LATENCY.targetSpoken}</span>
+            <span className="lp-latency-lt" aria-hidden="true">&lt;</span>
+            {DIGITS.map((d, i) => (d.still
+              ? <span key={i} aria-hidden="true" className="lp-dg-still">{d.ch}</span>
+              : (
+                <span key={i} aria-hidden="true" className="lp-dg">
+                  <span className="lp-dgs" style={{ animationRange: d.range }}>
+                    {d.seq.map((q, j) => <span key={j}>{q}</span>)}
+                  </span>
+                </span>
+              )))}
+          </p>
+          <div className="lp-latency-unit">
+            <span className="lp-mono lp-latency-ms">{LATENCY.unit}</span>
+            <span className="lp-mono lp-muted lp-latency-cap">{LATENCY.caption}</span>
           </div>
         </div>
-        <div className="lp-principles">
-          {LATENCY.principles.map((item, i) => {
-            const Icon = ICONS[item.icon];
-            return (
-              <div key={item.name} className={i === 0 ? 'lp-reveal lp-principle lp-principle-first' : 'lp-reveal lp-principle'}>
-                <Icon size={22} strokeWidth={1.6} aria-hidden="true" />
-                <h3>{item.name}</h3>
-                <p>{item.text}</p>
-              </div>
-            );
-          })}
+        <p className="lp-mono lp-latency-note">
+          {ms === null
+            ? LATENCY.notMeasured
+            : `${LATENCY.measured}: ${ms} ${LATENCY.unit} (${LATENCY.measuredSource})`}
+        </p>
+        <div className="lp-rules">
+          {LATENCY.rules.map((r) => (
+            <div key={r.n} className="lp-rule">
+              <span className="lp-mono lp-rule-n">{r.n}</span>
+              <h3 className="lp-rule-name">{r.name}</h3>
+              <p className="lp-muted lp-rule-text">{r.text}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

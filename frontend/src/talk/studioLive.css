@@ -1,0 +1,62 @@
+/**
+ * studioLive.css -- the giant status word and the live line, with the
+ * outlined (not final) words and the cut slice. See studio.css for the
+ * conventions.
+ */
+
+/* ── Status word ────────────────────────────────────────────────────── */
+.tk .tk-status { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+/* 19cqw: 19% of the stage's width (the stage is a size container), so
+   "LISTENING." fits the stage at any width, capped at 150 px. */
+.tk .tk-word { margin: 0; font-size: clamp(52px, 19cqw, 150px); line-height: 0.8; }
+.tk .tk-word-red { color: var(--tk-redText); }
+.tk .tk-hint { margin: 0 0 6px; max-width: 300px; font-size: 10px; line-height: 1.7; color: var(--tk-muted); text-align: right; }
+
+/* ── Live line ──────────────────────────────────────────────────────── */
+.tk .tk-live {
+  min-height: 118px; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  border-top: 1px solid var(--tk-rule); padding-top: 16px;
+}
+.tk .tk-line { margin: 0; font-size: clamp(26px, 6cqw, 58px); line-height: 0.92; overflow-wrap: anywhere; }
+.tk .tk-line-sm { font-size: clamp(24px, 5cqw, 50px); }
+.tk .tk-line-you { color: var(--tk-redText); }
+
+/* Outlined = not final. text-stroke draws only each letter's outline;
+   a transparent fill leaves the inside empty. */
+.tk .tk-ol { color: transparent; -webkit-text-stroke: 1.6px var(--tk-stroke); }
+.tk .tk-line-you .tk-ol { -webkit-text-stroke-color: var(--tk-redText); }
+
+.tk .tk-cursor {
+  display: inline-block; width: 0.4em; height: 0.78em; margin-left: 0.1em; vertical-align: -0.04em;
+  background: var(--tk-text);
+}
+
+/* The cut slice: the same line twice, one copy clipped to its top half and
+   one to its bottom half (clip-path hides everything outside the inset),
+   nudged apart, with a red rule where they were cut. */
+.tk .tk-slice { position: relative; }
+/* One line only, so the cut goes through the letters. If the line is too
+   long it is the START that is hidden, not the end, because the end is
+   where Vaani was cut off. The trick: the paragraph is right-to-left, so
+   an overflowing line spills out on the left; the span inside stays
+   left-to-right so the words read normally; text-align: left keeps a short
+   line on the left as usual. */
+.tk .tk-slice .tk-line { white-space: nowrap; overflow: hidden; direction: rtl; text-align: left; }
+.tk .tk-slice .tk-line > span { direction: ltr; unicode-bidi: isolate; }
+.tk .tk-slice-top { clip-path: inset(0 0 50% 0); transform: translate(-1.5%, -4px); }
+.tk .tk-slice-bottom { position: absolute; inset: 0; clip-path: inset(50% 0 0 0); transform: translate(1.5%, 4px); }
+.tk .tk-slice-rule { position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: var(--tk-red); }
+
+/* ── Motion: none of it under reduced motion ────────────────────────── */
+@keyframes tk-blink { 50% { opacity: 0; } }
+@keyframes tk-part-up { from { transform: none; } }
+@keyframes tk-part-down { from { transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tk .tk-cursor { animation: tk-blink 1s steps(1) infinite; }
+  .tk .tk-lamp-on .tk-lamp-dot { animation: tk-blink 1s steps(1) infinite; }
+  .tk .tk-live-dot { animation: tk-blink 1s steps(1) infinite; }
+  /* The two halves start together and part once, when the cut appears. */
+  .tk .tk-slice-top { animation: tk-part-up 0.35s ease-out; }
+  .tk .tk-slice-bottom { animation: tk-part-down 0.35s ease-out; }
+}

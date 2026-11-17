@@ -55,8 +55,10 @@ src/
 ├── index.css             # Global styles and CSS variables
 ├── components/
 │   └── AppLayout.jsx     # Persistent page shell (header + Outlet)
+├── landing/              # The landing page
+├── talk/
+│   └── StudioPage.jsx    # The conversation page
 └── pages/
-    ├── ConversationPage.jsx   # Main voice conversation UI
     └── NotFoundPage.jsx       # 404 catch-all
 ```
 
@@ -66,13 +68,14 @@ Routes are defined in `src/router.jsx` using react-router-dom v7.
 
 | Path           | Page             | What it is                                  |
 |----------------|------------------|---------------------------------------------|
-| `/`            | ConversationPage | The voice conversation                      |
+| `/`            | LandingPage      | The landing page                            |
+| `/talk`        | StudioPage       | The voice conversation, outside the sidebar layout |
 | `/loopback`    | LoopbackPage     | Loopback rig: speaker-to-mic delay          |
 | `/enrol`       | EnrolConsentPage | Enrolment: consent before recording         |
 | `/enrol/record`| EnrolRecordPage  | Enrolment: record the reference voice       |
 | `*`            | NotFoundPage     | 404 catch-all                               |
 
-Every route is a child of `AppLayout`.
+`/loopback`, the `/enrol` pages and the `*` catch-all (NotFoundPage) are children of `AppLayout` (the sidebar layout); `/` (LandingPage) and `/talk` (StudioPage) are top-level routes with their own layouts.
 
 Future routes (profiles, settings) are commented in the router and will
 be added as lazy-loaded imports.

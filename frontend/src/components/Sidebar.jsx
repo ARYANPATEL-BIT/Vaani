@@ -21,7 +21,7 @@ const ICON_SIZE = 20;
 // still exist, so /loopback and /enrol/* still open when typed as a URL.
 // Remove the flag to bring an item back.
 const NAV_ITEMS = [
-  { to: '/', label: 'Conversation', icon: Mic, end: true },
+  { to: '/talk', label: 'Conversation', icon: Mic },
   { to: '/loopback', label: 'Studio', icon: Video, hidden: true },
   // Week 3 Day 3: enrolment screens
   { to: '/enrol', label: 'Enrol', icon: UserCheck, hidden: true },

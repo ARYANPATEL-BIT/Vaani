@@ -66,6 +66,8 @@ export function useAudioCapture() {
   const fpsIntervalRef = useRef(null);
   // Flushed turns, so their late frames are dropped (one per session).
   const turnFilterRef = useRef(null);
+  // The latest mic frame handed to the socket, for readMicLevel() only.
+  const lastFrameRef = useRef(null);
 
   // Push-to-talk. Refs, not state: the worklet and socket handlers read them
   // on every frame, and must see the latest value without a re-render.
@@ -415,6 +417,10 @@ export function useAudioCapture() {
           return;
         }
 
+        // Read-only tap for the Studio tape (readMicLevel): keep a reference
+        // to the frame about to be sent. One assignment, no copy, no maths.
+        lastFrameRef.current = frameBuffer;
+
         if (
           socketRef.current &&
           socketRef.current.readyState === WebSocket.OPEN &&
@@ -496,6 +502,23 @@ export function useAudioCapture() {
     };
   }, [stopCapture]);
 
+  /**
+   * Loudness (RMS, 0..1) of the newest mic frame since the last call, or 0
+   * if none arrived. For the Studio tape only: called from its animation
+   * loop, never from the audio path. It takes the frame (sets the ref to
+   * null) so a stopped mic reads 0 instead of its last frame forever.
+   */
+  const readMicLevel = useCallback(() => {
+    const frame = lastFrameRef.current;
+    lastFrameRef.current = null;
+    if (!frame) return 0;
+    const samples = new Int16Array(frame); // a view on the same bytes, not a copy
+    if (samples.length === 0) return 0;
+    let sum = 0;
+    for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+    return Math.sqrt(sum / samples.length) / 32768;
+  }, []);
+
   return {
     isCapturing,
     micStatus,
@@ -512,5 +535,6 @@ export function useAudioCapture() {
     pressState,
     pttStart,
     pttStop,
+    readMicLevel,
   };
 }

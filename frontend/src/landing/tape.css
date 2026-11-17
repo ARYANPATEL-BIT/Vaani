@@ -1,0 +1,52 @@
+/**
+ * tape.css -- the live tape in the hero (LiveTape.jsx). The bars, ticks and
+ * cut marker are drawn on the canvas by drawTape.js; this file styles the
+ * frame around it, the captions and the Cut in button.
+ */
+
+.lp .lp-tape { margin-top: 44px; border-radius: 22px; background: var(--lp-tape); color: var(--lp-paper); overflow: hidden; --lp-focus: var(--lp-red); }
+.lp .lp-tape-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 10px 20px; border-bottom: 1px solid var(--lp-tape-line);
+  font-size: 11px; color: var(--lp-muted-ink);
+}
+.lp .lp-tape-title { display: flex; align-items: center; gap: 10px; color: var(--lp-paper); min-height: 44px; }
+.lp .lp-tape-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.lp .lp-tape-pause {
+  min-height: 44px; padding: 0 14px; border: 1px solid var(--lp-dim); border-radius: 999px;
+  background: none; color: var(--lp-paper); font-size: 11px; letter-spacing: 0.06em; cursor: pointer;
+}
+.lp .lp-tape-pause:hover { border-color: var(--lp-paper); }
+
+.lp .lp-tape-body { display: grid; grid-template-columns: 84px minmax(0, 1fr); }
+.lp .lp-tape-tracks { display: flex; flex-direction: column; font-size: 10px; color: var(--lp-muted-ink); border-right: 1px solid var(--lp-tape-line); }
+.lp .lp-tape-tracks span { flex: 1; display: flex; align-items: center; padding-left: 16px; }
+.lp .lp-tape-tracks span:first-child { border-bottom: 1px dashed var(--lp-tape-line); }
+.lp .lp-tape-you { color: var(--lp-red); }
+/* The scissors cursor (custom CSS cursor): an image plus its hotspot, the
+   pixel that is the click point. "crosshair" is used if the image fails. */
+.lp .lp-tape-canvas { display: block; width: 100%; height: var(--lp-tape-h); cursor: var(--lp-cursor); }
+
+.lp .lp-tape-foot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 20px; border-top: 1px solid var(--lp-tape-line);
+}
+.lp .lp-captions { flex: 1 1 420px; min-width: 0; min-height: 72px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.lp .lp-cap { margin: 0; font-size: 18px; line-height: 1.4; }
+/* The previous speaker's line is shown in the muted colour, not with
+   opacity, so it keeps at least 4.5:1 contrast on the tape. */
+.lp .lp-cap-prev { color: var(--lp-muted-ink); }
+.lp .lp-cap-who { font-size: 11px; margin-right: 10px; }
+.lp .lp-cap-vaani { color: var(--lp-muted-ink); }
+.lp .lp-cap-user { color: var(--lp-red); }
+
+.lp .lp-cut-wrap { display: flex; align-items: center; gap: 14px; }
+.lp .lp-cut-hint { max-width: 210px; font-size: 11px; line-height: 1.5; color: var(--lp-muted-ink); }
+.lp .lp-cut {
+  width: 72px; height: 72px; flex: none; border-radius: 50%;
+  border: 2px solid var(--lp-red); background: var(--lp-red); color: var(--lp-ink);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.lp .lp-cut span { font-size: 10px; font-weight: 500; }
+.lp .lp-cut[aria-disabled='true'] { background: transparent; border-color: var(--lp-dim); color: var(--lp-faint); cursor: default; }
