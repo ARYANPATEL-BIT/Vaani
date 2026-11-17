@@ -1,0 +1,201 @@
+/*
+ * login.css -- the /login page (LoginPage.jsx), design in
+ * docs/design/login-studio-door/. Every selector starts with .lg, so
+ * nothing here reaches another page. Colours are the --lg-* variables
+ * LoginPage.jsx sets from loginContent.js (COLORS).
+ *
+ * Two layouts: side by side above 900 px, stacked at 900 px and under (the
+ * 390 px "LoginPhone" design). All motion sits in the last block, inside
+ * prefers-reduced-motion: no-preference, so a visitor who asked for less
+ * motion gets none of it.
+ */
+
+/* The same self-hosted files as the landing page and /talk: a browser
+   downloads each once, and only when text uses it. */
+@font-face { font-family: 'Vaani Archivo'; src: url('../landing/fonts/Archivo-latin-wdth.woff2') format('woff2'); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: 'Vaani Mono'; src: url('../landing/fonts/JetBrainsMono-latin-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Vaani Mono'; src: url('../landing/fonts/JetBrainsMono-latin-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Vaani Tiro'; src: url('../landing/fonts/TiroDevanagariHindi-devanagari-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+/* Fixed to the window and scrolls itself (body has overflow: hidden). */
+.lg {
+  position: fixed; inset: 0; overflow-y: auto; display: flex; flex-direction: column;
+  background: var(--lg-bg); color: var(--lg-text);
+  font-family: 'Vaani Archivo', system-ui, sans-serif; font-size: 15px; line-height: 1.45;
+}
+.lg .lg-cd { font-family: 'Vaani Archivo', system-ui, sans-serif; font-stretch: 62%; font-weight: 800; text-transform: uppercase; }
+.lg .lg-mono { font-family: 'Vaani Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+.lg .lg-dv { font-family: 'Vaani Tiro', serif; }
+.lg .lg-red { color: var(--lg-red); }
+.lg a { color: inherit; text-decoration: none; }
+.lg a:focus-visible, .lg button:focus-visible { outline: 3px solid var(--lg-text); outline-offset: 3px; }
+.lg .lg-grain {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 5; opacity: 0.08; mix-blend-mode: multiply;
+}
+
+/* ── Header and footer ──────────────────────────────────────────────── */
+.lg .lg-header {
+  flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 14px 28px; border-bottom: 1.5px solid var(--lg-text);
+}
+.lg .lg-brand { display: flex; align-items: center; gap: 14px; min-height: 44px; justify-self: start; }
+.lg .lg-brand-dv { font-size: 24px; }
+.lg .lg-brand-name { font-size: 30px; line-height: 0.9; }
+.lg .lg-file { font-size: 10px; color: var(--lg-muted); }
+.lg .lg-header-end { justify-self: end; display: flex; gap: 22px; align-items: center; font-size: 10px; color: var(--lg-muted); }
+.lg .lg-back { min-height: 44px; display: flex; align-items: center; color: var(--lg-text); }
+.lg .lg-footer {
+  flex: none; display: flex; justify-content: space-between; gap: 16px;
+  padding: 12px 28px; border-top: 1.5px solid var(--lg-text); font-size: 9px; color: var(--lg-faint);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.lg .lg-main {
+  flex: 1; min-height: 640px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  gap: 28px; padding: 28px;
+}
+
+/* ── The studio door (StudioDoor.jsx) ───────────────────────────────── */
+.lg .lg-door {
+  background: var(--lg-door); color: var(--lg-door-text); border-radius: 22px; overflow: hidden;
+  display: flex; flex-direction: column; min-width: 0;
+}
+.lg .lg-door-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 16px 20px; font-size: 10px; color: var(--lg-door-muted); border-bottom: 1px solid var(--lg-door-rule);
+}
+.lg .lg-door-status { display: flex; align-items: center; gap: 9px; color: var(--lg-door-text); }
+.lg .lg-door-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--lg-red); box-sizing: border-box; flex: none; }
+.lg .lg-door-refused .lg-door-dot, .lg .lg-door-error .lg-door-dot { border-color: var(--lg-door-faint); }
+.lg .lg-door-onair .lg-door-dot { background: var(--lg-red); }
+
+/* A size container: the lamp and its word scale with the door's width. */
+.lg .lg-door-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 28px; container-type: inline-size; }
+.lg .lg-lamp {
+  position: relative; width: min(560px, 86cqw); aspect-ratio: 560 / 210; box-sizing: border-box;
+  border-radius: 18px; background: var(--lg-lamp); border: 3px solid var(--lg-lamp-edge);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+/* 150 px on a 560 px lamp, at any lamp size. */
+.lg .lg-lamp-word { font-size: min(150px, 23cqw); line-height: 1; white-space: nowrap; color: transparent; -webkit-text-stroke: 1.6px var(--lg-lamp-word); }
+.lg .lg-lamp-checking { border-color: var(--lg-red); }
+.lg .lg-lamp-checking .lg-lamp-word { -webkit-text-stroke-color: var(--lg-red); }
+.lg .lg-lamp-refused .lg-lamp-word { -webkit-text-stroke-color: var(--lg-door-faint); }
+.lg .lg-lamp-onair {
+  background: var(--lg-red); border-color: var(--lg-red);
+  box-shadow: 0 0 0 6px #2A1410, 0 0 80px 10px rgba(255, 59, 28, 0.45);
+}
+.lg .lg-lamp-onair .lg-lamp-word { color: var(--lg-text); -webkit-text-stroke: 0; }
+.lg .lg-screw { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--lg-door-rule); }
+.lg .lg-lamp-onair .lg-screw { background: var(--lg-text); }
+.lg .lg-screw-tl { left: 14px; top: 14px; }
+.lg .lg-screw-tr { right: 14px; top: 14px; }
+.lg .lg-screw-bl { left: 14px; bottom: 14px; }
+.lg .lg-screw-br { right: 14px; bottom: 14px; }
+
+/* The refused slice: two copies of the word in the same box. clip-path
+   keeps only what is inside a polygon: the top copy keeps the part above a
+   line from 62% down on the left to 38% on the right, the bottom copy the
+   part below it, and the bottom copy is nudged away. The red rule lies
+   along that line (atan(24% of 210 / 560) is about 5 degrees on the lamp,
+   steeper in the design's 8.5 because the rule is wider than the lamp). */
+.lg .lg-lamp-cut { position: relative; display: block; width: 100%; height: 100%; }
+.lg .lg-cut-top, .lg .lg-cut-bottom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.lg .lg-cut-top { clip-path: polygon(0 0, 100% 0, 100% 38%, 0 62%); }
+.lg .lg-cut-bottom { clip-path: polygon(0 62%, 100% 38%, 100% 100%, 0 100%); transform: translate(2.5%, 5%); }
+.lg .lg-cut-rule { position: absolute; left: -4%; right: -4%; top: 50%; height: 3px; background: var(--lg-red); transform: rotate(-8.5deg); }
+
+.lg .lg-mic { padding: 0 20px 18px; }
+.lg .lg-mic-label {
+  display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--lg-door-faint);
+  padding-bottom: 8px; border-bottom: 1px dashed var(--lg-door-rule);
+}
+.lg .lg-door-onair .lg-mic-label { color: var(--lg-red); }
+.lg .lg-bars { display: flex; align-items: center; justify-content: space-between; height: 44px; overflow: hidden; }
+.lg .lg-bar { flex: none; width: 2.5px; height: 2px; border-radius: 2px; background: var(--lg-lamp-edge); }
+.lg .lg-door-onair .lg-bar { background: var(--lg-red); }
+
+/* ── The panel (LoginPanel.jsx) ─────────────────────────────────────── */
+.lg .lg-panel { display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: 8px 12px 0 20px; min-width: 0; }
+.lg .lg-panel-top { display: flex; flex-direction: column; gap: 26px; }
+.lg .lg-step { font-size: 10px; color: var(--lg-muted); }
+.lg .lg-title { margin: 0; font-size: clamp(64px, 7.8vw, 112px); line-height: 0.86; letter-spacing: -0.005em; }
+.lg .lg-outline { color: transparent; -webkit-text-stroke: 1.6px var(--lg-text); }
+.lg .lg-title-lit { color: var(--lg-red); }
+.lg .lg-action { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.lg .lg-intro { margin: 0; font-size: 17px; line-height: 1.5; max-width: 440px; color: var(--lg-body); }
+.lg .lg-intro b { color: var(--lg-text); }
+
+.lg .lg-alert {
+  border: 1.5px solid var(--lg-text); border-left: 8px solid var(--lg-text); border-radius: 14px;
+  padding: 18px 20px; max-width: 460px; background: var(--lg-card);
+}
+.lg .lg-alert-refused { border-left-color: var(--lg-red); }
+.lg .lg-alert-tag { font-size: 10px; color: var(--lg-muted); }
+.lg .lg-alert-refused .lg-alert-tag { color: var(--lg-red-text); }
+.lg .lg-alert-title { margin: 6px 0; font-size: 40px; line-height: 0.95; }
+.lg .lg-alert-text { margin: 0; font-size: 15px; line-height: 1.5; color: var(--lg-body); }
+
+.lg .lg-signin { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+/* Google draws its button (40 px tall, pill) inside this box. */
+.lg .lg-gsi { width: 300px; min-height: 44px; display: flex; align-items: center; }
+/* The locked "Checking your pass" pill, and the DEV preview's look-alike. */
+.lg .lg-locked, .lg .lg-standin {
+  box-sizing: border-box; height: 52px; min-width: 300px; padding: 0 22px;
+  border: 1.5px solid var(--lg-text); border-radius: 999px; background: #FFFFFF; color: var(--lg-text);
+  font: 600 16px 'Vaani Archivo', system-ui, sans-serif;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 4px 0 var(--lg-text);
+}
+.lg .lg-locked { opacity: 0.55; cursor: wait; }
+.lg .lg-standin-g {
+  width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--lg-muted);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.lg .lg-hint { font-size: 9px; color: var(--lg-faint); }
+.lg .lg-note { margin: 0; max-width: 440px; font-size: 14px; color: var(--lg-red-text); }
+
+.lg .lg-go {
+  height: 52px; padding: 0 28px; border-radius: 999px; background: var(--lg-red); color: var(--lg-text);
+  font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 10px;
+  box-shadow: 0 4px 0 var(--lg-text);
+}
+.lg .lg-go-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--lg-text); }
+
+.lg .lg-facts {
+  list-style: none; margin: 0; padding: 16px 0 0; border-top: 1.5px solid var(--lg-text);
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; font-size: 10px; color: var(--lg-muted); line-height: 1.6;
+}
+.lg .lg-fact-n { color: var(--lg-text); }
+
+/* ── Wide / phone switches ──────────────────────────────────────────── */
+.lg .lg-phone-only { display: none; }
+
+@media (max-width: 900px) {
+  .lg .lg-wide-only { display: none; }
+  .lg .lg-phone-only { display: inline; }
+  .lg .lg-header { display: flex; justify-content: space-between; padding: 12px 18px; }
+  .lg .lg-brand { gap: 10px; }
+  .lg .lg-brand-dv { font-size: 20px; }
+  .lg .lg-brand-name { font-size: 24px; }
+  .lg .lg-main { display: block; min-height: 0; padding: 16px 18px 0; }
+  .lg .lg-door { height: 274px; }
+  .lg .lg-panel { padding: 22px 0; gap: 18px; }
+  .lg .lg-panel-top { gap: 18px; }
+  .lg .lg-title { font-size: 72px; }
+  .lg .lg-intro { font-size: 15px; }
+  .lg .lg-alert-title { font-size: 32px; }
+  .lg .lg-signin, .lg .lg-signin > div, .lg .lg-gsi, .lg .lg-locked, .lg .lg-standin { width: 100%; min-width: 0; }
+  .lg .lg-facts { display: none; }
+}
+
+/* ── Motion: none of it under reduced motion ────────────────────────── */
+@keyframes lg-blink { 50% { opacity: 0.25; } }
+@keyframes lg-hum { from { transform: scaleY(0.4); } to { transform: scaleY(1); } }
+@keyframes lg-glow { 50% { box-shadow: 0 0 0 6px #2A1410, 0 0 110px 22px rgba(255, 59, 28, 0.6); } }
+@media (prefers-reduced-motion: no-preference) {
+  .lg .lg-blink, .lg .lg-door-checking .lg-door-dot, .lg .lg-lamp-checking .lg-lamp-word { animation: lg-blink 1s steps(1) infinite; }
+  .lg .lg-door-onair .lg-bar { animation: lg-hum 0.7s ease-in-out infinite alternate; }
+  .lg .lg-lamp-onair { animation: lg-glow 2.4s ease-in-out infinite; }
+}

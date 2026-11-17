@@ -13,6 +13,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from './components/AppLayout.jsx';
 import StudioPage from './talk/StudioPage.jsx';
+import LoginPage from './login/LoginPage.jsx';
+import RequireSignIn from './login/RequireSignIn.jsx';
 import EnrolConsentPage from './pages/EnrolConsentPage.jsx';
 import EnrolRecordPage from './pages/EnrolRecordPage.jsx';
 import EnrolValidationPage from './pages/EnrolValidationPage.jsx';
@@ -30,8 +32,11 @@ const router = createBrowserRouter([
     hydrateFallbackElement: <div style={{ position: 'fixed', inset: 0, background: '#000' }} />,
   },
   // The conversation page ("Studio" design): it brings its own icon rail,
-  // so it sits outside the sidebar layout below.
-  { path: '/talk', element: <StudioPage /> },
+  // so it sits outside the sidebar layout below. RequireSignIn draws it at
+  // once and sends a signed-out visitor to /login (src/login/).
+  { path: '/talk', element: <RequireSignIn><StudioPage /></RequireSignIn> },
+  // Sign-in ("studio door" design): its own full-page layout, like /talk.
+  { path: '/login', element: <LoginPage /> },
   {
     // No path: this route only wraps its children in the sidebar layout.
     element: <AppLayout />,

@@ -4,18 +4,20 @@
  *
  * Every item of the old sidebar that is visible today is here: Talk
  * (was "Conversation"), History (disabled), the theme toggle (here "Ink
- * mode") and the operator avatar. Logout is not: in the sidebar it is a
- * label that does nothing yet.
+ * mode") and the operator avatar. Sign out (feat/login-page) posts
+ * /auth/logout and opens /login (src/login/useSignOut.js).
  */
 
 import { Link, NavLink } from 'react-router-dom';
-import { History, Mic, Moon, Sun } from 'lucide-react';
+import { History, LogOut, Mic, Moon, Sun } from 'lucide-react';
+import useSignOut from '../login/useSignOut.js';
 import { TEXT } from './talkContent.js';
 
 const ICON = 20; // px, lucide takes a number
 
 export default function RailNav({ ink, onToggleInk }) {
   const inkLabel = ink ? TEXT.rail.paper : TEXT.rail.ink;
+  const signOut = useSignOut();
   return (
     <nav className="tk-rail" aria-label={TEXT.rail.nav}>
       <Link to="/" className="tk-dv tk-rail-mark" aria-label={TEXT.rail.home}>वाणी</Link>
@@ -37,6 +39,9 @@ export default function RailNav({ ink, onToggleInk }) {
           {ink
             ? <Sun size={ICON} strokeWidth={1.8} aria-hidden="true" />
             : <Moon size={ICON} strokeWidth={1.8} aria-hidden="true" />}
+        </button>
+        <button type="button" className="tk-rail-btn" aria-label={TEXT.rail.signOut} title={TEXT.rail.signOut} onClick={signOut}>
+          <LogOut size={ICON} strokeWidth={1.8} aria-hidden="true" />
         </button>
         <span className="tk-mono tk-avatar" role="img" aria-label={TEXT.rail.operator} title={TEXT.rail.operator}>A</span>
       </div>
