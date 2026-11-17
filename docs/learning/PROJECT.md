@@ -147,6 +147,7 @@ end_to_first_audio_ms). Column meanings are in the comments of `schema.sql`.
 - Every runtime setting, with the reason for its value: `backend/config.toml`.
 - How each step was built and why: the per-PR documents in `backend-learning/` and `frontend-learning/`.
 - Every stack choice, the protocol messages and the SQL, each with the alternative we rejected: [`STACK.md`](STACK.md).
+- The backend in the order it runs, function by function, with an index of every backend file: [`BACKEND_WALKTHROUGH.md`](BACKEND_WALKTHROUGH.md).
 
 ## Known gaps on `dev`
 
