@@ -5,15 +5,18 @@
  * On a phone the settings do not fit, so the header shows the station as a
  * button instead. It opens a <dialog> (a native modal: the browser traps
  * focus inside it, Esc closes it, and the page behind is inert) holding the
- * same settings plus the Ink toggle, which lives in the rail on desktop.
+ * same settings plus the Ink toggle and Sign out, which live in the rail on
+ * desktop.
  */
 
 import { useRef } from 'react';
+import useSignOut from '../login/useSignOut.js';
 import StudioSettings from './StudioSettings.jsx';
 import { PERSONAS, TEXT } from './talkContent.js';
 
 export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleInk }) {
   const sheetRef = useRef(null);
+  const signOut = useSignOut();
   const station = PERSONAS.find((p) => p.id === settings.persona) ?? PERSONAS[0];
 
   return (
@@ -45,6 +48,7 @@ export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleIn
         <button type="button" className="tk-mono tk-pill" onClick={onToggleInk}>
           {ink ? TEXT.rail.paper : TEXT.rail.ink}
         </button>
+        <button type="button" className="tk-mono tk-pill" onClick={signOut}>{TEXT.rail.signOut}</button>
         <button type="button" className="tk-mono tk-pill tk-sheet-close" onClick={() => sheetRef.current?.close()}>
           {TEXT.close}
         </button>

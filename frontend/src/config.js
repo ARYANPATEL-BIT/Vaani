@@ -21,6 +21,22 @@ export const API_BASE_URL =
 export const WS_SESSION_URL =
   import.meta.env.VITE_WS_SESSION_URL || 'ws://localhost:8000/ws/session';
 
+// --- Sign-in (src/login/, backend/vaani/auth.py) ---
+
+/**
+ * The Google OAuth client ID our sign-in button is for. Must be the SAME ID
+ * as the backend's VAANI_AUTH__GOOGLE_CLIENT_ID, or the backend rejects the
+ * token (wrong audience). Empty: /login shows a message instead of a button.
+ * A client ID is public (Google shows it in every sign-in page), not a secret.
+ */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+/** Google Identity Services: the script that draws Google's own button. */
+export const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
+
+/** How long the lit "On air" lamp shows after sign-in before /talk opens. */
+export const LOGIN_ONAIR_HOLD_MS = 1500;
+
 // --- Audio parameters (must match backend/config.toml) ---
 
 /** Target sample rate in Hz. Speech models expect 16 kHz. */

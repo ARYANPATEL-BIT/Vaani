@@ -56,6 +56,7 @@ src/
 ├── components/
 │   └── AppLayout.jsx     # Persistent page shell (header + Outlet)
 ├── landing/              # The landing page
+├── login/                # /login (Google sign-in), the /talk guard, sign out
 ├── talk/
 │   └── StudioPage.jsx    # The conversation page
 └── pages/
@@ -69,13 +70,16 @@ Routes are defined in `src/router.jsx` using react-router-dom v7.
 | Path           | Page             | What it is                                  |
 |----------------|------------------|---------------------------------------------|
 | `/`            | LandingPage      | The landing page                            |
-| `/talk`        | StudioPage       | The voice conversation, outside the sidebar layout |
+| `/talk`        | StudioPage       | The voice conversation, outside the sidebar layout; signed-out visitors are sent to `/login` |
+| `/login`       | LoginPage        | Sign in with Google ("studio door"), outside the sidebar layout |
 | `/loopback`    | LoopbackPage     | Loopback rig: speaker-to-mic delay          |
 | `/enrol`       | EnrolConsentPage | Enrolment: consent before recording         |
 | `/enrol/record`| EnrolRecordPage  | Enrolment: record the reference voice       |
 | `*`            | NotFoundPage     | 404 catch-all                               |
 
-`/loopback`, the `/enrol` pages and the `*` catch-all (NotFoundPage) are children of `AppLayout` (the sidebar layout); `/` (LandingPage) and `/talk` (StudioPage) are top-level routes with their own layouts.
+`/loopback`, the `/enrol` pages and the `*` catch-all (NotFoundPage) are children of `AppLayout` (the sidebar layout); `/` (LandingPage), `/talk` (StudioPage) and `/login` (LoginPage) are top-level routes with their own layouts.
+
+In development, `/login?preview=off|checking|refused|error|onair` shows each sign-in state without a backend or a Google client ID (`src/login/loginPreview.js`). Real sign-in needs `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`, the same ID as the backend's `VAANI_AUTH__GOOGLE_CLIENT_ID`.
 
 Future routes (profiles, settings) are commented in the router and will
 be added as lazy-loaded imports.

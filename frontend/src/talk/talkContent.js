@@ -114,6 +114,7 @@ export const TEXT = {
     ink: 'Ink mode',
     paper: 'Paper mode',
     operator: 'Operator',
+    signOut: 'Sign out',
   },
   aria: {
     connect: 'Connect and start voice session',
