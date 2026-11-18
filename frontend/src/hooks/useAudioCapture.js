@@ -22,12 +22,15 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AUDIO_SAMPLE_RATE,
   AUDIO_FRAME_MS,
-  WS_SESSION_URL,
   PTT_END_FALLBACK_MS,
+  sessionSocketUrl,
 } from '../config.js';
+import { fetchMe } from '../api/authApi.js';
+import { meResult } from '../login/loginState.js';
 import {
   buildSessionStart,
   confirmedReplyLanguage,
@@ -37,6 +40,7 @@ import { createTurnFilter } from '../turnState/turnFilter.js';
 import { createPttPress, PRESS_STATES } from '../ptt/pttPress.js';
 
 export function useAudioCapture() {
+  const navigate = useNavigate(); // a refused handshake while signed out -> /login
   const [isCapturing, setIsCapturing] = useState(false);
   const [micStatus, setMicStatus] = useState('idle'); // 'idle' | 'requesting' | 'active' | 'denied' | 'error'
   const [wsStatus, setWsStatus] = useState('disconnected'); // 'disconnected' | 'connecting' | 'connected' | 'ready' | 'error'
@@ -257,9 +261,11 @@ export function useAudioCapture() {
 
       // Step E: Connect WebSocket
       setWsStatus('connecting');
-      const socket = new WebSocket(WS_SESSION_URL);
+      // Same origin as the page: Vite's proxy forwards /ws to the backend.
+      const socket = new WebSocket(sessionSocketUrl());
       socket.binaryType = 'arraybuffer';
       socketRef.current = socket;
+      let opened = false; // did the handshake succeed? (see onerror)
 
       // One push-to-talk press at a time; used only if the server confirms
       // a "ptt" session.
@@ -277,6 +283,7 @@ export function useAudioCapture() {
       pressRef.current = press;
 
       socket.onopen = () => {
+        opened = true;
         setWsStatus('connected');
         socket.send(
           JSON.stringify(
@@ -381,7 +388,21 @@ export function useAudioCapture() {
       socket.onerror = (evt) => {
         console.error('[useAudioCapture] WebSocket error:', evt);
         setWsStatus('error');
-        setErrorMessage('WebSocket connection failed. Ensure the Vaani backend server is running on port 8000.');
+        const failed = 'WebSocket connection failed. Ensure the Vaani backend server is running on port 8000.';
+        if (opened) {
+          setErrorMessage(failed);
+          return;
+        }
+        // Never opened. Either the backend REFUSED the handshake (no valid
+        // session cookie, e.g. it expired; or an origin it does not allow),
+        // or it is not running. The browser hides the backend's 403 and
+        // reports both the same way (close code 1006), so ask /auth/me:
+        // 401 means signed out -> /login (leaving /talk unmounts the page,
+        // and its cleanup closes the mic). Anything else: the usual error.
+        fetchMe().then(({ status }) => {
+          if (meResult(status) === 'out') navigate('/login', { replace: true });
+          else setErrorMessage(failed);
+        });
       };
 
       socket.onclose = (evt) => {
@@ -458,7 +479,7 @@ export function useAudioCapture() {
         setErrorMessage(err.message || 'Failed to initialize audio capture pipeline.');
       }
     }
-  }, [isCapturing, stopCapture]);
+  }, [isCapturing, stopCapture, navigate]);
 
   /**
    * Speak pressed (push-to-talk sessions only).

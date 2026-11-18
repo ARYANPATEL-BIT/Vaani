@@ -8,9 +8,10 @@
  * /auth/logout and opens /login (src/login/useSignOut.js).
  */
 
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLoaderData } from 'react-router-dom';
 import { History, LogOut, Mic, Moon, Sun } from 'lucide-react';
 import useSignOut from '../login/useSignOut.js';
+import { operatorFor } from '../login/loginState.js';
 import { TEXT } from './talkContent.js';
 
 const ICON = 20; // px, lucide takes a number
@@ -18,6 +19,8 @@ const ICON = 20; // px, lucide takes a number
 export default function RailNav({ ink, onToggleInk }) {
   const inkLabel = ink ? TEXT.rail.paper : TEXT.rail.ink;
   const signOut = useSignOut();
+  // /talk's loader (the sign-in gate) said who is in; nobody when auth is off.
+  const operator = operatorFor(useLoaderData());
   return (
     <nav className="tk-rail" aria-label={TEXT.rail.nav}>
       <Link to="/" className="tk-dv tk-rail-mark" aria-label={TEXT.rail.home}>वाणी</Link>
@@ -40,10 +43,12 @@ export default function RailNav({ ink, onToggleInk }) {
             ? <Sun size={ICON} strokeWidth={1.8} aria-hidden="true" />
             : <Moon size={ICON} strokeWidth={1.8} aria-hidden="true" />}
         </button>
-        <button type="button" className="tk-rail-btn" aria-label={TEXT.rail.signOut} title={TEXT.rail.signOut} onClick={signOut}>
-          <LogOut size={ICON} strokeWidth={1.8} aria-hidden="true" />
-        </button>
-        <span className="tk-mono tk-avatar" role="img" aria-label={TEXT.rail.operator} title={TEXT.rail.operator}>A</span>
+        {operator.signedIn && (
+          <button type="button" className="tk-rail-btn" aria-label={TEXT.rail.signOut} title={TEXT.rail.signOut} onClick={signOut}>
+            <LogOut size={ICON} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+        )}
+        <span className="tk-mono tk-avatar" role="img" aria-label={operator.name} title={operator.name}>{operator.initial}</span>
       </div>
     </nav>
   );

@@ -1,15 +1,22 @@
 /**
  * Sidebar — Left navigation rail with logo, nav items, theme toggle,
  * operator row & logout.
+ *
+ * Who is signed in comes from the sidebar layout's loader (the sign-in gate,
+ * login/requireSignIn.js, wired in router.jsx): useLoaderData() returns what
+ * that loader returned. With auth off on the server it is nobody: the row
+ * says "Operator" and there is no Logout, since there is nothing to end.
  */
 
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLoaderData } from 'react-router-dom';
 import {
   Mic, Video, History, User, BarChart2, Settings,
   ChevronRight, LogOut, UserCheck, Moon, Sun
 } from 'lucide-react';
 import { applyTheme, saveTheme } from '../theme/theme.js';
+import { operatorFor } from '../login/loginState.js';
+import useSignOut from '../login/useSignOut.js';
 import './AppLayout.css';
 
 // Width of the sidebar's icon column in px. Every row (nav and footer) uses
@@ -48,6 +55,8 @@ export default function Sidebar() {
   }
 
   const toggleLabel = theme === 'dark' ? 'Light mode' : 'Dark mode';
+  const operator = operatorFor(useLoaderData());
+  const signOut = useSignOut();
 
   return (
     <aside className="sidebar">
@@ -99,15 +108,17 @@ export default function Sidebar() {
             : <Moon size={ICON_SIZE} strokeWidth={1.8} aria-hidden="true" />}
           <span>{toggleLabel}</span>
         </button>
-        <div className="operator-row">
-          <div className="operator-avatar">A</div>
-          <span className="operator-name">Operator</span>
+        <div className="operator-row" title={operator.name}>
+          <div className="operator-avatar" aria-hidden="true">{operator.initial}</div>
+          <span className="operator-name">{operator.name}</span>
           <ChevronRight className="operator-chevron" size={16} strokeWidth={2} color="var(--c-muted)" />
         </div>
-        <div className="sidebar-logout">
-          <LogOut size={ICON_SIZE} strokeWidth={1.8} />
-          <span>Logout</span>
-        </div>
+        {operator.signedIn && (
+          <button type="button" className="sidebar-logout" aria-label="Logout" title="Logout" onClick={signOut}>
+            <LogOut size={ICON_SIZE} strokeWidth={1.8} aria-hidden="true" />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
     </aside>
   );

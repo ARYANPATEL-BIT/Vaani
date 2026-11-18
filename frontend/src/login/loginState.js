@@ -46,6 +46,17 @@ export function meResult(status) {
   return 'unknown';
 }
 
+/**
+ * Who the sidebar and the /talk rail show, from the gate's answer
+ * (requireSignIn.js). Auth off on the server (email null): "Operator", and
+ * no sign-out button, since there is nothing to sign out of.
+ */
+export function operatorFor(me) {
+  if (!me || !me.email) return { name: 'Operator', initial: 'O', signedIn: false };
+  const name = (typeof me.name === 'string' && me.name.trim()) || me.email;
+  return { name, initial: name[0].toUpperCase(), signedIn: true };
+}
+
 /** "Samyak Raj Singh" -> "Samyak". Falls back to the email, then "". */
 export function firstName(body) {
   const name = body && typeof body.name === 'string' ? body.name.trim() : '';

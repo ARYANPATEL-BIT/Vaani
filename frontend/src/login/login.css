@@ -2,7 +2,7 @@
  * login.css -- the /login page (LoginPage.jsx), design in
  * docs/design/login-studio-door/. Every selector starts with .lg, so
  * nothing here reaches another page. Colours are the --lg-* variables
- * LoginPage.jsx sets from loginContent.js (COLORS).
+ * LoginPage.jsx sets from loginContent.js (PAPER, or INK in dark mode).
  *
  * Two layouts: side by side above 900 px, stacked at 900 px and under (the
  * 390 px "LoginPhone" design). All motion sits in the last block, inside
@@ -32,7 +32,7 @@
 .lg a:focus-visible, .lg button:focus-visible { outline: 3px solid var(--lg-text); outline-offset: 3px; }
 .lg .lg-grain {
   position: fixed; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 5; opacity: 0.08; mix-blend-mode: multiply;
+  pointer-events: none; z-index: 5; opacity: var(--lg-grain); mix-blend-mode: multiply;
 }
 
 /* ── Header and footer ──────────────────────────────────────────────── */
@@ -60,6 +60,7 @@
 /* ── The studio door (StudioDoor.jsx) ───────────────────────────────── */
 .lg .lg-door {
   background: var(--lg-door); color: var(--lg-door-text); border-radius: 22px; overflow: hidden;
+  box-shadow: 0 0 0 1.5px var(--lg-door-edge); /* an outline that takes no space */
   display: flex; flex-direction: column; min-width: 0;
 }
 .lg .lg-door-bar {
@@ -87,9 +88,9 @@
   background: var(--lg-red); border-color: var(--lg-red);
   box-shadow: 0 0 0 6px #2A1410, 0 0 80px 10px rgba(255, 59, 28, 0.45);
 }
-.lg .lg-lamp-onair .lg-lamp-word { color: var(--lg-text); -webkit-text-stroke: 0; }
+.lg .lg-lamp-onair .lg-lamp-word { color: var(--lg-on-red); -webkit-text-stroke: 0; }
 .lg .lg-screw { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--lg-door-rule); }
-.lg .lg-lamp-onair .lg-screw { background: var(--lg-text); }
+.lg .lg-lamp-onair .lg-screw { background: var(--lg-on-red); }
 .lg .lg-screw-tl { left: 14px; top: 14px; }
 .lg .lg-screw-tr { right: 14px; top: 14px; }
 .lg .lg-screw-bl { left: 14px; bottom: 14px; }
@@ -144,9 +145,9 @@
 /* The locked "Checking your pass" pill, and the DEV preview's look-alike. */
 .lg .lg-locked, .lg .lg-standin {
   box-sizing: border-box; height: 52px; min-width: 300px; padding: 0 22px;
-  border: 1.5px solid var(--lg-text); border-radius: 999px; background: #FFFFFF; color: var(--lg-text);
+  border: 1.5px solid var(--lg-text); border-radius: 999px; background: var(--lg-pill); color: var(--lg-text);
   font: 600 16px 'Vaani Archivo', system-ui, sans-serif;
-  display: inline-flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 4px 0 var(--lg-text);
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 4px 0 var(--lg-line);
 }
 .lg .lg-locked { opacity: 0.55; cursor: wait; }
 .lg .lg-standin-g {
@@ -157,11 +158,11 @@
 .lg .lg-note { margin: 0; max-width: 440px; font-size: 14px; color: var(--lg-red-text); }
 
 .lg .lg-go {
-  height: 52px; padding: 0 28px; border-radius: 999px; background: var(--lg-red); color: var(--lg-text);
+  height: 52px; padding: 0 28px; border-radius: 999px; background: var(--lg-red); color: var(--lg-on-red);
   font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 10px;
-  box-shadow: 0 4px 0 var(--lg-text);
+  box-shadow: 0 4px 0 var(--lg-line);
 }
-.lg .lg-go-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--lg-text); }
+.lg .lg-go-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--lg-on-red); }
 
 .lg .lg-facts {
   list-style: none; margin: 0; padding: 16px 0 0; border-top: 1.5px solid var(--lg-text);
