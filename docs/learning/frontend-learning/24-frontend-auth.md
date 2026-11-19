@@ -79,6 +79,12 @@ button is `outline` on paper and `filled_black` on ink (`GoogleButton.jsx`).
 plain http there. It is set `true` in `backend/.env` (`VAANI_AUTH__SECURE_COOKIE=true`) only
 for the tunnel, which is https. Never in `config.toml`.
 
+**Sign in, but no Sign up.** Two separate questions: *who are you* (identity) and *may you come
+in* (access). Your Google account answers the first, so there is no account for Vaani to create.
+The backend's allowlist answers the second, and only the team can add an email to it, so a
+"Sign up" button would promise something no visitor can do. The landing header (`Hero.jsx`)
+shows Sign in only after `/auth/me` answers 401, via `landingAuthFor` in `loginState.js`.
+
 ## 4. When
 
 - First load of `/talk` or a sidebar page: one `GET /auth/me`, before the page is drawn.
@@ -86,7 +92,7 @@ for the tunnel, which is https. Never in `config.toml`.
 - Connect on `/talk`: the socket opens on the page's host; only if it fails before opening,
   one extra `GET /auth/me`.
 - Logout: one `POST /auth/logout`, then `/login`.
-- `/` and `/login`: no gate.
+- `/` and `/login`: no gate. `/` sends one `GET /auth/me` after it draws, never waits for it.
 
 ## 5. Alternatives
 

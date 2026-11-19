@@ -63,3 +63,19 @@ export function firstName(body) {
   if (name) return name.split(/\s+/)[0];
   return body && typeof body.email === 'string' ? body.email : '';
 }
+
+/**
+ * What the landing page header adds, from its own GET /auth/me (Hero.jsx).
+ * The header never waits for this: it starts as "nothing extra" and only
+ * changes if a clear answer comes back.
+ *   401                        -> a Sign in link (signIn: true)
+ *   200 {email, name}          -> the first name; no name, the email's initial
+ *   200 {email: null} (auth off), 5xx, no answer, timed out -> nothing extra
+ */
+export function landingAuthFor(status, body) {
+  if (meResult(status) === 'out') return { signIn: true, who: '' };
+  const op = operatorFor(status === 200 ? body : null);
+  if (!op.signedIn) return { signIn: false, who: '' };
+  const hasName = typeof body.name === 'string' && body.name.trim() !== '';
+  return { signIn: false, who: hasName ? firstName(body) : op.initial };
+}
