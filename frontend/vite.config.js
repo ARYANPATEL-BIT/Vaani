@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   // VAANI_PROXY_TARGET has no VITE_ prefix on purpose: only this server reads
   // it; Vite never puts it into the code it sends to the browser.
   const env = loadEnv(mode, process.cwd(), '')
-  const target = env.VAANI_PROXY_TARGET || 'http://localhost:8000'
+  const target = env.VAANI_PROXY_TARGET || 'http://127.0.0.1:8000'
 
   // changeOrigin is left false (the default): the backend gets the browser's
   // own Host and Origin headers. Origin matters: auth.py checks it against
