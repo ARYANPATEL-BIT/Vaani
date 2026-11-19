@@ -1,0 +1,47 @@
+feat/frontend-auth: what the Vite dev-server proxy adds to /ws/session
+Date: 2026-11-18. Machine: the development laptop (Windows 11), CPU only.
+Script: frontend/scripts/measure_proxy_latency.js
+
+What was timed
+  direct: ws://127.0.0.1:8000/ws/session (the backend itself)
+  proxy:  ws://localhost:5173/ws/session (Vite dev server, forwarded by the
+          proxy in frontend/vite.config.js to http://localhost:8000)
+  Per connection: handshake = new WebSocket() -> open event;
+  roundtrip = send session.start -> receive session.started.
+  3 warm-up connections per target, then N timed ones. Direct and proxy
+  alternate, one connection at a time, 50 ms apart. No audio frame and no
+  turn: no paid call was possible. Percentiles are nearest-rank.
+
+Server for every run
+  The backend already running on the machine (uvicorn vaani.app:app --host
+  127.0.0.1 --port 8000), [auth] off (GET /auth/me answered nulls). Which of
+  ASR / TTS / DB were enabled in it was not checked. Same server for both
+  targets, so it does not change the difference.
+
+Results (ms)
+  Run 1, N=50
+    handshake direct p50  4.20  p95  5.57
+    handshake proxy  p50  8.09  p95 10.44
+    roundtrip direct p50  1.50  p95  3.13
+    roundtrip proxy  p50  1.70  p95  2.28
+  Run 2, N=100
+    handshake direct p50  4.67  p95  6.85
+    handshake proxy  p50  8.18  p95 10.04
+    roundtrip direct p50  1.67  p95  2.36
+    roundtrip proxy  p50  1.83  p95  2.27
+
+Reading
+  The proxy adds about 3.5 to 3.9 ms at p50 to the handshake, which happens
+  once per session (on Connect), not per turn. Each message afterwards (an
+  audio frame up, a reply chunk down) pays about 0.2 ms at p50. Both are under
+  the 5 ms limit set for this branch.
+  Not measured: mic-stop to first audible sample in a browser
+  (scripts/measure_talk_latency.js needs a Playwright MCP, not available in
+  this session); the tunnel path (Cloudflare's network adds its own delay,
+  which the proxy does not change).
+
+GET /auth/me through the proxy (what the route gate waits for)
+  curl -w %{time_total} http://localhost:5173/auth/me, 30 calls one after
+  another, same server, auth off: p50 5.2 ms, p95 27.2 ms (nearest-rank).
+  curl's total includes its own connection set-up for every call; a browser
+  reuses its connection, so this is an upper bound, not a browser timing.

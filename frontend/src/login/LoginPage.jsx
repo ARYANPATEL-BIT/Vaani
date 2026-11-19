@@ -21,10 +21,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { LOGIN_ONAIR_HOLD_MS } from '../config.js';
 import useIstClock from '../landing/useIstClock.js';
-import { fetchMe, signInWithGoogle } from './authApi.js';
+import { fetchMe, signInWithGoogle } from '../api/authApi.js';
 import { meResult, signInResult } from './loginState.js';
 import { previewFor } from './loginPreview.js';
-import { ALERTS, COLORS, TEXT } from './loginContent.js';
+import { ALERTS, INK, PAPER, TEXT } from './loginContent.js';
 import StudioDoor from './StudioDoor.jsx';
 import LoginPanel from './LoginPanel.jsx';
 import './login.css';
@@ -37,6 +37,9 @@ export default function LoginPage() {
   const [state, setState] = useState({ view: 'off' });
   const shown = preview ?? state;
   const time = useIstClock();
+  // The app's theme, set on <html> before React loaded (index.html). /login
+  // has no theme toggle, so reading it once per render is enough.
+  const dark = document.documentElement.dataset.theme === 'dark';
 
   // 1. Already in? `alive` stops a late answer from navigating after the
   // user has left the page.
@@ -68,7 +71,7 @@ export default function LoginPage() {
   }, [preview, state.view, navigate]);
 
   return (
-    <div className="lg" style={COLORS}>
+    <div className="lg" style={dark ? INK : PAPER}>
       <svg className="lg-grain" aria-hidden="true">
         <filter id="lg-grain-f"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" /></filter>
         <rect width="100%" height="100%" filter="url(#lg-grain-f)" />

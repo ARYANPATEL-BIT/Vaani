@@ -28,6 +28,7 @@ A few words used throughout:
 | Mic capture | Web Audio `AudioWorklet`, 16 kHz mono, 20 ms Int16 frames | Runs on the audio thread, so UI work cannot drop audio | `frontend/public/audio-processor.js:20`, `src/hooks/useAudioCapture.js:206-244` |
 | Playback | Web Audio buffers scheduled on the `AudioContext` clock | The audio clock is steady; JavaScript timers are not | `src/hooks/usePlaybackQueue.js:113-150` |
 | Transport | One WebSocket per session at `/ws/session`: JSON text for control, binary for audio | One ordered, two-way channel for everything | `backend/vaani/gateway.py:120` |
+| One origin (feat/frontend-auth) | Vite's dev-server proxy forwards `/auth`, `/health` and `/ws` to the backend; the browser uses relative URLs only | The `SameSite=Lax` session cookie goes with every call and the socket, locally and through a Cloudflare tunnel, with no CORS | `frontend/vite.config.js`, `src/config.js` (`sessionSocketUrl`) |
 | Web server | FastAPI 0.141.1 on uvicorn 0.53.0 (`[standard]` extra) | Async: one process serves many sockets while it waits on the network | `backend/vaani/app.py:86` |
 | Message shapes | Pydantic 2.13.5 models | Incoming JSON is validated by building the model | `backend/vaani/protocol.py:81-83` |
 | Config | `config.toml` read by pydantic-settings 2.15.0; secrets only from the environment | No hardcoded values; no key in a committed file | `backend/vaani/config.py`, `config.toml:1-7` |
@@ -61,16 +62,18 @@ documentation routes by default, because `app.py:86` does not switch them off.
 
 | Route | What it returns | Who calls it | Where |
 |---|---|---|---|
-| `GET /health` (and `HEAD`) | `{"status": "ok", "version": "0.1.0"}`. The version is the app's (`vaani/__init__.py:10`), not the protocol's. It reads no settings, so it can leak no config | A person checking the server is up (`README.md:69`), and `backend/tests/test_health.py`. **The frontend never calls it**: `API_BASE_URL` in `frontend/src/config.js:14` is defined but unused | `backend/vaani/app.py:141-149` |
+| `GET /health` (and `HEAD`) | `{"status": "ok", "version": "0.1.0"}`. The version is the app's (`vaani/__init__.py:10`), not the protocol's. It reads no settings, so it can leak no config | A person checking the server is up (`README.md:69`), and `backend/tests/test_health.py`. The frontend never calls it; it is proxied by the Vite dev server (`frontend/vite.config.js`) so a tunnel can be checked with it | `backend/vaani/app.py:141-149` |
 | `GET /docs`, `/docs/oauth2-redirect`, `/redoc`, `/openapi.json` | FastAPI's generated API pages and schema | Nobody in our code; a developer in a browser | Added by FastAPI. Checked on a bare FastAPI 0.141.1 app, not by starting ours |
-| `POST /auth/google` | Body `{"credential": "<Google ID token>"}`. `200 {email, name}` and the `vaani_session` cookie, or `401`/`403`/`503` with an `AUTH_*` code (2d). Refuses an `Origin` not in `[auth] allowed_origins`. `404` when auth is disabled | The login page (frontend commit of feat/google-auth) | `backend/vaani/auth.py` (`google_sign_in`) |
-| `GET /auth/me` | `200 {email, name}` from the cookie, or `401 AUTH_REQUIRED`. With auth disabled: `200 {email: null, name: null}` | The frontend, on app load | `auth.py` (`me`) |
-| `POST /auth/logout` | `204` and the cookie cleared (in the browser only: the signed value stays valid until it expires) | The sidebar's Logout | `auth.py` (`logout`) |
-| `WS /ws/session` | The voice session (2b) | `useAudioCapture.js:248`, URL from `config.js:21-22` | `backend/vaani/gateway.py:120-319`, added by `app.py:152` |
+| `POST /auth/google` | Body `{"credential": "<Google ID token>"}`. `200 {email, name}` and the `vaani_session` cookie, or `401`/`403`/`503` with an `AUTH_*` code (2d). Refuses an `Origin` not in `[auth] allowed_origins`. `404` when auth is disabled | The login page (`frontend/src/login/LoginPage.jsx`, via `src/api/authApi.js`) | `backend/vaani/auth.py` (`google_sign_in`) |
+| `GET /auth/me` | `200 {email, name}` from the cookie, or `401 AUTH_REQUIRED`. With auth disabled: `200 {email: null, name: null}` | The route gate (`frontend/src/login/requireSignIn.js`) before `/talk` or any sidebar page is drawn; `/login` on load; `useAudioCapture.js` after a refused handshake | `auth.py` (`me`) |
+| `POST /auth/logout` | `204` and the cookie cleared (in the browser only: the signed value stays valid until it expires) | The sidebar's Logout, the `/talk` rail's and phone sheet's Sign out (`src/login/useSignOut.js`); hidden when auth is off | `auth.py` (`logout`) |
+| `WS /ws/session` | The voice session (2b) | `useAudioCapture.js`, URL from `sessionSocketUrl()` in `config.js`: the page's own host, `ws:` or `wss:` | `backend/vaani/gateway.py:120-319`, added by `app.py:152` |
 
 Every `/auth/*` answer carries CORS headers for `[auth] allowed_origins` with
-`Access-Control-Allow-Credentials: true` (`app.py`), because the page
-(`localhost:5173`) and the server (`localhost:8000`) are different origins.
+`Access-Control-Allow-Credentials: true` (`app.py`). Since feat/frontend-auth the
+browser no longer needs them: the page and the API share one origin through the
+Vite proxy (`frontend/vite.config.js`), so these headers only matter to a client
+that calls `:8000` directly from another origin.
 
 ### 2b. The WebSocket
 

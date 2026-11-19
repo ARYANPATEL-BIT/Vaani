@@ -185,6 +185,7 @@
 }
 
 .sidebar-logout {
+  width: 100%; /* a <button> now: fill the row like the theme toggle */
   display: flex;
   align-items: center;
   gap: var(--sp-3);

@@ -3,14 +3,14 @@
  * loginState.test.js -- the /login page's state logic (loginState.js).
  *
  * Covers: every answer of POST /auth/google that backend/vaani/auth.py can
- * give, a request with no answer, every answer of GET /auth/me, and the
- * first-name helper.
+ * give, a request with no answer, every answer of GET /auth/me, the
+ * first-name helper, and operatorFor (who the sidebar and rail show).
  *
  * Run with:
  *   node frontend/src/login/loginState.test.js
  */
 
-import { signInResult, meResult, firstName } from './loginState.js';
+import { signInResult, meResult, firstName, operatorFor } from './loginState.js';
 
 let passed = 0;
 let failed = 0;
@@ -60,6 +60,16 @@ assert('single name', firstName({ name: 'Samyak' }) === 'Samyak');
 assert('extra spaces', firstName({ name: '  Samyak   Singh ' }) === 'Samyak');
 assert('no name -> email', firstName({ name: '', email: 'a@b.c' }) === 'a@b.c');
 assert('nothing -> empty', firstName(null) === '');
+
+console.log('operatorFor');
+assert('signed in -> full name, initial, signedIn',
+  same(operatorFor({ email: 'a@b.c', name: 'samyak Singh' }), { name: 'samyak Singh', initial: 'S', signedIn: true }));
+assert('signed in, no name -> the email',
+  same(operatorFor({ email: 'a@b.c', name: '' }), { name: 'a@b.c', initial: 'A', signedIn: true }));
+assert('auth off (nulls) -> Operator, not signed in',
+  same(operatorFor({ email: null, name: null }), { name: 'Operator', initial: 'O', signedIn: false }));
+assert('nothing at all -> Operator, not signed in',
+  same(operatorFor(undefined), { name: 'Operator', initial: 'O', signedIn: false }));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

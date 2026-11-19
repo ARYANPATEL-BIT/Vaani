@@ -5,7 +5,8 @@
  * puts `window.google.accounts.id` on the page. We tell it our client ID and
  * a callback (initialize), then ask it to draw its button into our <div>
  * (renderButton). Google draws the button inside its own frame, so we cannot
- * restyle it: we choose only Google's presets (outline theme, pill shape).
+ * restyle it: we choose only Google's presets (pill shape; the outline theme
+ * on the light page, filled_black on the dark one).
  * When the user picks an account, Google calls our callback with an ID token
  * (a JWT signed by Google) in `response.credential`; the page sends that to
  * our backend. We never see a password, and the browser never needs a secret.
@@ -58,8 +59,11 @@ export default function GoogleButton({ onCredential }) {
         client_id: GOOGLE_CLIENT_ID,
         callback: (response) => onCredentialRef.current(response.credential),
       });
+      // The app's theme is on <html> (theme/theme.js); /login cannot change
+      // it, so it is read once, when Google draws the button.
+      const dark = document.documentElement.dataset.theme === 'dark';
       gis.renderButton(boxRef.current, {
-        theme: 'outline', shape: 'pill', size: 'large', text: 'signin_with',
+        theme: dark ? 'filled_black' : 'outline', shape: 'pill', size: 'large', text: 'signin_with',
         width: clampWidth(boxRef.current.clientWidth),
       });
     }).catch(() => { if (alive) setFailed(true); });
