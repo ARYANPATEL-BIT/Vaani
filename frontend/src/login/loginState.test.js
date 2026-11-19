@@ -4,13 +4,14 @@
  *
  * Covers: every answer of POST /auth/google that backend/vaani/auth.py can
  * give, a request with no answer, every answer of GET /auth/me, the
- * first-name helper, and operatorFor (who the sidebar and rail show).
+ * first-name helper, operatorFor (who the sidebar and rail show), and
+ * landingAuthFor (what the landing header adds).
  *
  * Run with:
  *   node frontend/src/login/loginState.test.js
  */
 
-import { signInResult, meResult, firstName, operatorFor } from './loginState.js';
+import { signInResult, meResult, firstName, operatorFor, landingAuthFor } from './loginState.js';
 
 let passed = 0;
 let failed = 0;
@@ -70,6 +71,17 @@ assert('auth off (nulls) -> Operator, not signed in',
   same(operatorFor({ email: null, name: null }), { name: 'Operator', initial: 'O', signedIn: false }));
 assert('nothing at all -> Operator, not signed in',
   same(operatorFor(undefined), { name: 'Operator', initial: 'O', signedIn: false }));
+
+console.log('landingAuthFor');
+const NOTHING = { signIn: false, who: '' };
+assert('401 -> Sign in', same(landingAuthFor(401, null), { signIn: true, who: '' }));
+assert('signed in -> first name',
+  same(landingAuthFor(200, { email: 'a@b.c', name: 'Samyak Raj Singh' }), { signIn: false, who: 'Samyak' }));
+assert('signed in, no name -> email initial',
+  same(landingAuthFor(200, { email: 'aryan@b.c', name: null }), { signIn: false, who: 'A' }));
+assert('auth off (nulls) -> nothing extra', same(landingAuthFor(200, { email: null, name: null }), NOTHING));
+assert('500 -> nothing extra', same(landingAuthFor(500, null), NOTHING));
+assert('no answer -> nothing extra', same(landingAuthFor(null, null), NOTHING));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
