@@ -103,11 +103,14 @@ shows Sign in only after `/auth/me` answers 401, via `landingAuthFor` in `loginS
 | A loader that checks before drawing | The old guard that draws, then checks (`23-login-page.md`) | Signed-out visitors saw the page flash. The worry then was the wait; `/auth/me` through the proxy measured 5.2 ms p50 with curl (findings file above) |
 | Gate on the whole sidebar layout | A nested route around the enrol pages only | One more route level for no gain: `/loopback` and the 404 page need no public access |
 | Treat no answer or a timeout as "let in" | Treat it as signed out and go to `/login` | A backend that is down would look like a sign-in problem, and sign-in would not fix it |
+| `/login` layout: header, main and footer padded by `--lg-gutter` = `max(24px, (100% - 1312px) / 2)`, so content sits in the landing page's 1360 px column (`.lp-wrap`); a 55/45 grid, the door at 4:3 capped by the window height; at 960 px and under the text stacks above the door (CSS `order`) | An inner wrapper `<div>` in each of the three, like `.lp-wrap` | Same result, but it changes the JSX; the padding keeps the border lines full width and the change in `login.css` alone |
 
 ## 6. Known issues
 
 - Not run in a browser: the gate, the refused-socket path, dark `/login` and a real Google
   sign-in were checked only by tests, lint and a build. No screenshots were taken.
+- The `/login` wide-screen layout fix was not checked in a browser either (no Chrome
+  extension in that session); whether it fits 1280x800 without scrolling is unverified.
 - A quick tunnel gets a new address each run: add it to `VAANI_AUTH__ALLOWED_ORIGINS` and to the
   Google client's authorised origins, then restart the backend, every time.
 - Mic-stop to first audio through the proxy was not measured; only the socket's own timings were.

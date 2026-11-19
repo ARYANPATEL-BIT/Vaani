@@ -4,8 +4,8 @@
  * nothing here reaches another page. Colours are the --lg-* variables
  * LoginPage.jsx sets from loginContent.js (PAPER, or INK in dark mode).
  *
- * Two layouts: side by side above 900 px, stacked at 900 px and under (the
- * 390 px "LoginPhone" design). All motion sits in the last block, inside
+ * Two layouts: side by side above 960 px, stacked at 960 px and under (text
+ * first, the door below it). All motion sits in the last block, inside
  * prefers-reduced-motion: no-preference, so a visitor who asked for less
  * motion gets none of it.
  */
@@ -23,6 +23,12 @@
   position: fixed; inset: 0; overflow-y: auto; display: flex; flex-direction: column;
   background: var(--lg-bg); color: var(--lg-text);
   font-family: 'Vaani Archivo', system-ui, sans-serif; font-size: 15px; line-height: 1.45;
+  /* The side padding that keeps content in the landing page's column
+     (.lp-wrap in landing.css: max-width 1360 px with 24 px padding, so
+     1312 px of content). On a narrow window it is 24 px; on a wide one it
+     grows to whatever centres a 1312 px column. 100% is resolved where the
+     variable is used: the width of .lg, which every user below fills. */
+  --lg-gutter: max(24px, calc((100% - 1312px) / 2));
 }
 .lg .lg-cd { font-family: 'Vaani Archivo', system-ui, sans-serif; font-stretch: 62%; font-weight: 800; text-transform: uppercase; }
 .lg .lg-mono { font-family: 'Vaani Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -38,23 +44,26 @@
 /* ── Header and footer ──────────────────────────────────────────────── */
 .lg .lg-header {
   flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  padding: 14px 28px; border-bottom: 1.5px solid var(--lg-text);
+  padding: 14px var(--lg-gutter); border-bottom: 1.5px solid var(--lg-text);
 }
 .lg .lg-brand { display: flex; align-items: center; gap: 14px; min-height: 44px; justify-self: start; }
 .lg .lg-brand-dv { font-size: 24px; }
 .lg .lg-brand-name { font-size: 30px; line-height: 0.9; }
 .lg .lg-file { font-size: 10px; color: var(--lg-muted); }
-.lg .lg-header-end { justify-self: end; display: flex; gap: 22px; align-items: center; font-size: 10px; color: var(--lg-muted); }
+.lg .lg-header-end { justify-self: end; white-space: nowrap; display: flex; gap: 22px; align-items: center; font-size: 10px; color: var(--lg-muted); }
 .lg .lg-back { min-height: 44px; display: flex; align-items: center; color: var(--lg-text); }
 .lg .lg-footer {
   flex: none; display: flex; justify-content: space-between; gap: 16px;
-  padding: 12px 28px; border-top: 1.5px solid var(--lg-text); font-size: 9px; color: var(--lg-faint);
+  padding: 12px var(--lg-gutter); border-top: 1.5px solid var(--lg-text); font-size: 9px; color: var(--lg-faint);
 }
 
 /* ── Layout ─────────────────────────────────────────────────────────── */
+/* 55 / 45 split. The grid fills the space between header and footer;
+   align-content centres the one row in it, align-items centres the panel
+   against the door. */
 .lg .lg-main {
-  flex: 1; min-height: 640px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  gap: 28px; padding: 28px;
+  flex: 1; display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  align-content: center; align-items: center; gap: 56px; padding: 28px var(--lg-gutter);
 }
 
 /* ── The studio door (StudioDoor.jsx) ───────────────────────────────── */
@@ -62,6 +71,9 @@
   background: var(--lg-door); color: var(--lg-door-text); border-radius: 22px; overflow: hidden;
   box-shadow: 0 0 0 1.5px var(--lg-door-edge); /* an outline that takes no space */
   display: flex; flex-direction: column; min-width: 0;
+  /* Height from the width (4:3), capped by the window so a tall screen
+     does not get a tall black box. */
+  aspect-ratio: 4 / 3; max-height: calc(100vh - 220px); min-height: 360px;
 }
 .lg .lg-door-bar {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -119,7 +131,7 @@
 .lg .lg-door-onair .lg-bar { background: var(--lg-red); }
 
 /* ── The panel (LoginPanel.jsx) ─────────────────────────────────────── */
-.lg .lg-panel { display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: 8px 12px 0 20px; min-width: 0; }
+.lg .lg-panel { display: flex; flex-direction: column; gap: 28px; max-width: 540px; min-width: 0; }
 .lg .lg-panel-top { display: flex; flex-direction: column; gap: 26px; }
 .lg .lg-step { font-size: 10px; color: var(--lg-muted); }
 .lg .lg-title { margin: 0; font-size: clamp(64px, 7.8vw, 112px); line-height: 0.86; letter-spacing: -0.005em; }
@@ -173,16 +185,18 @@
 /* ── Wide / phone switches ──────────────────────────────────────────── */
 .lg .lg-phone-only { display: none; }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .lg .lg-wide-only { display: none; }
   .lg .lg-phone-only { display: inline; }
   .lg .lg-header { display: flex; justify-content: space-between; padding: 12px 18px; }
   .lg .lg-brand { gap: 10px; }
   .lg .lg-brand-dv { font-size: 20px; }
   .lg .lg-brand-name { font-size: 24px; }
-  .lg .lg-main { display: block; min-height: 0; padding: 16px 18px 0; }
-  .lg .lg-door { height: 274px; }
-  .lg .lg-panel { padding: 22px 0; gap: 18px; }
+  /* Stacked: order moves the panel above the door without changing the
+     DOM, so the Google button is the first thing on a phone. */
+  .lg .lg-main { display: flex; flex-direction: column; gap: 0; padding: 0 18px 18px; }
+  .lg .lg-door { height: 240px; aspect-ratio: auto; max-height: none; min-height: 0; }
+  .lg .lg-panel { order: -1; max-width: none; padding: 22px 0; gap: 18px; }
   .lg .lg-panel-top { gap: 18px; }
   .lg .lg-title { font-size: 72px; }
   .lg .lg-intro { font-size: 15px; }
