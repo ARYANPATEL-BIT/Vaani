@@ -1,0 +1,14 @@
+Voice-cloning eval: what to read aloud. Quiet room, normal speaking voice,
+mouth about a hand-width from the mic. Read each passage once, naturally.
+(The wording avoids gendered verb forms on purpose.)
+
+CLIP A  (conditioning clip, about 10-12 s; every model clones from this one)
+Read EXACTLY this text. IndicF5 needs the exact transcript: if you change a
+word while reading, edit clip_a_transcript.txt to match what you said.
+
+नमस्ते, यह मेरी आवाज़ है। आज इसकी रिकॉर्डिंग हो रही है, so that the model can learn how I speak.
+
+CLIP B  (held-out reference, about 15-20 s; used only to score similarity, never fed to a model)
+
+मेरा दिन आमतौर पर सुबह सात बजे शुरू होता है। पहले चाय, फिर emails check करना।
+After that, the project work usually goes on until lunch, और शाम को थोड़ी देर टहलना अच्छा लगता है।

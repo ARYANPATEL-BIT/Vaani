@@ -1,0 +1,30 @@
+# score: the measuring stick for the voice-cloning eval spike.
+# Records the operator's reference clips and computes speaker similarity
+# (SpeechBrain ECAPA embeddings, cosine). Separate uv project so torch never
+# enters backend/uv.lock. Rationale: docs/learning/backend-learning/23-voice-cloning-eval.md
+
+[project]
+name = "vce-score"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch==2.8.0",          # cu128 build from the pytorch index below (Blackwell needs CUDA 12.8+)
+    "torchaudio==2.8.0",     # speechbrain loads audio through it
+    "speechbrain>=1.0",      # ECAPA-TDNN speaker-embedding model (Apache-2.0)
+    "soundfile>=0.12",       # WAV read/write
+    "sounddevice>=0.5",      # microphone capture for record_reference.py
+    "numpy>=1.26,<2",
+]
+
+[tool.uv]
+package = false              # a folder of scripts, not an installable package
+
+# Pull torch/torchaudio from PyTorch's CUDA 12.8 wheel index, everything else from PyPI.
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true              # only the packages pinned above use this index
