@@ -1,0 +1,32 @@
+# indicf5: AI4Bharat IndicF5 candidate for the voice-cloning eval spike.
+# Code: github.com/AI4Bharat/IndicF5 (no LICENSE file in the repo; pinned to one
+# commit). Weights: ai4bharat/IndicF5 on Hugging Face, gated, card says MIT.
+# Its own uv project: it needs transformers<4.50 and numpy<=1.26.4, which clash
+# with the other candidates, and its package is named f5_tts.
+
+[project]
+name = "vce-indicf5"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "f5_tts",                # IndicF5's code, installed from the pinned git commit below
+    "torch==2.8.0",          # cu128 build (Blackwell)
+    "torchaudio==2.8.0",
+    "transformers<4.50",     # from IndicF5's requirements.txt; its setup.py omits the cap
+    "huggingface-hub>=0.24",
+    "soundfile>=0.12",
+    "nvidia-ml-py>=12",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+f5_tts = { git = "https://github.com/AI4Bharat/IndicF5", rev = "13f7c4d627cc10111aea8fe9c0039462cacacdc7" }
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

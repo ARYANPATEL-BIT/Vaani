@@ -1,0 +1,30 @@
+# xtts: XTTS-v2 candidate for the voice-cloning eval spike.
+# Code: coqui-tts (idiap's maintained fork, MPL-2.0). Weights: coqui/XTTS-v2
+# under CPML (non-commercial, covers outputs too). Separate uv project: torch and
+# this model's transformers pin stay out of backend/uv.lock.
+
+[project]
+name = "vce-xtts"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "coqui-tts>=0.28,<0.29",
+    "torch==2.8.0",          # cu128 build (Blackwell); 2.8 avoids the torchcodec requirement of 2.9+
+    "torchaudio==2.8.0",
+    "huggingface-hub>=0.24", # downloads the weights into ../models/
+    "soundfile>=0.12",
+    "nvidia-ml-py>=12",      # free-VRAM reading at run start (the same NVML that nvidia-smi uses)
+    "six",                   # coqui-tts 0.28 imports it but does not declare it
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
