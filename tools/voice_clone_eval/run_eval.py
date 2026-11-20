@@ -3,6 +3,7 @@
 Run from inside a model's folder so its own uv environment is used:
     cd tools/voice_clone_eval/xtts
     uv run python ../run_eval.py --model xtts --ref ../audio/reference/clip_a_take1.wav
+    uv run python ../run_eval.py --model xtts --ref ... --device cpu   # timing-only pass
 
 The model folder provides synth.py with two functions:
     load(ref_wav, ref_text, device) -> state     (model load + reference conditioning)
@@ -44,13 +45,16 @@ def free_vram_mib() -> tuple[int, int]:
     return info.free // 2**20, info.total // 2**20
 
 
-def timed(fn, *args):
-    """Wall-clock a GPU call. CUDA runs asynchronously: without synchronize()
-    the timer would stop when work is queued, not when it has finished."""
-    torch.cuda.synchronize()
+def timed(device: str, fn, *args):
+    """Wall-clock one call. CUDA runs asynchronously: without synchronize()
+    the timer would stop when GPU work is queued, not when it has finished.
+    On CPU the work is already done when fn returns, so no sync is needed."""
+    if device == "cuda":
+        torch.cuda.synchronize()
     t0 = time.perf_counter()
     result = fn(*args)
-    torch.cuda.synchronize()
+    if device == "cuda":
+        torch.cuda.synchronize()
     return result, time.perf_counter() - t0
 
 
@@ -58,13 +62,21 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="model folder name, e.g. xtts")
     ap.add_argument("--ref", required=True, type=Path, help="clip A wav")
+    ap.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
+    ap.add_argument(
+        "--note", default="", help="free text copied into the summary, e.g. ref quality"
+    )
     args = ap.parse_args()
+    dev = args.device
+    # The reference's file name is part of the run name, so a run on the raw clip
+    # and one on its denoised copy never share a folder: xtts_cuda_clip_a_take1_dn
+    run_name = f"{args.model}_{dev}_{args.ref.stem}"
 
     sys.path.insert(0, str(EVAL_DIR / args.model))
     synth_mod = importlib.import_module("synth")
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    out_dir = EVAL_DIR / "audio" / "out" / args.model / stamp
+    out_dir = EVAL_DIR / "audio" / "out" / run_name / stamp
     out_dir.mkdir(parents=True, exist_ok=True)
     FINDINGS.mkdir(parents=True, exist_ok=True)
     ref_text = REF_TEXT.read_text(encoding="utf-8").strip()
@@ -72,13 +84,13 @@ def main() -> int:
         rows = list(csv.DictReader(f, delimiter="\t"))
 
     free0, total = free_vram_mib()
-    print(f"[{args.model}] free VRAM at start: {free0} / {total} MiB")
+    print(f"[{run_name}] free VRAM at start: {free0} / {total} MiB")
     torch.manual_seed(SEED)
 
-    state, load_s = timed(synth_mod.load, args.ref.resolve(), ref_text, "cuda")
-    print(f"[{args.model}] loaded + conditioned in {load_s:.1f} s")
-    _, warmup_s = timed(synth_mod.synth, state, WARMUP_TEXT, WARMUP_LANG)
-    print(f"[{args.model}] warm-up clip in {warmup_s:.1f} s (discarded)")
+    state, load_s = timed(dev, synth_mod.load, args.ref.resolve(), ref_text, dev)
+    print(f"[{run_name}] loaded + conditioned in {load_s:.1f} s")
+    _, warmup_s = timed(dev, synth_mod.synth, state, WARMUP_TEXT, WARMUP_LANG)
+    print(f"[{run_name}] warm-up clip in {warmup_s:.1f} s (discarded)")
 
     results = []
     for row in rows:
@@ -96,7 +108,9 @@ def main() -> int:
                 "error": "",
             }
             try:
-                (wave, rate), secs = timed(synth_mod.synth, state, row["text"], lang)
+                (wave, rate), secs = timed(
+                    dev, synth_mod.synth, state, row["text"], lang
+                )
                 path = out_dir / f"{name}.wav"
                 sf.write(path, wave, rate, subtype="PCM_16")
                 dur = len(wave) / rate
@@ -118,10 +132,17 @@ def main() -> int:
                 traceback.print_exc(file=sys.stderr)
             results.append(rec)
 
-    peak_alloc = torch.cuda.max_memory_allocated() // 2**20
-    peak_res = torch.cuda.max_memory_reserved() // 2**20
+    # torch counts only its own allocations; "reserved" adds its cached-but-free blocks.
+    cuda = dev == "cuda"
+    peak_alloc = torch.cuda.max_memory_allocated() // 2**20 if cuda else "n/a (cpu)"
+    peak_res = torch.cuda.max_memory_reserved() // 2**20 if cuda else "n/a (cpu)"
+    hw = (
+        torch.cuda.get_device_name(0)
+        if cuda
+        else f"cpu, {torch.get_num_threads()} threads"
+    )
 
-    tsv = FINDINGS / f"{args.model}_run_{stamp}.tsv"
+    tsv = FINDINGS / f"{run_name}_run_{stamp}.tsv"
     with tsv.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(
             f, fieldnames=list(results[0]), delimiter="\t", lineterminator="\n"
@@ -133,10 +154,12 @@ def main() -> int:
     rtfs = sorted(r["rtf"] for r in ok if r["rtf"] != "")
     summary = [
         f"model: {args.model}",
+        f"device: {dev}",
         f"run: {stamp}",
-        f"python {platform.python_version()} | torch {torch.__version__} | {torch.cuda.get_device_name(0)}",
+        f"python {platform.python_version()} | torch {torch.__version__} | {hw}",
         f"package: {getattr(synth_mod, 'PACKAGE_INFO', 'n/a')}",
         f"reference: {args.ref.name} ({sf.info(str(args.ref)).duration:.2f} s)",
+        f"note: {args.note or 'none'}",
         f"free_vram_at_start_mib: {free0} of {total}",
         f"load_and_condition_s: {load_s:.2f}",
         f"warmup_s: {warmup_s:.2f}",
@@ -147,7 +170,7 @@ def main() -> int:
         f"rtf_max: {rtfs[-1] if rtfs else 'n/a'}",
         f"per_clip: {tsv.name}",
     ]
-    (FINDINGS / f"{args.model}_run_{stamp}.txt").write_text(
+    (FINDINGS / f"{run_name}_run_{stamp}.txt").write_text(
         "\n".join(summary) + "\n", encoding="utf-8"
     )
     print("\n".join(summary))
