@@ -36,13 +36,17 @@ WARMUP_TEXT, WARMUP_LANG = "यह एक छोटा परीक्षण ह
 SEED = 0  # same seed for every model, so a rerun gives comparable clips
 
 
-def free_vram_mib() -> tuple[int, int]:
-    """Whole-GPU free/total from NVML, the same numbers nvidia-smi shows.
-    Unlike torch's counters this includes other programs (games, browsers)."""
+def gpu_state() -> tuple[int, int, int]:
+    """Whole-GPU free MiB, total MiB and utilisation % from NVML, the same
+    numbers nvidia-smi shows. Unlike torch's counters this includes other
+    programs (games, browsers), which is what can slow or starve a run."""
     pynvml.nvmlInit()
-    info = pynvml.nvmlDeviceGetMemoryInfo(pynvml.nvmlDeviceGetHandleByIndex(0))
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    # Percent of the last sample period the GPU was busy, before our model loads.
+    util = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
     pynvml.nvmlShutdown()
-    return info.free // 2**20, info.total // 2**20
+    return info.free // 2**20, info.total // 2**20, util
 
 
 def timed(device: str, fn, *args):
@@ -83,8 +87,8 @@ def main() -> int:
     with TEST_SET.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f, delimiter="\t"))
 
-    free0, total = free_vram_mib()
-    print(f"[{run_name}] free VRAM at start: {free0} / {total} MiB")
+    free0, total, util0 = gpu_state()
+    print(f"[{run_name}] free VRAM at start: {free0} / {total} MiB, GPU busy {util0}%")
     torch.manual_seed(SEED)
 
     state, load_s = timed(dev, synth_mod.load, args.ref.resolve(), ref_text, dev)
@@ -161,6 +165,7 @@ def main() -> int:
         f"reference: {args.ref.name} ({sf.info(str(args.ref)).duration:.2f} s)",
         f"note: {args.note or 'none'}",
         f"free_vram_at_start_mib: {free0} of {total}",
+        f"gpu_util_at_start_pct: {util0}",
         f"load_and_condition_s: {load_s:.2f}",
         f"warmup_s: {warmup_s:.2f}",
         f"peak_vram_allocated_mib: {peak_alloc}",

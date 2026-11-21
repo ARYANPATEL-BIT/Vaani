@@ -1,0 +1,17 @@
+model: xtts
+device: cpu
+run: 20261121-135404
+python 3.12.13 | torch 2.8.0+cu128 | cpu, 16 threads
+package: coqui-tts 0.28.0, weights coqui/XTTS-v2 (CPML)
+reference: clip_a_take1.wav (12.00 s)
+note: noisy reference, snr about 5 dB; raw; cpu timing pass
+free_vram_at_start_mib: 6652 of 8151
+gpu_util_at_start_pct: 12
+load_and_condition_s: 8.36
+warmup_s: 25.47
+peak_vram_allocated_mib: n/a (cpu)
+peak_vram_reserved_mib: n/a (cpu)
+clips_ok: 9 of 11
+rtf_median: 2.099
+rtf_max: 2.423
+per_clip: xtts_cpu_clip_a_take1_run_20261121-135404.tsv

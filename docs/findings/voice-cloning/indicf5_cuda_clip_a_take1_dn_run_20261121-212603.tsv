@@ -1,0 +1,12 @@
+id	kind	lang	chars	synth_ms	audio_s	rtf	wav	error
+h1	hindi	hi	57	10244	9.15	1.119	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/h1_hi.wav	
+h2	hindi-numbers	hi	73	11864	10.75	1.103	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/h2_hi.wav	
+h3	hindi-question	hi	58	10393	9.48	1.096	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/h3_hi.wav	
+e1	english	en	54	7348	3.4	2.159	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/e1_en.wav	
+e2	english-numbers	en	67	7529	4.22	1.782	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/e2_en.wav	
+m1	hinglish-romanized	hi	65	7627	4.1	1.862	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m1_hi.wav	
+m1	hinglish-romanized	en	65	7779	4.1	1.899	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m1_en.wav	
+m2	hinglish-romanized-question	hi	58	7396	3.66	2.021	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m2_hi.wav	
+m2	hinglish-romanized-question	en	58	7526	3.66	2.057	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m2_en.wav	
+m3	hinglish-mixed-script	hi	56	8734	6.19	1.412	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m3_hi.wav	
+m3	hinglish-mixed-script	en	56	8868	2.75	3.228	tools/voice_clone_eval/audio/out/indicf5_cuda_clip_a_take1_dn/20261121-212603/m3_en.wav	

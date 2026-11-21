@@ -15,6 +15,8 @@ dependencies = [
     "huggingface-hub>=0.24", # downloads the weights into ../models/
     "soundfile>=0.12",
     "nvidia-ml-py>=12",      # free-VRAM reading at run start (the same NVML that nvidia-smi uses)
+    "setuptools<81",         # resemble-perth imports pkg_resources, which setuptools 84 no longer ships;
+                             # without it perth's watermarker silently becomes None and model load fails
 ]
 
 [tool.uv]
