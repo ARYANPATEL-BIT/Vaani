@@ -16,6 +16,7 @@ dependencies = [
     "huggingface-hub>=0.24",
     "soundfile>=0.12",
     "nvidia-ml-py>=12",
+    "pyarrow<26",            # f5_tts imports datasets -> pyarrow; 26 needs numpy 2, IndicF5 pins numpy 1.26
 ]
 
 [tool.uv]

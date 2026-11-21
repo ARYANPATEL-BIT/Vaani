@@ -1,0 +1,37 @@
+# chatterbox: Resemble AI Chatterbox Multilingual candidate for the voice-cloning eval spike.
+# Code and weights: MIT (github.com/resemble-ai/chatterbox, ResembleAI/chatterbox on
+# Hugging Face). Every output carries Resemble's Perth audio watermark.
+# Its own uv project: it pins transformers==5.2.0 and gradio, which clash with the
+# other candidates.
+
+[project]
+name = "vce-chatterbox"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "chatterbox-tts==0.1.7",
+    "torch==2.8.0",          # cu128 build (Blackwell); see the override below
+    "torchaudio==2.8.0",
+    "huggingface-hub>=0.24", # downloads the weights into ../models/
+    "soundfile>=0.12",
+    "nvidia-ml-py>=12",      # free-VRAM reading at run start (the same NVML that nvidia-smi uses)
+    "setuptools<81",         # resemble-perth imports pkg_resources, which setuptools 84 no longer ships;
+                             # without it perth's watermarker silently becomes None and model load fails
+]
+
+[tool.uv]
+package = false
+# chatterbox-tts 0.1.7 pins torch==2.6.0, which has no kernels for this GPU
+# (RTX 5070 Laptop, Blackwell sm_120; first supported in the 2.7 cu128 builds).
+# The override replaces that pin with the 2.8.0 the other candidates use. A
+# deviation from upstream's tested pair, so a failure here may be ours, not theirs.
+override-dependencies = ["torch==2.8.0", "torchaudio==2.8.0"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
