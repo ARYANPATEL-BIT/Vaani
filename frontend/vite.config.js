@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
   // Vite refuses requests whose Host it does not know (a guard against DNS
   // rebinding). A quick Cloudflare tunnel gets a new random
   // <name>.trycloudflare.com each run; the leading dot allows any of them.
-  const allowedHosts = ['.trycloudflare.com']
+  const allowedHosts = ['.trycloudflare.com', '.ngrok-free.app', '.ngrok-free.dev']
 
   return {
     plugins: [react()],
