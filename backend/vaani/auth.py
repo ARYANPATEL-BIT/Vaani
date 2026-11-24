@@ -16,7 +16,9 @@ How a user gets in:
 No sessions table: the cookie carries everything and the signature proves we
 wrote it. read_cookie re-checks the allowlist every time, so removing an
 email locks that user out at the next request (after a restart, since
-settings are read once).
+settings are read once). With [auth] allow_all_emails true there is no
+allowlist: any verified Google account passes, and read_cookie checks only
+the signature and the expiry.
 
 This is the only module that imports google-auth (CLAUDE.md).
 """
@@ -66,7 +68,11 @@ def check_settings(cfg: AuthSettings) -> None:
             0 < len(secret) < MIN_SECRET_CHARS,
             f"VAANI_AUTH__SESSION_SECRET is shorter than {MIN_SECRET_CHARS} characters",
         ),
-        (not cfg.allowed_emails, "VAANI_AUTH__ALLOWED_EMAILS is empty"),
+        # An empty allowlist is only a mistake when the allowlist is used.
+        (
+            not cfg.allowed_emails and not cfg.allow_all_emails,
+            "VAANI_AUTH__ALLOWED_EMAILS is empty",
+        ),
         (not cfg.allowed_origins, "VAANI_AUTH__ALLOWED_ORIGINS is empty"),
     ]
     for failed, message in problems:
@@ -75,6 +81,14 @@ def check_settings(cfg: AuthSettings) -> None:
                 f"[auth] enabled is true but {message} (env or backend/.env). "
                 "Set it, or set VAANI_AUTH__ENABLED=false to run without sign-in."
             )
+    # Once, at startup: an open door should never be a quiet one.
+    if cfg.allow_all_emails:
+        log.warning("auth: all verified google accounts are allowed")
+
+
+def _email_allowed(email: str, cfg: AuthSettings) -> bool:
+    """The allowlist rule, shared by sign-in and every cookie read."""
+    return cfg.allow_all_emails or email in cfg.allowed_emails
 
 
 # --- the cookie -------------------------------------------------------------
@@ -115,7 +129,7 @@ def read_cookie(value: str | None, cfg: AuthSettings) -> dict | None:
     sub, email, expires_at, name = (
         base64.urlsafe_b64decode(padded).decode().split("|", 3)
     )
-    if int(expires_at) <= time.time() or email not in cfg.allowed_emails:
+    if int(expires_at) <= time.time() or not _email_allowed(email, cfg):
         return None
     return {"email": email, "name": name}
 
@@ -204,7 +218,7 @@ async def google_sign_in(body: GoogleSignIn, request: Request) -> Response:
     if not claims.get("email_verified"):
         return _fail(403, ErrorCode.AUTH_EMAIL_UNVERIFIED, "email not verified")
     email = claims["email"].lower()
-    if email not in cfg.allowed_emails:
+    if not _email_allowed(email, cfg):
         log.info("sign-in refused: account not on the allowlist")
         return _fail(403, ErrorCode.AUTH_NOT_ALLOWED, "this account is not allowed")
     name = claims.get("name") or email

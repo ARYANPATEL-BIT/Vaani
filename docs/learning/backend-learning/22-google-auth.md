@@ -90,6 +90,7 @@ mic-stop to first-audio path is untouched. **Not measured:** a real sign-in agai
 
 ## 6. Known issues
 
+- `[auth] allow_all_emails = true` lets any verified Google account in: the spend cap is one shared pool, so a stranger can use up the day's free LLM quota for everyone, and nobody can be locked out by email (only by turning it off or changing the secret).
 - No early revocation: a copied cookie works until it expires (7 days). Removing the
   email from the allowlist or changing the secret stops it, after a restart.
 - A cookie that expires mid-conversation is only seen at the next connect; the browser
