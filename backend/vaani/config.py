@@ -314,6 +314,10 @@ class AuthSettings(BaseModel):
     session_secret: SecretStr | None = None
     # The only Google accounts allowed in. Compared lowercased.
     allowed_emails: list[str] = []
+    # True: any Google account with a verified email gets in, and
+    # allowed_emails is ignored (it may be empty). Anyone can then spend the
+    # shared LLM quota, and one user cannot be locked out by email.
+    allow_all_emails: bool = False
     # Exact browser origins (scheme://host:port) allowed to sign in and to
     # open /ws/session. Also the CORS allow-list.
     allowed_origins: list[str] = []

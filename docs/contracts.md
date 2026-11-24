@@ -399,6 +399,8 @@ The client should then call `GET /auth/me`; on 401, send the user to sign in.
 With `[auth] enabled = false` neither check runs (v0.10 behaviour) and
 `/auth/me` answers `200 { "email": null, "name": null }`.
 
+With `[auth] allow_all_emails = true` (default false) there is no allowlist: any Google account with `email_verified` signs in, and check 2 drops the allowlist part (signature and expiry only); no response shape changes.
+
 **HTTP routes.** Errors use the socket's error shape,
 `{ "type": "error", "code": "...", "message": "..." }`. Browsers on another
 origin need `credentials: "include"`; the server's CORS allow-list is
@@ -456,3 +458,4 @@ These will be specified as their implementation days arrive:
 | 2026-10-14 | Aryan   | Editorial, no version change (fix/cut-turn-race): §2.4's stale "a turn that is flushed gets no transcript at all" replaced; a turn cut by a barge-in still gets its `transcript.final` (possibly after `audio.flush`), because its words are carried into the next reply |
 | 2026-11-11 | Aryan   | Shared protocol v0.10 (feat/reply-language): `session.start.reply_language` (`any` default, `en`, `hi`) and `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language`; §2.5 note: a forced language is asked of the model and picks the voice for the whole reply |
 | 2026-11-16 | Aryan   | Shared protocol v0.11 (feat/google-auth): §2.9 sign-in. `/ws/session` handshake refused (HTTP 403, no socket) without an allowed `Origin` and a valid `vaani_session` cookie; `POST /auth/google`, `GET /auth/me`, `POST /auth/logout`; `AUTH_REQUIRED`, `AUTH_INVALID_TOKEN`, `AUTH_EMAIL_UNVERIFIED`, `AUTH_NOT_ALLOWED`, `AUTH_BAD_ORIGIN`, `AUTH_UNAVAILABLE` (HTTP only). No new socket message or field |
+| 2026-11-24 | Aryan   | Editorial, no version change (fix/ui-polish-2): §2.9 notes `[auth] allow_all_emails`; when true any verified Google account passes and the handshake skips the allowlist. No message, field or status change |
