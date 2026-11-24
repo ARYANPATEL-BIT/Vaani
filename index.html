@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaani - a real-time voice agent for Hindi, English and Hinglish</title>
+<meta name="description" content="Vaani is a real-time voice agent for Hindi, English and Hinglish. Talk to it, interrupt it, and it speaks back.">
+<style>
+  :root {
+    --bg: #121110;
+    --text: #ece6dc;
+    --muted: #b3aca1;
+    --accent: #ff3d1f;
+    --line: #2a2725;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.25rem 2.5rem;
+  }
+  .mark {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 0.5rem;
+    vertical-align: 0.1em;
+  }
+  .name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+    line-height: 1.2;
+    margin: 0 0 1.5rem;
+    font-weight: 700;
+  }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); text-underline-offset: 0.18em; }
+  a:focus-visible, .button:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 3px;
+  }
+  .cta { margin: 2rem 0 1rem; }
+  .button {
+    display: inline-block;
+    background: var(--accent);
+    color: #121110;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    text-decoration: none;
+    padding: 0.85rem 1.6rem;
+    border-radius: 0.5rem;
+    min-height: 44px;
+  }
+  .button:hover { filter: brightness(1.08); }
+  .note {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    border-left: 3px solid var(--accent);
+    padding-left: 0.85rem;
+    margin-top: 1.25rem;
+  }
+  footer {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 3rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="name"><span class="mark" aria-hidden="true"></span>Vaani</p>
+  <h1>Vaani - a real-time voice agent for Hindi, English and Hinglish</h1>
+
+  <p>Vaani is a voice agent you talk to out loud. Speak in Hindi, English or a mix of the two, and it answers in speech. You can interrupt it mid-sentence: it stops talking and listens to you.</p>
+
+  <p>It listens through your microphone, transcribes what you said, writes a reply with a language model, and speaks the reply back to you, all in a few seconds.</p>
+
+  <p>Vaani is built by Aryan Patel as a B.Tech CSE (AI/ML) on-the-job learning project at Polaris School of Technology with Futuretalks Services Private Limited.</p>
+
+  <p class="cta"><a class="button" href="https://hatchback-backside-sliced.ngrok-free.dev">Open Vaani</a></p>
+
+  <p class="note">Vaani runs on the developer's own computer, so it is only online while that computer is running it. If the link does not load, it is offline for now.</p>
+</main>
+<footer>
+  <a href="privacy.html">Privacy policy</a>
+</footer>
+</body>
+</html>

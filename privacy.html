@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy - Vaani</title>
+<meta name="description" content="What Vaani collects, who processes it, and how to have it deleted.">
+<style>
+  :root {
+    --bg: #121110;
+    --text: #ece6dc;
+    --muted: #b3aca1;
+    --accent: #ff3d1f;
+    --line: #2a2725;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 2rem;
+  }
+  .back { font-size: 0.9375rem; margin: 0 0 2rem; }
+  h1 {
+    font-size: clamp(1.75rem, 6vw, 2.25rem);
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+  }
+  .updated { color: var(--muted); font-size: 0.9375rem; margin: 0 0 2rem; }
+  h2 {
+    font-size: 1.1875rem;
+    line-height: 1.3;
+    margin: 2.25rem 0 0.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+  }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+  li { margin: 0 0 0.6rem; }
+  strong { color: #fff8ee; }
+  a { color: var(--accent); text-underline-offset: 0.18em; overflow-wrap: anywhere; }
+  a:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  footer {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 3rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="back"><a href="index.html">&larr; Vaani home</a></p>
+  <h1>Privacy policy</h1>
+  <p class="updated">Last updated 24 November 2026</p>
+
+  <p>Vaani is a real-time voice agent built by Aryan Patel as a student learning project. This page explains what Vaani collects when you use it, who processes it, and how to have it deleted.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Your name and email address</strong>, from Google sign-in. Vaani never sees your Google password, and it does not ask for or receive any other Google data (no contacts, files, calendar or anything else).</li>
+    <li><strong>A session cookie.</strong> After you sign in, Vaani sets one signed, httpOnly cookie that keeps you signed in for up to 7 days. It holds your Google account ID, name, email and the time it expires. Page scripts cannot read it.</li>
+    <li><strong>Microphone audio.</strong> While a conversation is running, audio from your microphone is streamed to the Vaani server so it can be transcribed. The audio is not saved.</li>
+    <li><strong>Conversation records.</strong> For each conversation, Vaani stores what you said (as text), the replies, and timing measurements (how long each step took) in a database on the developer's computer. These records are used to measure and improve Vaani's speed and quality.</li>
+  </ul>
+
+  <h2>Who processes it</h2>
+  <ul>
+    <li><strong>Speech recognition and text-to-speech</strong> run on the developer's computer. Your audio is not sent to any speech or AI service; it only travels over the ngrok link described below.</li>
+    <li><strong>Writing replies.</strong> The text of your messages (and the earlier messages of the same conversation) is sent to <a href="https://groq.com/privacy-policy/">Groq</a> and, as a fallback when Groq is unavailable, to <a href="https://policies.google.com/privacy">Google Gemini</a>, which write the replies. Their privacy policies apply to what they receive.</li>
+    <li><strong>The public link</strong> goes through <a href="https://ngrok.com/privacy">ngrok</a>, which forwards your connection to the developer's computer.</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li>We do not sell or share your data with anyone.</li>
+    <li>There are no ads and no third-party analytics or tracking.</li>
+    <li>Your data is not used to train any model.</li>
+  </ul>
+
+  <h2>Deleting your data</h2>
+  <p>You can sign out at any time; signing out removes the session cookie from your browser.</p>
+  <p>To have your conversation records deleted, email <a href="mailto:aryan.void888@gmail.com">aryan.void888@gmail.com</a>. The records are not linked to your account, so please say roughly when you used Vaani, and they will be found and deleted.</p>
+
+  <h2>Contact</h2>
+  <p>Aryan Patel<br>
+  <a href="mailto:aryan.void888@gmail.com">aryan.void888@gmail.com</a></p>
+</main>
+<footer>
+  <a href="index.html">Back to Vaani</a>
+</footer>
+</body>
+</html>
