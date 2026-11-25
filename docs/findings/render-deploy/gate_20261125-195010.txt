@@ -1,0 +1,26 @@
+render-deploy gate run at 2026-11-25 19:50:10
+label: run 1, defaults
+image: vaani:render-deploy sha256:01f79061d520
+limits: --memory=512m --memory-swap=512m (no swap) --cpus=0.1; PORT=10000; engine groq (image ENV), served_personas ["default"] (image ENV), auth off (-e)
+extra env: none
+startup: docker run -> first /health 200 in 204.5 s
+GET /: 200 text/html; charset=utf-8, has #root div: True
+GET /talk (spa fallback): 200, same index.html: True
+pid 1: /app/backend/.venv/bin/python .venv/bin/uvicorn vaani.app:ap
+idle: uvicorn VmRSS 323 MB, VmHWM (peak RSS) 323 MB; cgroup current 281 MB (anon 275, file cache 0), cgroup peak 283 MB
+
+2 turns, scripts/measure_turn.py (client clock):
+  turn 1:
+  error: {'type': 'error', 'code': 'ASR_FAILED', 'message': 'transcription failed: timed out after 5.0 s'}
+  measure_turn exit 1: TimeoutError: no reply within the timeout (traceback trimmed by hand: it held a local path)
+after 2 turns: uvicorn VmRSS 324 MB, VmHWM (peak RSS) 324 MB; cgroup current 283 MB (anon 275, file cache 0), cgroup peak 284 MB
+
+server log, timing lines only (no transcripts or replies):
+  INFO: vaani.db: database /app/backend/data/vaani.db open (WAL, schema v1)
+  INFO: vaani.vad: VAD model loaded in 289.5 ms
+  INFO: vaani.tts: piper hi_IN-priyamvada-medium (22050 Hz) loaded and warmed up in 70.50 s
+  INFO: vaani.tts: piper en_US-kristin-medium (22050 Hz) loaded and warmed up in 119.20 s
+  INFO:     Application startup complete.
+  INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
+
+verdict inputs: peak RSS (VmHWM) 324 MB vs 470 limit; max chunk rtf none vs 0.8 limit over 0 chunks

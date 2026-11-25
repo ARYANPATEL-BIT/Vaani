@@ -1,0 +1,51 @@
+render-deploy notes, 2026-11-25 (feat/render-deploy, on top of dev 6b30490)
+
+Numbers measured in the session that built feat/render-deploy and not written
+by a script: copied here by hand so the learning document can cite a file.
+
+1. Step 0: RAM on the laptop, before any change (Windows 11, all 4 voices)
+   Server: uvicorn on :8011, VAANI_ASR__ENGINE=groq, VAANI_AUTH__ENABLED=false,
+   a fresh database file. Read with PowerShell Get-Process (working set, the
+   Windows counterpart of RSS; private = committed bytes).
+     idle after startup:  working set 567 MB, private 1340 MB
+     after 2 turns:       working set 607 MB, peak working set 609 MB, private 1427 MB
+   The 2 turns: docs/findings/groq-primary/measure_turn_20261125-191840.txt
+
+   Per component, loaded one at a time in one process (working set added):
+     python interpreter                     24 MB (total)
+     numpy                                 +13
+     fastapi, uvicorn, httpx, pydantic     +30
+     google-auth, requests                  +8
+     onnxruntime import                    +17
+     vaani modules and Settings             +4
+     sqlite, empty database                 +1
+     silero vad                            +26
+     piper hi_IN-priyamvada-medium         +95
+     piper en_US-kristin-medium            +98
+     piper hi_IN-pratham-medium            +93
+     piper en_US-norman-medium            +168 (includes the 63 MB read for the hash check)
+   numpy's private bytes jump by 749 MB at import on Windows (reserved, not
+   resident); working set is the number that matters for a RAM limit.
+   With engine=groq, faster_whisper, ctranslate2, torch and av are NOT imported.
+
+2. Laptop latency before and after the code change (6 turns each, same setup)
+     before (dev):  measure_turn_20261125-193742.txt  first audio p50 1861 ms, TTS stage p50 37 ms
+     after:         measure_turn_20261125-194255.txt  first audio p50 1951 ms, TTS stage p50 35 ms
+   The +90 ms is the model's first token (p50 388 -> 478 ms, Groq over the
+   network); ASR p50 1462 -> 1465 ms. Laptop Piper real-time factor 0.03-0.05
+   per chunk (server log of the after run).
+
+3. Docker image vaani:render-deploy (Docker 28.4, linux/amd64)
+     388 MB compressed (what a host downloads), about 906 MB unpacked.
+     Before UV_NO_CACHE=1 the image was 1.99 GB on disk: uv's download cache
+     (about 540 MB) stayed in the dependency layer.
+     site-packages 532 MB (faster-whisper and its libraries are installed but
+     never imported with engine=groq).
+
+4. Gate runs (docker run --memory=512m --memory-swap=512m --cpus=0.1)
+     run 1, ONNX Runtime default threads:  gate_20261125-195010.txt
+     run 2, Piper on 1 thread:             gate_20261125-195919.txt
+     run 3, 1 thread + MALLOC_ARENA_MAX=2: gate_20261125-200939.txt (the shipped settings)
+   Plus one start with auth ON and dummy values (no CPU limit): /health 200,
+   /auth/me 401 AUTH_REQUIRED, /ws/session upgrade 403 without a cookie and
+   403 with a foreign Origin, /login 200.

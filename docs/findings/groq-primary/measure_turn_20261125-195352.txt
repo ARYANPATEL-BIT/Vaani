@@ -1,0 +1,8 @@
+measure_turn run at 2026-11-25 19:53:52
+commit 6b30490 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+server: ws://127.0.0.1:8011/ws/session (render-deploy gate: run 1, defaults)
+clip: speech_16k_mono.wav, 2 turns
+server: {'type': 'session.started', 'session_id': 'f60cb032516447a288c593ddf1263cbe', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  error: {'type': 'error', 'code': 'ASR_FAILED', 'message': 'transcription failed: timed out after 5.0 s'}

@@ -148,3 +148,28 @@ def test_old_asr_setting_names_stop_startup(monkeypatch, old, new) -> None:
         Settings(_env_file=None)
     # Only the variable's NAME is in the message, never what it was set to.
     assert "secret-looking-value" not in str(info.value)
+
+
+# --- served personas (feat/render-deploy) --------------------------------------
+
+
+def test_served_personas_unset_means_every_persona() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.served_personas == list(settings.personas)
+
+
+def test_served_personas_from_env(monkeypatch) -> None:
+    """The Docker image's setting: a JSON list in one variable."""
+    monkeypatch.setenv("VAANI_SERVED_PERSONAS", '["default"]')
+
+    assert Settings(_env_file=None).served_personas == ["default"]
+
+
+@pytest.mark.parametrize(
+    ("served", "message"),
+    [(["default", "nobody"], "nobody"), ([], "empty")],
+)
+def test_bad_served_personas_stop_startup(served, message) -> None:
+    with pytest.raises(ValidationError, match=message):
+        Settings(_env_file=None, served_personas=served)
