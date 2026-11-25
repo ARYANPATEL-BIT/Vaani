@@ -14,9 +14,10 @@ or the gitignored backend/.env file.
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, SecretStr, field_validator
+from pydantic import BaseModel, SecretStr, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -106,6 +107,14 @@ class BargeInSettings(BaseModel):
     threshold: float = 0.5
 
 
+# Settings that moved out of [asr.whisper] into [asr] (feat/groq-stt), because
+# both engines now read them: old key -> its new environment variable.
+_MOVED_TO_ASR = {
+    "language": "VAANI_ASR__LANGUAGE",
+    "initial_prompt": "VAANI_ASR__INITIAL_PROMPT",
+}
+
+
 class WhisperSettings(BaseModel):
     """faster-whisper parameters, under [asr.whisper] in config.toml.
 
@@ -121,14 +130,50 @@ class WhisperSettings(BaseModel):
     compute_type: str
     # CPU threads per inference; 0 lets CTranslate2 choose.
     cpu_threads: int
-    # Forced language code. Never auto-detect (see docs/spikes/asr-hinglish.md).
-    language: str
-    # Example text in the style we want back (romanized Hinglish).
-    initial_prompt: str
     # Candidate sequences kept while decoding; higher is slower, slightly better.
     beam_size: int
     # Temperatures tried in turn when a decode looks bad. [0.0] = one decode.
     temperature: list[float]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _refuse_moved_keys(cls, data: object) -> object:
+        """Fail on an old-style language/prompt setting instead of ignoring it.
+
+        A stale VAANI_ASR__WHISPER__LANGUAGE in backend/.env (or the old key
+        left in config.toml) would otherwise be dropped without a word, since
+        unknown keys are ignored. "before" means this sees the raw merged
+        values from every source, before pydantic checks the fields. Only the
+        key is named in the error, never its value.
+        """
+        if isinstance(data, dict):
+            for key, new_var in _MOVED_TO_ASR.items():
+                if key in data:
+                    raise ValueError(
+                        f"asr.whisper.{key} has moved to asr.{key}: rename "
+                        f"VAANI_ASR__WHISPER__{key.upper()} to {new_var} in "
+                        f"backend/.env or the environment (or move the key "
+                        f"from [asr.whisper] to [asr] in config.toml)"
+                    )
+        return data
+
+
+class GroqAsrSettings(BaseModel):
+    """Groq's hosted Whisper, under [asr.groq] in config.toml.
+
+    Used only when [asr].engine = "groq". The API key is the same
+    VAANI_GROQ_API_KEY the LLM provider uses (Settings.groq_api_key).
+    """
+
+    # Exact model ID, e.g. "whisper-large-v3".
+    model: str
+    # Groq's OpenAI-compatible API root; /audio/transcriptions is appended.
+    base_url: str
+    # Sampling temperature, 0 to 1. 0 = always the most likely text.
+    temperature: float
+    # Per-process cap on transcription requests, checked before each one is
+    # sent. Separate from [llm].max_requests_per_process.
+    max_requests_per_process: int
 
 
 class AsrSettings(BaseModel):
@@ -136,17 +181,24 @@ class AsrSettings(BaseModel):
 
     # When false the gateway never transcribes and no model is loaded.
     enabled: bool = True
-    # Which recogniser implementation to build. Only "whisper" exists today.
-    engine: str
+    # Which recogniser to build: local faster-whisper, or Groq's hosted Whisper.
+    engine: Literal["faster-whisper", "groq"]
     # Process-wide inference threads; also the number of sessions that can be
-    # transcribed at the same moment.
+    # transcribed at the same moment. faster-whisper only.
     max_concurrent: int
     # Longest we wait for one transcription before giving up on it.
     timeout_s: float
     # Re-decode the growing utterance this often while the user speaks, to
     # produce transcript.partial. 0 = partials off.
     partial_interval_ms: int
+    # Forced language code, for both engines. Never auto-detect (see
+    # docs/spikes/asr-hinglish.md).
+    language: str
+    # Example text in the style we want back (romanized Hinglish), for both
+    # engines: faster-whisper's initial_prompt, Groq's prompt.
+    initial_prompt: str
     whisper: WhisperSettings
+    groq: GroqAsrSettings
 
 
 class PersonaVoice(BaseModel):
@@ -356,6 +408,12 @@ class Settings(BaseSettings):
         # Ignore unknown keys rather than erroring, so config.toml can carry
         # comments/keys this version does not yet model.
         extra="ignore",
+        # A config error names the field and the reason but never the value:
+        # pydantic would otherwise append "input_value=..." to the message,
+        # which could print a secret, or a stale value from backend/.env
+        # (WhisperSettings._refuse_moved_keys). Only the outermost model's
+        # setting counts, so it is set here, once, for every section.
+        hide_input_in_errors=True,
     )
 
     # Non-secret settings (filled from config.toml, overridable by env).

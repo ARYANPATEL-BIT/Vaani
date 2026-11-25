@@ -29,8 +29,10 @@ FRAME_S = 0.020
 
 
 def make_client(recognizer: Recognizer, partial_interval_ms: int = 0) -> TestClient:
-    base = Settings()
+    # _env_file=None: backend/.env overrides must not change these tests.
+    base = Settings(_env_file=None)
     settings = Settings(
+        _env_file=None,
         gateway=GatewaySettings(echo_enabled=False),
         asr=base.asr.model_copy(
             update={"enabled": True, "partial_interval_ms": partial_interval_ms}

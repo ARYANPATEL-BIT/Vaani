@@ -35,8 +35,9 @@ T = TypeVar("T")
 class Cancelled(Exception):
     """Internal signal: the token was set while we were waiting.
 
-    Raised by `until_cancelled`, caught inside `stream_lines`. It never leaves
-    this module: to every caller, a cancelled stream simply ends.
+    Raised by `until_cancelled`, caught inside `stream_lines` and inside
+    vaani/asr/groq.py (a one-shot request, not a stream). It never reaches
+    their callers: to them, a cancelled call simply ends.
     """
 
 

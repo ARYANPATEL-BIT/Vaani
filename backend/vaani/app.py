@@ -122,13 +122,15 @@ def create_app(
         )
     # Same for speech recognition: load (and warm up) once at startup, so a
     # bad model name or a missing GPU fails here, not on a user's first turn.
-    # build_recognizer is cached too. A misconfiguration raises: the server
-    # refuses to start rather than run without transcripts.
+    # build_recognizer caches the Whisper model. With [asr].engine = "groq"
+    # there is no model: a missing VAANI_GROQ_API_KEY fails here instead. A
+    # misconfiguration raises: the server refuses to start rather than run
+    # without transcripts.
     if recognizer is not None:
         app.state.recognizer = recognizer
     elif settings.asr.enabled:
         app.state.recognizer = build_recognizer(
-            settings.asr, settings.audio.sample_rate
+            settings.asr, settings.audio.sample_rate, settings.groq_api_key
         )
     # The language model chain, built once and shared by every session: its
     # HTTP clients keep connections (and their TLS handshakes) open between

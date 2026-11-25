@@ -35,9 +35,9 @@ A few words used throughout:
 | Voice activity detection (VAD) | Silero VAD v6.2.3 (ONNX file) run with onnxruntime 1.30.0 on CPU | Small neural model, no PyTorch | `backend/vaani/vad.py:72-104` |
 | End of turn | Our own endpointer: 700 ms of silence, counted in frames | No timers, no network in the hot path | `backend/vaani/endpoint.py`, `[endpoint].end_of_turn_silence_ms` |
 | Push-to-talk | Our own press buffer, used instead of the endpointer | The stop press ends the turn with no wait | `backend/vaani/ptt.py` |
-| Speech recognition (ASR) | faster-whisper 1.2.1 (CTranslate2 4.8.2); committed default `small` / `cpu` / `int8` | Faster than original Whisper, no PyTorch | `backend/vaani/asr/whisper.py`, `[asr.whisper]` |
+| Speech recognition (ASR) | faster-whisper 1.2.1 (CTranslate2 4.8.2); committed default `small` / `cpu` / `int8`. Or, with `[asr].engine = "groq"`, Groq's hosted `whisper-large-v3` over httpx (feat/groq-stt) | Faster than original Whisper, no PyTorch; Groq for a machine with no GPU | `backend/vaani/asr/whisper.py`, `[asr.whisper]`; `backend/vaani/asr/groq.py`, `[asr.groq]` |
 | Language model (LLM) | Groq `openai/gpt-oss-20b` first, Gemini `gemini-3.5-flash-lite` as failover, over REST with httpx 0.28.1 | We own the HTTP stream, so a cancel really closes it | `backend/vaani/providers/chain.py`, `[llm].provider_order` |
-| Spend guard | A per-process request counter, 200 requests | Checked before any paid request is sent | `backend/vaani/spend.py:33-45`, `[llm].max_requests_per_process` |
+| Spend guard | A per-process request counter, 200 requests; a second, separate one for Groq STT requests | Checked before any paid request is sent | `backend/vaani/spend.py:33-45`, `[llm].max_requests_per_process`, `[asr.groq].max_requests_per_process` |
 | Reply chunking | Our own clause chunker | Speech starts while the model is still writing | `backend/vaani/chunker.py`, `[chunker]` |
 | Speech synthesis (TTS) | piper-tts 1.8.0 (espeak-ng + a VITS network on onnxruntime), local CPU | No network hop and no cost per chunk | `backend/vaani/tts/piper.py` |
 | Clock line | Python `zoneinfo` with tzdata 2026.5 | The model gets the real date and time | `backend/vaani/reply.py:91,180`, `[llm].timezone` |
@@ -45,13 +45,14 @@ A few words used throughout:
 | Sign-in (feat/google-auth) | Google ID tokens checked with google-auth 2.62.2 (+ requests 2.34.2); our own HMAC-SHA256 cookie (standard `hmac`); FastAPI's `CORSMiddleware` | Only allowlisted Google accounts get in, so strangers cannot spend the free LLM quota; no passwords stored, no sessions table | `backend/vaani/auth.py`, `app.py`, `[auth]` |
 | Tests and lint | pytest 9.1.1, ruff 0.16.8; frontend `npm test` (plain Node scripts) | Every stage tested with fakes, no models or keys | `backend/tests/`, `frontend/package.json:10` |
 | CI | GitHub Actions, uv 0.11.28, `uv sync --frozen` | Every PR checked the same way on a clean machine | `.github/workflows/ci.yml`, `asr-slow.yml` |
-| External: Groq | Groq's OpenAI-compatible REST API; key in the `Authorization` header | Fastest first token we measured (p50 788 ms, `config.toml:221-226`) | `providers/groq.py:89`, `[llm.groq]` |
+| External: Groq | Groq's OpenAI-compatible REST API; key in the `Authorization` header | Fastest first token we measured (p50 788 ms, `config.toml:265-270`) | `providers/groq.py:89`, `[llm.groq]` |
+| External: Groq STT | Groq's OpenAI-compatible `/audio/transcriptions`, one multipart upload of the turn's WAV; the same key as the LLM. Only with `[asr].engine = "groq"`; **the user's audio leaves the machine** | Whisper with no local GPU: 253-488 ms `turn_ended` to `transcript.final`, 3 clips, one request each (`docs/findings/groq-stt/smoke_20261125.txt`) | `asr/groq.py`, `[asr.groq]` |
 | External: Gemini | Gemini REST API with `alt=sse`; key in the `x-goog-api-key` header | Failover when Groq is rate-limited, slow or down | `providers/gemini.py:93-94`, `[llm.gemini]` |
-| External: Hugging Face | Downloads only: the Whisper model on first use (not pinned), Piper voices from a pinned revision | No model is committed except Silero; each download is checked where a pin exists | `config.toml:145` (Whisper), `config.toml:279` and `backend/scripts/fetch_models.py` (voices) |
+| External: Hugging Face | Downloads only: the Whisper model on first use (not pinned), Piper voices from a pinned revision | No model is committed except Silero; each download is checked where a pin exists | `config.toml:170` (Whisper), `config.toml:323` and `backend/scripts/fetch_models.py` (voices) |
 
 Python is 3.11 (`versions.md`). Licences that need care: piper-tts is
 GPL-3.0-or-later, and both Hindi voices are CC BY-NC-SA 4.0 (non-commercial)
-(`versions.md:107-110`, `config.toml:286-287`).
+(`versions.md:107-110`, `config.toml:330-331`).
 
 ## 2. Our API: what the backend exposes and the browser uses
 
@@ -132,11 +133,11 @@ models are in `backend/vaani/protocol.py`; the browser side is in
 |---|---|---|---|
 | `session.started` | `session_id`, `mode`, `reply_language` (v0.10) (`protocol.py:200-206`) | After an accepted `session.start`, and again for any repeat, with the FIRST session's values (`gateway.py:201-207,254-258`) | Marks the session ready, so frames start to flow. The server's `mode` and `reply_language` are the ones used and shown; no `reply_language` (an older server) reads as `"any"` (`useAudioCapture.js:311-321`, `turnContracts.js:192`) |
 | `turn.state` | `turn_id` (null only in `idle`), `state`: `idle`, `listening`, `thinking`, `speaking`, `cancelling` (`protocol.py:111-123,256-261`) | On every state change. The only way to change state is `TurnStateMachine.move_to` (`turn_state.py:68-81`); the legal moves are listed in `turn_state.py:31-44` | Shows the state (`useTurnState.js:39-51`). Remembers the agent's turn while it is busy, for a ptt local stop; clears the error banner on `listening` (`useAudioCapture.js:347-359`). On `cancelling`, marks the reply interrupted (`ConversationPage.jsx:123-128`) |
-| `transcript.partial` | `turn_id`, `text` (`protocol.py:231-237`) | **Never today**: `[asr].partial_interval_ms = 0` turns partials off (`config.toml:135`) | Would replace the partial line (`ConversationPage.jsx:116-117`) |
+| `transcript.partial` | `turn_id`, `text` (`protocol.py:231-237`) | **Never today**: `[asr].partial_interval_ms = 0` turns partials off (`config.toml:146`) | Would replace the partial line (`ConversationPage.jsx:116-117`) |
 | `transcript.final` | `turn_id`, `text`, `duration_ms`, `language` (`protocol.py:240-253`) | Once per turn, when Whisper has finished (`asr/runner.py:230-232`). A turn cut by a barge-in still gets it, possibly after the next turn's `listening` (`contracts.md` 2.4) | Adds the user's line (`ConversationPage.jsx:118-119`). Never dropped (`turnFilter.js:13-16`) |
 | `agent.text` | `turn_id`, `delta` (`protocol.py:264-269`) | Each piece of text as the model streams it, while the state is still `thinking` (`reply.py:205`) | Appends it (`ConversationPage.jsx:132-134`). Dropped if the turn was flushed (`turnFilter.js:43-49`) |
 | `agent.done` | `turn_id`, `text` (the whole reply) (`protocol.py:272-277`) | The reply is complete, before `audio.end` (`reply.py:262`) | Commits the reply line (`ConversationPage.jsx:135-137`). Dropped if flushed |
-| `audio.start` | `turn_id`, `sample_rate` (`protocol.py:203-211`) | Before the reply's first frame, right after `turn.state speaking` (`speaker.py:205-210`). 22050 for every voice today (`config.toml:263-264`) | Sets the playback rate (`ConversationPage.jsx:111-113`, `usePlaybackQueue.js:211-215`). The filter records whose frames follow (`turnFilter.js:43-47`) |
+| `audio.start` | `turn_id`, `sample_rate` (`protocol.py:203-211`) | Before the reply's first frame, right after `turn.state speaking` (`speaker.py:205-210`). 22050 for every voice today (`config.toml:307-308`) | Sets the playback rate (`ConversationPage.jsx:111-113`, `usePlaybackQueue.js:211-215`). The filter records whose frames follow (`turnFilter.js:43-47`) |
 | audio frame (binary) | 16-bit little-endian PCM, mono, at `audio.start`'s rate, 20 ms: 882 bytes at 22050 Hz (`speaker.py:192-194`) | As each chunk is synthesised; the token is checked before every send (`speaker.py:160-167`) | Scheduled right after the previous one on the audio clock (`usePlaybackQueue.js:113-150`). Dropped if its turn was flushed (`useAudioCapture.js:284-293`) |
 | `audio.end` | `turn_id` (`protocol.py:214-218`) | After the last frame of a finished reply (`speaker.py:169-173` via `reply.py:264`), or before `TTS_FAILED` if audio had started (`reply.py:243`) | Nothing: the scheduled audio plays out. No handler in `ConversationPage.jsx:107-156`. Dropped if flushed |
 | `audio.flush` | `turn_id` (`protocol.py:221-228`) | A barge-in, as the first message out (`barge_in.py:181-182`, `session.py:105-138`) | Marks the turn flushed, fades all audio to zero in 10 ms and stops it (`usePlaybackQueue.js:157-192`), sends `flush.ack`, marks the reply interrupted (`useAudioCapture.js:312-340`, `ConversationPage.jsx:142-144`) |
@@ -252,21 +253,34 @@ sent, and T1's own `transcript.final` may arrive after step 6. In ptt mode, step
 | Vite 8.3.0 | Build tool and dev server | Fast start, little configuration | Webpack | Slower to configure and to run (`frontend-learning/01-frontend-setup.md:116`) |
 | `AudioWorklet` | Code that runs on the browser's audio thread | Mic frames are built there, so UI work cannot drop audio (`audio-processor.js`) | `ScriptProcessorNode` | Runs on the main UI thread, drops frames under load, and is deprecated (`PROJECT.md` section b) |
 
-**Whisper settings** (`[asr]`, `[asr.whisper]`, `asr/whisper.py`)
+**Whisper settings** (`[asr]`, `[asr.whisper]`, `asr/whisper.py`). Since feat/groq-stt,
+`language` and `initial_prompt` sit in `[asr]` (env `VAANI_ASR__LANGUAGE`,
+`VAANI_ASR__INITIAL_PROMPT`) because the Groq engine reads them too; the old
+`VAANI_ASR__WHISPER__*` names stop startup with a message naming the new ones
+(`config.py` `WhisperSettings`).
 
 | Setting | Value | Why | The one alternative | Why not |
 |---|---|---|---|---|
-| `model` / `device` / `compute_type` | `small` / `cpu` / `int8` (`config.toml:146-148`) | Runs on any laptop and in CI; CPU by default is a project rule | `large-v3` / `cuda` / `float16` | Needs a GPU. It is the only setting that handles Hinglish, so it is used as a local `.env` override only (`config.toml:138-144`) |
-| `language` | `"hi"` (`config.toml:156`) | Auto-detection flips between hi, ur and la for one speaker; `"en"` translates Hindi into English (`config.toml:153-155`) | Auto-detect | The flips above |
-| `initial_prompt` | One romanized Hinglish sentence (`config.toml:160`) | Nudges Whisper to keep English words in Latin letters | No prompt | English words come back in other scripts more often (`config.toml:158-159`) |
-| `beam_size` | 5 (`config.toml:163`) | faster-whisper's default | 1 (greedy) | Not measured either way |
-| `temperature` | `[0.0]`: one decode, no retries (`config.toml:168`) | The default retries turned one clip into a 62 s stall (`config.toml:165-167`) | The default retry ladder 0.2 ... 1.0 | A wrong transcript can be recovered from; a 62 s stall loses the turn |
+| `model` / `device` / `compute_type` | `small` / `cpu` / `int8` (`config.toml:171-173`) | Runs on any laptop and in CI; CPU by default is a project rule | `large-v3` / `cuda` / `float16` | Needs a GPU. It is the only setting that handles Hinglish, so it is used as a local `.env` override only (`config.toml:163-169`) |
+| `language` | `"hi"` (`config.toml:155`) | Auto-detection flips between hi, ur and la for one speaker; `"en"` translates Hindi into English (`config.toml:152-154`) | Auto-detect | The flips above |
+| `initial_prompt` | One romanized Hinglish sentence (`config.toml:160`) | Nudges Whisper to keep English words in Latin letters | No prompt | English words come back in other scripts more often (`config.toml:157-158`) |
+| `beam_size` | 5 (`config.toml:179`) | faster-whisper's default | 1 (greedy) | Not measured either way |
+| `temperature` | `[0.0]`: one decode, no retries (`config.toml:184`) | The default retries turned one clip into a 62 s stall (`config.toml:181-183`) | The default retry ladder 0.2 ... 1.0 | A wrong transcript can be recovered from; a 62 s stall loses the turn |
 | `vad_filter` | Always on, a constant (`asr/whisper.py:40-43`) | Without it Whisper invents words into silence: 5 s of silence took 13 s | Off | The invented words and the stall |
 | `task` | Always `transcribe` (`asr/whisper.py:37-39`) | `translate` outputs English and loses the words said | `translate` | Never a valid choice here |
-| `max_concurrent` | 2 (`config.toml:124`) | Our own pool of 2 threads; one decode per session at a time (`asr/runner.py:13-17`) | asyncio's shared default thread pool | Its size is not ours, and other work queues on it (`asr/whisper.py:112-113`) |
-| `timeout_s` | 5.0 (`config.toml:129`) | Bounds how long a turn waits for its transcript | No timeout | A stuck decode would leave the user waiting for ever |
+| `max_concurrent` | 2 (`config.toml:132`) | Our own pool of 2 threads; one decode per session at a time (`asr/runner.py:13-17`) | asyncio's shared default thread pool | Its size is not ours, and other work queues on it (`asr/whisper.py:115-116`) |
+| `timeout_s` | 5.0 (`config.toml:137`) | Bounds how long a turn waits for its transcript | No timeout | A stuck decode would leave the user waiting for ever |
 
-**The Piper voices** (`[tts.piper.voices]`, `config.toml:295-322`). Each persona has
+**Groq STT settings** (`[asr.groq]`, `asr/groq.py`, used only with `engine = "groq"`)
+
+| Setting | Value | Why | The one alternative | Why not |
+|---|---|---|---|---|
+| `model` | `whisper-large-v3` (`config.toml:196`) | With our romanized prompt it wrote Hindi in Devanagari and English in Latin, like local GPU large-v3 (`docs/findings/groq-stt/script_20261125.txt`, runs b and d) | `whisper-large-v3-turbo`, $0.04 an audio hour against $0.111 (`config.toml:193-195`) | With the same prompt it wrote even pure Hindi in Latin letters (`docs/findings/groq-stt/smoke_20261125.txt`); Latin Hindi breaks the script the server reads (`vaani/language.py`) |
+| `temperature` | 0.0 (`config.toml:203`) | The most likely text; the same intent as `[asr.whisper]`'s `[0.0]` | A higher value | More varied text, nothing to gain for transcription |
+| `max_requests_per_process` | 200 (`config.toml:212`) | Its own cap, checked before each request is sent | Share `[llm]`'s cap | One turn = one STT + one LLM request, so 200 would quietly mean 100 turns |
+| Partials | Refused at startup (`asr/__init__.py` `_build_groq`) | Each partial is a paid request billed as at least 10 s; the limit is 20 a minute (`config.toml:205-211`) | Allow them | One user would hit the rate limit within seconds |
+
+**The Piper voices** (`[tts.piper.voices]`, `config.toml:339-366`). Each persona has
 one Hindi and one English voice; the first chunk of a reply picks one by its script
 (any Devanagari: Hindi) and keeps it for the whole reply (`speaker.py:187-203`).
 
@@ -278,7 +292,7 @@ one Hindi and one English voice; the first chunk of a reply picks one by its scr
 
 All four output 22050 Hz, read from the voice file, never assumed (`tts/piper.py:110`).
 The voice files are fetched from a pinned revision and checked by sha256 at fetch and
-at load (`config.toml:275-283`, `tts/piper.py:69-83`).
+at load (`config.toml:319-327`, `tts/piper.py:69-83`).
 
 ## 4. The database
 
@@ -477,10 +491,10 @@ lives in `telemetry.py:93` and that `turn_stats.py` imports.
   `Session.history`, a list in memory, last 6 exchanges (`session.py:59-62`,
   `[llm].history_turns`). Only `turn_stats.py` reads the file (`schema.sql:2-3`).
   Why: no disk read on the turn path, and a new session always starts clean.
-- **It stores no audio** (`config.toml:358-360`). Why: 30 s of audio is about 1 MB
+- **It stores no audio** (`config.toml:402-404`). Why: 30 s of audio is about 1 MB
   (`config.toml:89-90`); text and numbers are enough for latency statistics; and audio
   is the most personal data. The file holds what users said, so `backend/data/` is
-  gitignored (`config.toml:365-366`).
+  gitignored (`config.toml:409-410`).
 - **No migrations, no deletes, no retention limit.** A file with another schema
   version stops the server (`db.py:93-97`). Rows are only ever inserted, and one
   `UPDATE` per session.
@@ -496,9 +510,9 @@ not measured by us; where a cell says "not measured", it means exactly that.
 | | Ours | Pipecat or LiveKit Agents (voice agent frameworks) | All hosted: Deepgram ASR + ElevenLabs TTS | Fully local, with a local LLM |
 |---|---|---|---|---|
 | Control over turn-taking | Full: our endpointer, barge-in judge, state machine and push-to-talk (`endpoint.py`, `barge_in.py`, `turn_state.py`, `ptt.py`) | The framework's own turn and interruption logic; we would configure it rather than own it | As ours, if we keep our gateway; only the ASR and TTS stages change | As ours |
-| Cost | Free: VAD, ASR and TTS run locally; the LLM runs on Groq's free tier, with Gemini as failover; a cap of 200 requests per process (`spend.py`) | The frameworks are open source; cost depends on the services plugged in | Paid per use beyond any trial credit: breaks free-only | Free in money |
-| Latency | Last measured whole turn, last voice to first audio frame sent: **p50 3958 ms**, 12 turns, cuda/large-v3, Groq `qwen/qwen3.8-27b` (`docs/findings/groq-primary/compare_primaries_20261008-110611.txt`). Of that, 3080 ms is up to `transcript.final`. Today's Groq model is `openai/gpt-oss-20b`, about 330 ms slower to first token (`config.toml:221-225`); the whole turn has not been re-measured with it | Not measured | Not measured. Streaming recognition could remove the wait for a whole-utterance decode, at the cost of a network hop per stage | Not measured. The model's first token would depend on our own hardware |
-| Hardware | CPU by default; Hinglish needs `large-v3` on a GPU (`config.toml:138-144`) | Depends on the services used | Little: a browser and a small server | A GPU-class machine for the LLM, shared with Whisper `large-v3` on a laptop |
+| Cost | Free: VAD, ASR and TTS run locally (ASR on Groq instead with `[asr].engine = "groq"`, billed as at least 10 s of audio a turn, its own cap); the LLM runs on Groq's free tier, with Gemini as failover; a cap of 200 requests per process (`spend.py`) | The frameworks are open source; cost depends on the services plugged in | Paid per use beyond any trial credit: breaks free-only | Free in money |
+| Latency | Last measured whole turn, last voice to first audio frame sent: **p50 3958 ms**, 12 turns, cuda/large-v3, Groq `qwen/qwen3.8-27b` (`docs/findings/groq-primary/compare_primaries_20261008-110611.txt`). Of that, 3080 ms is up to `transcript.final`. Today's Groq model is `openai/gpt-oss-20b`, about 330 ms slower to first token (`config.toml:265-269`); the whole turn has not been re-measured with it | Not measured | Not measured. Streaming recognition could remove the wait for a whole-utterance decode, at the cost of a network hop per stage | Not measured. The model's first token would depend on our own hardware |
+| Hardware | CPU by default; Hinglish needs `large-v3` on a GPU (`config.toml:163-169`), or the Groq STT engine (`[asr.groq]`) | Depends on the services used | Little: a browser and a small server | A GPU-class machine for the LLM, shared with Whisper `large-v3` on a laptop |
 | What I learn | WebSockets, async code, cancellation, state machines, VAD, SQL: each built and explainable | How to configure a framework; the hard parts live inside it | How to call APIs; less of the pipeline is ours | As ours, plus serving a model |
 
 Also: a framework or a vendor SDK would bring vendor code into the turn path, which
@@ -515,15 +529,15 @@ they are not repeated here.
 |---|---|---|
 | Recognition starts only after the turn ends, on the whole utterance | Whisper has no streaming mode (`asr/base.py:12-13`) | Whisper decode p50 2066 ms on cuda/large-v3 inside a measured turn (`compare_primaries_20261008-110611.txt`); 1330 ms p50 on cpu/small on short clips (`docs/findings/perf-1-latency-budget.md:19`) |
 | About 900 ms of silence before a hands-free turn even ends | VAD's 200 ms plus the endpointer's 700 ms (`config.toml:67-72`) | 704 ms p50 for the endpointer wait (`perf-1-latency-budget.md:107`) |
-| A decode cannot be stopped once CTranslate2 is inside it | CTranslate2 (`asr/whisper.py:15-17`) | `timeout_s` bounds the wait, not the thread (`config.toml:126-128`); the session's next decode waits for the old one (`asr/runner.py:187-196`) |
+| A decode cannot be stopped once CTranslate2 is inside it | CTranslate2 (`asr/whisper.py:15-17`) | `timeout_s` bounds the wait, not the thread (`config.toml:134-136`); the session's next decode waits for the old one (`asr/runner.py:187-196`) |
 | A cancelled chunk of speech runs to its end on its thread | Piper synthesises a sentence at once (`tts/piper.py:12-17`) | Its audio is thrown away, never sent |
-| The Hindi voice cannot read Latin script | Piper's Hindi voices read Latin letters with English spelling rules (`config.toml:417-421`) | Replies must be all Devanagari; English needs a second voice per persona; Latin words are logged (`speaker.py:121-133`) |
-| cpu/small cannot transcribe Hinglish | The committed CPU default (`config.toml:138-141`) | Hinglish needs a local GPU override |
+| The Hindi voice cannot read Latin script | Piper's Hindi voices read Latin letters with English spelling rules (`config.toml:461-465`) | Replies must be all Devanagari; English needs a second voice per persona; Latin words are logged (`speaker.py:121-133`) |
+| cpu/small cannot transcribe Hinglish | The committed CPU default (`config.toml:163-166`) | Hinglish needs a local GPU override |
 | "What the user heard" and "playback finished" are estimates | The server cannot hear the browser (`barge_in.py:135-137`, `speaker.py:11-16`) | Not measured against a real browser |
 | Nothing checks the protocol version at runtime | Versioning lives in documents only (2e) | |
 | Errors do not say which turn they belong to | `error` has no `turn_id` (`protocol.py:195-200`) | A late `ASR_FAILED` of a cut turn shows as a banner (`PROJECT.md` known gaps) |
 | Everything lives in one process | History, request cap and pipelines are in memory (`session.py:59-62`, `spend.py:22-27`) | A restart forgets conversations and resets the cap |
-| Licences | piper-tts GPL-3.0-or-later; Hindi voices non-commercial | `versions.md:107-110`, `config.toml:286-287`; not checked for our distribution case |
+| Licences | piper-tts GPL-3.0-or-later; Hindi voices non-commercial | `versions.md:107-110`, `config.toml:330-331`; not checked for our distribution case |
 
 ## 7. Likely viva questions
 

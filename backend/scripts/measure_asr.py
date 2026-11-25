@@ -13,6 +13,10 @@ the total decode work per utterance at each candidate partial interval.
 The model comes from config.toml, overridable from the environment, e.g.
   VAANI_ASR__WHISPER__MODEL=large-v3 VAANI_ASR__WHISPER__DEVICE=cuda \
   VAANI_ASR__WHISPER__COMPUTE_TYPE=float16 uv run python scripts/measure_asr.py *.wav
+
+With VAANI_ASR__ENGINE=groq every transcription is a PAID request to Groq:
+exactly one per clip per --repeat. The partial re-decode section is skipped
+(it would be dozens more requests, and partials are refused with groq).
 """
 
 import argparse
@@ -103,9 +107,17 @@ async def decode_ms(recognizer, pcm: bytes) -> float:
 
 async def main(paths: list[Path], repeat: int) -> None:
     settings = get_settings()
-    w = settings.asr.whisper
-    print(f"model {w.model} on {w.device}/{w.compute_type}, language={w.language}")
-    recognizer = build_recognizer(settings.asr, settings.audio.sample_rate)
+    asr = settings.asr
+    if asr.engine == "groq":
+        print(f"engine groq, model {asr.groq.model}, language={asr.language}")
+    else:
+        w = asr.whisper
+        print(
+            f"model {w.model} on {w.device}/{w.compute_type}, language={asr.language}"
+        )
+    recognizer = build_recognizer(
+        asr, settings.audio.sample_rate, settings.groq_api_key
+    )
     parts = (recognizer, settings.asr)
 
     finals: list[float] = []
@@ -124,6 +136,8 @@ async def main(paths: list[Path], repeat: int) -> None:
         return
     print(f"\nturn_ended -> transcript.final over {len(finals)} runs:")
     print(f"  p50 {median(finals):.0f} ms, p95 {p95(finals):.0f} ms")
+    if asr.engine == "groq":
+        return  # no partial re-decodes: each would be another paid request
 
     # Partials: one re-decode at each length of the longest utterance.
     longest = max(turns, key=lambda t: len(t.audio))

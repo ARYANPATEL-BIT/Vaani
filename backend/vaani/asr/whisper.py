@@ -99,6 +99,9 @@ class WhisperRecognizer(Recognizer):
                 "device; refusing to fall back to CPU"
             )
         self._cfg = w
+        # Shared by both engines, so they live in [asr], not [asr.whisper].
+        self._language = cfg.language
+        self._prompt = cfg.initial_prompt
         started = perf_counter()
         # num_workers lets CTranslate2 run that many decodes at once, one per
         # pool thread; with 1 they would queue inside the engine instead.
@@ -136,7 +139,7 @@ class WhisperRecognizer(Recognizer):
         noise = np.random.default_rng(0).normal(0, 0.01, WHISPER_SAMPLE_RATE)
         segments, _ = self._model.transcribe(
             noise.astype(np.float32),
-            language=self._cfg.language,
+            language=self._language,
             task=TASK,
             vad_filter=False,
             max_new_tokens=4,
@@ -149,9 +152,9 @@ class WhisperRecognizer(Recognizer):
         w = self._cfg
         segments, info = self._model.transcribe(
             audio,
-            language=w.language,
+            language=self._language,
             task=TASK,
-            initial_prompt=w.initial_prompt,
+            initial_prompt=self._prompt,
             beam_size=w.beam_size,
             temperature=w.temperature,
             vad_filter=VAD_FILTER,
