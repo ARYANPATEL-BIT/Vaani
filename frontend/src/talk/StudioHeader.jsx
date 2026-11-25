@@ -15,6 +15,7 @@ import useSignOut from '../login/useSignOut.js';
 import { operatorFor } from '../login/loginState.js';
 import StudioSettings from './StudioSettings.jsx';
 import { PERSONAS, TEXT } from './talkContent.js';
+import { VaaniIcon } from '../components/brand/VaaniLogo.jsx';
 
 export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleInk }) {
   const sheetRef = useRef(null);
@@ -25,7 +26,7 @@ export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleIn
   return (
     <header className="tk-header">
       <div className="tk-brand">
-        <span className="tk-dv tk-phone-only tk-brand-mark" aria-hidden="true">वाणी</span>
+        <span className="tk-phone-only tk-brand-mark" aria-hidden="true"><VaaniIcon size={28} ink="var(--tk-text)" paper="var(--tk-bg)" /></span>
         <span className="tk-mono tk-file tk-wide-only">{TEXT.file}</span>
         <h1 className="tk-cd tk-title">{TEXT.title}<span className="tk-dot" aria-hidden="true">.</span></h1>
       </div>

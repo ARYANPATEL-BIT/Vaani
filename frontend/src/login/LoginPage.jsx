@@ -26,6 +26,7 @@ import { meResult, signInResult } from './loginState.js';
 import { previewFor } from './loginPreview.js';
 import { ALERTS, INK, PAPER, TEXT } from './loginContent.js';
 import StudioDoor from './StudioDoor.jsx';
+import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
 import LoginPanel from './LoginPanel.jsx';
 import './login.css';
 
@@ -78,8 +79,7 @@ export default function LoginPage() {
       </svg>
       <header className="lg-header">
         <Link to="/" className="lg-brand" aria-label="Vaani home">
-          <span className="lg-dv lg-brand-dv" aria-hidden="true">वाणी</span>
-          <span className="lg-cd lg-brand-name" aria-hidden="true">Vaani<span className="lg-red">.</span></span>
+          <VaaniLogo height={36} ink="var(--lg-text)" paper="var(--lg-bg)" />
         </Link>
         <span className="lg-mono lg-file lg-wide-only">{TEXT.file}</span>
         <div className="lg-mono lg-header-end">
