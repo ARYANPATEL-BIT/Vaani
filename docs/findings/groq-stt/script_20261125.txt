@@ -1,0 +1,64 @@
+groq stt script experiment, 2026-11-25 (feat/groq-stt, uncommitted)
+question: which Groq model / prompt setting returns Hindi in Devanagari?
+exactly 3 requests to Groq, one per row; no warm-up, no retries
+
+clip:   hindi_real_16k.wav (Aryan, pure Hindi, scratchpad, not committed), the
+        same clip as smoke_20261125.txt. The real VadStream + Endpointer cut
+        the same 4580 ms turn first (156,204-byte WAV), so the audio sent is
+        identical to the smoke run's.
+script: a scratchpad script (not in the repo) that POSTs the multipart
+        request vaani/asr/groq.py builds, except that "no prompt" LEAVES OUT
+        the prompt field (it is not sent empty). language "hi",
+        temperature 0.0, response_format json.
+timing: the POST alone, a fresh HTTP client per request (so each paid
+        connection setup, like each smoke run). NOT turn_ended ->
+        transcript.final through the runner as in smoke_20261125.txt, though
+        the runner adds little on top. n = 1 per row: not a p50.
+
+run model                    prompt                     ms   script      text
+a   whisper-large-v3-turbo   none                       365  Devanagari  "मुझे कल सुबा दिल्ली जाना है किरपया मेरे लिए टिकेट बुक कर दीजिए"
+b   whisper-large-v3         [asr].initial_prompt       373  Devanagari  "मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये"
+c   whisper-large-v3         none                       662  Devanagari  "मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये।"
+
+for reference, smoke_20261125.txt on the same turn:
+-   whisper-large-v3-turbo   [asr].initial_prompt       488  Latin       "Mujhe kal subah delhi jana hai, kirpya meri liye đtiket book kere dijiye"
+    (488 ms there is turn_ended -> transcript.final, through the runner)
+
+observations
+- The romanized prompt is what turned turbo's output Latin: turbo with no
+  prompt (a) wrote Devanagari. large-v3 wrote Devanagari with the prompt (b)
+  and without it (c), as large-v3 does locally on the GPU
+  (docs/spikes/asr-hinglish.md, Sample B).
+- Text quality, read against the suggested sentence (whether it was read
+  word for word is not confirmed): b is the closest, the only one with
+  "सुबह" spelled correctly (a and c wrote "सुबा"). All three
+  wrote "किरपया" for "कृपया" and "टिकेट" for "टिकट". No stray characters.
+- "c" took 662 ms against b's 373 ms on the same model; with n = 1 that gap
+  says nothing about the models; its cause was not looked into.
+- Not tested here: Hinglish audio. The prompt exists to keep the ENGLISH
+  words of Hinglish in Latin letters; this clip has no English words, so it
+  cannot show what dropping the prompt costs on Hinglish.
+- No errors, no 429; no key-like string appeared in any output.
+
+follow-up, same day: exactly 1 more request, Hinglish
+clip:   tests/fixtures/hinglish_real_16k.wav (Aryan, Hinglish), the WHOLE file
+        posted as recorded (254,382 bytes, 7.9 s), NOT cut by the
+        endpointer: the smoke run sent only its first 4560 ms turn.
+config: whisper-large-v3, language "hi", [asr].initial_prompt, temperature
+        0.0, response_format json. Fresh HTTP client; the POST alone timed.
+
+run model              prompt                ms   text
+d   whisper-large-v3   [asr].initial_prompt  788  "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+
+script per word group (what was actually said is not recorded anywhere, so
+which words were misheard is a guess):
+- Hindi words, all Devanagari: "इसमें", "तो", "है", "ये", "चीज़", "करेगी", "कि", "नहीं".
+- English words, all Latin: "English" (twice), "and a little bit of", "let's see".
+- Unclear, both Devanagari: "पुम" (not a Hindi word; perhaps a misheard
+  English or Hindi word) and "वर" in "वर करेगी" (perhaps English "work",
+  written in Devanagari and cut short). To check against the recording.
+- The same code-switching pattern as local GPU large-v3 with this prompt:
+  Hindi in Devanagari, English in Latin (docs/spikes/asr-hinglish.md,
+  Sample B "forced hi + roman hint"). Turbo + prompt on the first 4560 ms
+  of this clip (smoke_20261125.txt) wrote everything in Latin letters.
+- No error, no 429; no key-like string appeared in any output.

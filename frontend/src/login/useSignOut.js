@@ -13,7 +13,7 @@
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from './authApi.js';
+import { logout } from '../api/authApi.js';
 
 export default function useSignOut() {
   const navigate = useNavigate();

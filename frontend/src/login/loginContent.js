@@ -2,11 +2,15 @@
  * loginContent.js -- every word and colour on the /login page, from the
  * design in docs/design/login-studio-door/. Components only read from here.
  *
- * Colours are the Studio's PAPER values (talk/talkContent.js): the login page
- * is the studio's front door, so it uses the same paper, ink and red.
+ * Two palettes, like the Studio (/talk): PAPER (light) and INK (the app's
+ * dark theme, data-theme="dark" on <html>). LoginPage.jsx picks one. The
+ * login page is the studio's front door, so both reuse the Studio's own
+ * values (talk/talkContent.js); the door-only colours are the design's.
  */
 
-export const COLORS = {
+import { INK as STUDIO_INK } from '../talk/talkContent.js';
+
+export const PAPER = {
   '--lg-bg': '#EEE9DF',
   '--lg-text': '#141312',
   '--lg-body': '#3D3A35',     // paragraph text on paper
@@ -23,6 +27,29 @@ export const COLORS = {
   '--lg-lamp': '#1F1D1A',     // the unlit lamp's glass
   '--lg-lamp-edge': '#3A3631',
   '--lg-lamp-word': '#5E5950', // the unlit "On air" outline
+  '--lg-on-red': '#141312',   // text and dots on red (the lit lamp, the studio button)
+  '--lg-line': '#141312',     // the hard shadow under the pills
+  '--lg-pill': '#FFFFFF',     // the locked pill and the DEV stand-in for Google's button
+  '--lg-door-edge': '#141312', // the door's outline: invisible on paper
+  '--lg-grain': '0.08',
+};
+
+/** Dark theme. The door stays black; it gets an edge so it reads on ink. */
+export const INK = {
+  ...PAPER,
+  '--lg-bg': STUDIO_INK.bg,
+  '--lg-text': STUDIO_INK.text,
+  '--lg-body': '#CFC6B6',     // paragraph text on ink (the Studio's paper rule colour)
+  '--lg-muted': STUDIO_INK.muted,
+  '--lg-faint': '#6E685F',    // the door's faint grey, now on the page too
+  '--lg-red-text': STUDIO_INK.redText, // on ink the bright red passes (about 5.2:1)
+  '--lg-card': '#1F1D1A',     // the alert box: a shade above the page
+  '--lg-door': STUDIO_INK.tapeBg, // darker than the page, like the Studio's tape box
+  '--lg-door-edge': STUDIO_INK.tapeEdge,
+  '--lg-on-red': STUDIO_INK.onRed,
+  '--lg-line': STUDIO_INK.line,
+  '--lg-pill': STUDIO_INK.bg, // looks like Google's filled_black button
+  '--lg-grain': STUDIO_INK.grain,
 };
 
 export const TEXT = {

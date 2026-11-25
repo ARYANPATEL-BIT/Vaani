@@ -82,6 +82,8 @@ export const PRELOADER = {
 export const HERO = {
   onAir: 'On air',
   openApp: 'Open the app',
+  signIn: 'Sign in',        // shown only to a signed-out visitor; no Sign up: access is by allowlist
+  signedInAs: 'Signed in as', // read by screen readers before the first name
   backToTop: 'Vaani, back to top',
   fileLabel: 'File 001 — a real-time voice agent',
   languages: 'Hindi · English · Hinglish',

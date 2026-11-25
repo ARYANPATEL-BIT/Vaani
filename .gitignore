@@ -36,3 +36,9 @@ backend/data/
 # The small Silero VAD model is committed; voices are 60+ MB and are not.
 backend/models/*.onnx
 !backend/models/silero_vad.onnx
+
+# --- Voice-cloning eval spike: the operator's voice and every cloned clip ---
+# Biometric data; never commit. Rationale: docs/learning/backend-learning/23-voice-cloning-eval.md
+tools/voice_clone_eval/audio/
+# Downloaded model weights for the spike (GBs; re-fetched from Hugging Face)
+tools/voice_clone_eval/models/

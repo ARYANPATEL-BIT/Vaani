@@ -19,7 +19,9 @@
  *   - Malformed responses: caught and returned as { ok: false, error }
  */
 
-import { API_BASE_URL } from '../config.js';
+// Relative URLs: same origin as the page (see config.js). NOTE: the backend
+// has no /api routes yet and vite.config.js does not proxy /api, so these
+// calls still fail, as they did before; a known follow-up.
 
 /** Default timeout for API requests in milliseconds. */
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -83,7 +85,7 @@ export async function uploadEnrolmentAudio(audioBlob, options = {}) {
     formData.append('audio', audioBlob, `reference.${ext}`);
     formData.append('userId', userId);
 
-    const url = `${API_BASE_URL}/api/enrol/upload`;
+    const url = '/api/enrol/upload';
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
@@ -171,7 +173,7 @@ export async function fetchEnrolmentStatus(enrolmentId, options = {}) {
   try {
     timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const url = `${API_BASE_URL}/api/enrol/status/${encodeURIComponent(enrolmentId)}`;
+    const url = `/api/enrol/status/${encodeURIComponent(enrolmentId)}`;
     const response = await fetch(url, {
       method: 'GET',
       signal: controller.signal,
@@ -303,7 +305,7 @@ const VERIFY_RENDER_TIMEOUT_MS = 60_000;
  *   httpStatus?: number, networkError?: boolean }>}
  */
 export async function renderVerificationSample(enrolmentId, options = {}) {
-  const url = `${API_BASE_URL}/api/enrol/verify/${encodeURIComponent(enrolmentId)}/render`;
+  const url = `/api/enrol/verify/${encodeURIComponent(enrolmentId)}/render`;
   const result = await postWithTimeout(url, options.signal, options.timeoutMs ?? VERIFY_RENDER_TIMEOUT_MS);
   if (!result.ok) return result;
 
@@ -329,7 +331,7 @@ export async function renderVerificationSample(enrolmentId, options = {}) {
  * @returns {Promise<{ ok: boolean, error?: string, httpStatus?: number, networkError?: boolean }>}
  */
 export async function approveVoice(enrolmentId, options = {}) {
-  const url = `${API_BASE_URL}/api/enrol/verify/${encodeURIComponent(enrolmentId)}/approve`;
+  const url = `/api/enrol/verify/${encodeURIComponent(enrolmentId)}/approve`;
   const result = await postWithTimeout(url, options.signal, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   if (!result.ok) return result;
 

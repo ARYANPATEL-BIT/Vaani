@@ -1,0 +1,9 @@
+id	kind	langs	text
+h1	hindi	hi	नमस्ते, मेरा नाम वाणी है और मैं आपकी मदद के लिए यहाँ हूँ।
+h2	hindi-numbers	hi	इस महीने का कुल खर्च 2,450 रुपये आया, जो पिछले महीने से 15 प्रतिशत कम है।
+h3	hindi-question	hi	क्या आप मुझे बता सकते हैं कि अगली ट्रेन कितने बजे निकलेगी?
+e1	english	en	Good morning, this is a short test of my cloned voice.
+e2	english-numbers	en	Your order number is 4,812 and it will arrive on the 23rd of March.
+m1	hinglish-romanized	hi,en	Kal office thoda late shuru hoga, kyunki traffic bahut zyada hai.
+m2	hinglish-romanized-question	hi,en	Kya tum meeting ka agenda mujhe WhatsApp pe bhej sakte ho?
+m3	hinglish-mixed-script	hi,en	मेरी flight 6:45 पर है, so please airport जल्दी पहुँचना।

@@ -1,0 +1,49 @@
+groq stt smoke test, 2026-11-25 (feat/groq-stt, uncommitted)
+exactly 3 requests to Groq, one per clip; no warm-up request, no retries
+
+command (from backend/, one clip per run, so a failure would stop the next):
+  VAANI_ASR__ENGINE=groq uv run python scripts/measure_asr.py <clip>
+config: [asr.groq] model whisper-large-v3-turbo, temperature 0.0, response_format json
+        [asr] language "hi", initial_prompt = the committed romanized Hinglish sentence
+        timeout_s from backend/.env (overridden there; value not recorded here)
+path:   the real VadStream + Endpointer cut the turn (with pre-roll), then the
+        real AsrRunner -> GroqRecognizer -> POST /audio/transcriptions.
+timing: turn_ended -> transcript.final handed to the (stub) socket, in ms.
+        Each run is a NEW process, so each request paid DNS + TCP + TLS setup.
+        The server keeps one client open between turns, so later turns there
+        would skip that setup. n = 1 per clip: not a p50.
+
+clip                                      speech   ms    transcript.final text (as returned)
+hindi_real_16k.wav (scratchpad, Aryan,    4580 ms  488   "Mujhe kal subah delhi jana hai, kirpya meri liye đtiket book kere dijiye"
+  pure Hindi, not committed)
+tests/fixtures/speech_16k_mono.wav        4680 ms  270   "hello, this is a short test of voice activity detection for the vani project"
+  (English, Windows SAPI voice, made by scripts/make_speech_fixture.ps1)
+tests/fixtures/hinglish_real_16k.wav      4560 ms  253   "isme toh english and a little bit of english boom hai"
+  (Aryan, Hinglish)
+
+Hindi clip, the sentence suggested for recording (that it was read word for
+word is NOT confirmed; the transcript suggests it was):
+  "मुझे कल सुबह दिल्ली जाना है, कृपया मेरे लिए टिकट बुक कर दीजिए।"
+
+observations
+- Every transcript came back in LATIN script, the pure-Hindi clip included.
+  faster-whisper large-v3 with the same language + prompt writes Hindi words
+  in Devanagari (docs/spikes/asr-hinglish.md, Sample B "forced hi + roman
+  hint"). Turbo appears to follow the romanized prompt's style far more
+  strongly. Not tested: turbo without the prompt.
+- The Hindi transcript has one stray non-ASCII character, "đ" (U+0111,
+  Vietnamese d-with-stroke) in "đtiket", and "kirpya", "meri liye", "kere".
+- The English fixture is word-perfect apart from case and "Vaani" -> "vani".
+- hinglish_real_16k.wav is 7.9 s long, but the endpointer ended the first
+  turn after 4560 ms of speech (a pause), so only that first utterance was
+  sent. Whether its text is right needs Aryan's ear: not judged here.
+- No errors, no 429; no key-like string appeared in any output.
+
+faster-whisper numbers for comparison (not re-measured today)
+  cuda/large-v3, turn_ended -> transcript.final: p50 577 ms, p95 635 ms, 12 runs
+    (docs/findings/perf-1-latency-budget.md, day 10, scripts/measure_asr.py)
+  cuda/large-v3, speech_16k_mono.wav, decode only, "hi" + roman hint: 548 ms
+    (docs/spikes/asr-hinglish.md section 4; that table calls this clip "a
+    human voice", but make_speech_fixture.ps1 renders it with Windows SAPI)
+  cpu/small, turn_ended -> transcript.final: p50 1330 ms (perf-1, same run)
+  No faster-whisper number exists for hinglish_real_16k.wav or the Hindi clip.

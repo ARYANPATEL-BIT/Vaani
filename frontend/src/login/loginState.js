@@ -46,9 +46,36 @@ export function meResult(status) {
   return 'unknown';
 }
 
+/**
+ * Who the sidebar and the /talk rail show, from the gate's answer
+ * (requireSignIn.js). Auth off on the server (email null): "Operator", and
+ * no sign-out button, since there is nothing to sign out of.
+ */
+export function operatorFor(me) {
+  if (!me || !me.email) return { name: 'Operator', initial: 'O', signedIn: false };
+  const name = (typeof me.name === 'string' && me.name.trim()) || me.email;
+  return { name, initial: name[0].toUpperCase(), signedIn: true };
+}
+
 /** "Samyak Raj Singh" -> "Samyak". Falls back to the email, then "". */
 export function firstName(body) {
   const name = body && typeof body.name === 'string' ? body.name.trim() : '';
   if (name) return name.split(/\s+/)[0];
   return body && typeof body.email === 'string' ? body.email : '';
+}
+
+/**
+ * What the landing page header adds, from its own GET /auth/me (Hero.jsx).
+ * The header never waits for this: it starts as "nothing extra" and only
+ * changes if a clear answer comes back.
+ *   401                        -> a Sign in link (signIn: true)
+ *   200 {email, name}          -> the first name; no name, the email's initial
+ *   200 {email: null} (auth off), 5xx, no answer, timed out -> nothing extra
+ */
+export function landingAuthFor(status, body) {
+  if (meResult(status) === 'out') return { signIn: true, who: '' };
+  const op = operatorFor(status === 200 ? body : null);
+  if (!op.signedIn) return { signIn: false, who: '' };
+  const hasName = typeof body.name === 'string' && body.name.trim() !== '';
+  return { signIn: false, who: hasName ? firstName(body) : op.initial };
 }

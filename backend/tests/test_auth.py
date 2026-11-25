@@ -181,6 +181,41 @@ def test_sign_in_from_another_origin_is_rejected():
     assert response.json()["code"] == "AUTH_BAD_ORIGIN"
 
 
+# --- allow_all_emails ---------------------------------------------------------
+
+
+def test_allow_all_accepts_an_unlisted_verified_email():
+    client = make_client(claims(email="stranger@example.com"), allow_all_emails=True)
+    response = sign_in(client)
+    assert response.status_code == 200
+    assert response.json()["email"] == "stranger@example.com"
+    # The cookie path too: read_cookie must not re-check the allowlist.
+    assert client.get("/auth/me").json()["email"] == "stranger@example.com"
+
+
+def test_allow_all_still_rejects_an_unverified_email():
+    unverified = claims(email="stranger@example.com", email_verified=False)
+    response = sign_in(make_client(unverified, allow_all_emails=True))
+    assert response.status_code == 403
+    assert response.json()["code"] == "AUTH_EMAIL_UNVERIFIED"
+    assert "set-cookie" not in response.headers
+
+
+def test_allow_all_is_off_by_default():
+    # Off, the allowlist tests above (not in allowlist, removed from it) hold.
+    assert AuthSettings().allow_all_emails is False
+
+
+def test_allow_all_permits_an_empty_allowlist_and_warns_once(caplog):
+    create_app(Settings(auth=auth_settings(allowed_emails=[], allow_all_emails=True)))
+    warnings = [
+        r.message
+        for r in caplog.records
+        if r.name == "vaani.auth" and r.levelname == "WARNING"
+    ]
+    assert warnings == ["auth: all verified google accounts are allowed"]
+
+
 # --- GET /auth/me, POST /auth/logout ----------------------------------------
 
 

@@ -10,16 +10,20 @@
 
 // --- Server connection ---
 
-/** Base URL for the backend API (HTTP). */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// The page and the backend share ONE origin: every backend URL is relative to
+// the page. In development Vite's dev server forwards /auth, /health and /ws
+// to the backend (the proxy in vite.config.js; its target is
+// VAANI_PROXY_TARGET). So nothing here names a host or a port.
 
 /**
- * WebSocket URL for the session endpoint (backend/vaani/gateway.py).
- * This is the correct endpoint used from Day 2 onward per docs/contracts.md.
+ * The WebSocket URL of the session endpoint (backend/vaani/gateway.py), on
+ * the page's own host. ws: on an http page, wss: (encrypted) on an https page
+ * such as a Cloudflare tunnel: a browser refuses plain ws: from https.
  */
-export const WS_SESSION_URL =
-  import.meta.env.VITE_WS_SESSION_URL || 'ws://localhost:8000/ws/session';
+export function sessionSocketUrl() {
+  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${scheme}//${window.location.host}/ws/session`;
+}
 
 // --- Sign-in (src/login/, backend/vaani/auth.py) ---
 
@@ -36,6 +40,13 @@ export const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
 /** How long the lit "On air" lamp shows after sign-in before /talk opens. */
 export const LOGIN_ONAIR_HOLD_MS = 1500;
+
+/**
+ * The longest the route gate (login/requireSignIn.js) waits for GET
+ * /auth/me before letting the visitor in anyway. A blank page while the
+ * server hangs is worse than the socket's own error a moment later.
+ */
+export const AUTH_CHECK_TIMEOUT_MS = 5000;
 
 // --- Audio parameters (must match backend/config.toml) ---
 

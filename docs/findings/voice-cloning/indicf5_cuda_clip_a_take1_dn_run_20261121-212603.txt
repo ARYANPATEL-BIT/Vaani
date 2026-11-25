@@ -1,0 +1,17 @@
+model: indicf5
+device: cuda
+run: 20261121-212603
+python 3.12.13 | torch 2.8.0+cu128 | NVIDIA GeForce RTX 5070 Laptop GPU
+package: f5_tts 0.1.0 (AI4Bharat/IndicF5 @13f7c4d), weights ai4bharat/IndicF5 (gated, card says MIT)
+reference: clip_a_take1_dn.wav (12.00 s)
+note: noisy reference, snr about 5 dB; denoised afftdn=nr=10:nf=-35; turbo, ac power, background apps closed
+free_vram_at_start_mib: 7071 of 8151
+gpu_util_at_start_pct: 22
+load_and_condition_s: 2.07
+warmup_s: 7.44
+peak_vram_allocated_mib: 2685
+peak_vram_reserved_mib: 2764
+clips_ok: 11 of 11
+rtf_median: 1.862
+rtf_max: 3.228
+per_clip: indicf5_cuda_clip_a_take1_dn_run_20261121-212603.tsv

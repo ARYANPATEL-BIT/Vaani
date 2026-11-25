@@ -6,6 +6,11 @@ in the default suite: a wrong `task` or `language` fails SILENTLY in real use
 
 The second group (@pytest.mark.slow) loads the real model named in
 config.toml. Run with: uv run pytest -m slow
+
+Neither group reads backend/.env (`_env_file=None`), so a GPU override there
+cannot make the fast tests fail. To run the slow tests on a GPU, export the
+overrides in the shell instead, e.g. VAANI_ASR__WHISPER__DEVICE=cuda: real
+environment variables still apply.
 """
 
 import asyncio
@@ -24,12 +29,14 @@ from vaani.config import Settings
 FIXTURE = Path(__file__).parent / "fixtures" / "speech_16k_mono.wav"
 
 
-def asr_cfg(**whisper_update):
-    base = Settings().asr
+def asr_cfg(asr_update: dict | None = None, **whisper_update):
+    base = Settings(_env_file=None).asr
     return base.model_copy(
         update={
             "enabled": True,
+            "engine": "faster-whisper",
             "whisper": base.whisper.model_copy(update=whisper_update),
+            **(asr_update or {}),
         }
     )
 
@@ -72,7 +79,9 @@ def recording_model(monkeypatch):
 def test_task_is_transcribe_and_language_comes_from_config(recording_model) -> None:
     # "mr" (Marathi) is not the committed default, so passing proves the value
     # is read from config, not hardcoded.
-    cfg = asr_cfg(language="mr", initial_prompt="kal milte hain", temperature=[0.0])
+    cfg = asr_cfg(
+        {"language": "mr", "initial_prompt": "kal milte hain"}, temperature=[0.0]
+    )
     rec = WhisperRecognizer(cfg, 16000)
     result = asyncio.run(rec.transcribe(b"\x00\x00" * 16000, asyncio.Event()))
 
@@ -115,7 +124,7 @@ def test_wrong_sample_rate_is_refused() -> None:
 
 
 def real_recognizer() -> Recognizer:
-    return build_recognizer(asr_cfg(), 16000)
+    return build_recognizer(asr_cfg(), 16000, None)
 
 
 @pytest.mark.slow

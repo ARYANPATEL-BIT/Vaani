@@ -8,6 +8,8 @@ Routes: GET /health here, a liveness check that reports status and version
 and DELIBERATELY exposes no configuration or secrets; the /ws/session
 WebSocket, defined in gateway.py; and Google sign-in (/auth/google, /auth/me,
 /auth/logout), defined in auth.py. Both are added with include_router.
+When frontend/dist exists (the Docker image), every other GET path serves
+the built browser app (_serve_frontend, feat/render-deploy).
 
 The session and turn database (db.py) is opened here, at startup, and its
 writer thread is stopped on shutdown (the lifespan below).
@@ -16,9 +18,11 @@ writer thread is stopped on shutdown (the lifespan below).
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from vaani import __version__
 from vaani.asr import Recognizer, build_recognizer
@@ -34,6 +38,13 @@ from vaani.providers.chain import build_chain
 from vaani.spend import RequestCap
 from vaani.tts import Synthesizer, TtsError, build_synthesizers
 from vaani.vad import load_model
+
+log = logging.getLogger("vaani.app")
+# First path segments the frontend fallback never answers: an unknown
+# /auth/... or /ws/... is a real 404, not the app's HTML page.
+API_PREFIXES = {"auth", "ws", "health"}
+# Config paths are relative to backend/, whatever the working directory.
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _configure_logging() -> None:
@@ -122,13 +133,15 @@ def create_app(
         )
     # Same for speech recognition: load (and warm up) once at startup, so a
     # bad model name or a missing GPU fails here, not on a user's first turn.
-    # build_recognizer is cached too. A misconfiguration raises: the server
-    # refuses to start rather than run without transcripts.
+    # build_recognizer caches the Whisper model. With [asr].engine = "groq"
+    # there is no model: a missing VAANI_GROQ_API_KEY fails here instead. A
+    # misconfiguration raises: the server refuses to start rather than run
+    # without transcripts.
     if recognizer is not None:
         app.state.recognizer = recognizer
     elif settings.asr.enabled:
         app.state.recognizer = build_recognizer(
-            settings.asr, settings.audio.sample_rate
+            settings.asr, settings.audio.sample_rate, settings.groq_api_key
         )
     # The language model chain, built once and shared by every session: its
     # HTTP clients keep connections (and their TLS handshakes) open between
@@ -145,23 +158,29 @@ def create_app(
     # since feat/english-voice). A persona missing a voice for any language,
     # or a missing or wrong voice file, raises: the server refuses to start
     # rather than reply in silence. A test's single stand-in speaks for every
-    # persona in every language.
+    # served persona in every language. Only SERVED personas get voices
+    # (feat/render-deploy): the others are refused at session.start.
     if synthesizer is not None:
         app.state.synthesizers = {
             persona: dict.fromkeys(LANGUAGES, synthesizer)
-            for persona in settings.personas
+            for persona in settings.served_personas
         }
     elif settings.tts.enabled:
         voices = settings.tts.piper.voices
         voiceless = sorted(
             f"{persona}.{language}"
-            for persona in settings.personas
+            for persona in settings.served_personas
             for language in LANGUAGES
             if language not in voices.get(persona, {})
         )
         if voiceless:
             raise TtsError(f"no [tts.piper.voices] entry for {voiceless}")
-        app.state.synthesizers = build_synthesizers(settings.tts)
+        # Hand over only the served personas' voices, so only they load:
+        # each holds about 100 MB of RAM (render-deploy step 0). A copy, so
+        # the shared Settings object keeps every persona's voices.
+        tts = settings.tts.model_copy(deep=True)
+        tts.piper.voices = {p: voices[p] for p in settings.served_personas}
+        app.state.synthesizers = build_synthesizers(tts)
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -177,8 +196,38 @@ def create_app(
     app.include_router(gateway_router)
     # POST /auth/google, GET /auth/me, POST /auth/logout.
     app.include_router(auth_router)
+    # Last: its catch-all route must come after every API route, because
+    # routes are matched in the order they were added.
+    dist = _BACKEND_ROOT / settings.frontend.dist_dir
+    if dist.is_dir():
+        _serve_frontend(app, dist.resolve())
 
     return app
+
+
+def _serve_frontend(app: FastAPI, dist: Path) -> None:
+    """Serve the Vite build (frontend/dist) at /, from this same origin.
+
+    A file that exists (/assets/index-abc.js, /favicon.svg) is sent as is.
+    Any other path gets index.html, and the browser's router (react-router)
+    then draws /login, /talk and so on: a "single-page app" has one HTML
+    page for every address. A WebSocket upgrade never matches a GET route,
+    so /ws/session is unaffected.
+    """
+    index = dist / "index.html"
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend(path: str) -> FileResponse:
+        if path.split("/", 1)[0] in API_PREFIXES:
+            raise HTTPException(status_code=404)
+        file = (dist / path).resolve()
+        # resolve() collapses any "..", then is_relative_to checks the result
+        # is still inside dist: "../../etc/passwd" can never be sent.
+        if file.is_file() and file.is_relative_to(dist):
+            return FileResponse(file)
+        return FileResponse(index)
+
+    log.info("serving the frontend build from %s", dist)
 
 
 # Module-level app for servers that expect an import path, e.g.

@@ -40,10 +40,17 @@ Copy `.env.example` to `.env.local` and adjust as needed:
 cp .env.example .env.local
 ```
 
-| Variable              | Default                          | Purpose                    |
-|-----------------------|----------------------------------|----------------------------|
-| `VITE_API_BASE_URL`   | `http://localhost:8000`          | Backend API base URL       |
-| `VITE_WS_SESSION_URL` | `ws://localhost:8000/ws/session` | WebSocket session endpoint |
+| Variable                | Default                 | Purpose |
+|-------------------------|-------------------------|---------|
+| `VAANI_PROXY_TARGET`    | `http://localhost:8000` | Where the dev server's proxy forwards `/auth`, `/health` and `/ws` (read by `vite.config.js` only, never sent to the browser) |
+| `VITE_GOOGLE_CLIENT_ID` | empty                   | Google OAuth client ID for the `/login` button; same value as the backend's `VAANI_AUTH__GOOGLE_CLIENT_ID` |
+
+The page and the backend share one origin. The browser calls relative URLs
+(`/auth/me`, `ws://<page host>/ws/session`) and the Vite dev server (and
+`npm run preview`) proxies them to the backend, so the session cookie works
+locally and through a Cloudflare tunnel. Open the app at
+`http://localhost:5173`, not `127.0.0.1`: the backend's `[auth]
+allowed_origins` lists `http://localhost:5173`.
 
 ## Project structure
 
@@ -56,7 +63,8 @@ src/
 ├── components/
 │   └── AppLayout.jsx     # Persistent page shell (header + Outlet)
 ├── landing/              # The landing page
-├── login/                # /login (Google sign-in), the /talk guard, sign out
+├── api/                  # authApi.js (sign-in calls), enrolApi.js
+├── login/                # /login (Google sign-in), the route gate (requireSignIn.js), sign out
 ├── talk/
 │   └── StudioPage.jsx    # The conversation page
 └── pages/
@@ -70,7 +78,7 @@ Routes are defined in `src/router.jsx` using react-router-dom v7.
 | Path           | Page             | What it is                                  |
 |----------------|------------------|---------------------------------------------|
 | `/`            | LandingPage      | The landing page                            |
-| `/talk`        | StudioPage       | The voice conversation, outside the sidebar layout; signed-out visitors are sent to `/login` |
+| `/talk`        | StudioPage       | The voice conversation, outside the sidebar layout |
 | `/login`       | LoginPage        | Sign in with Google ("studio door"), outside the sidebar layout |
 | `/loopback`    | LoopbackPage     | Loopback rig: speaker-to-mic delay          |
 | `/enrol`       | EnrolConsentPage | Enrolment: consent before recording         |
@@ -78,6 +86,8 @@ Routes are defined in `src/router.jsx` using react-router-dom v7.
 | `*`            | NotFoundPage     | 404 catch-all                               |
 
 `/loopback`, the `/enrol` pages and the `*` catch-all (NotFoundPage) are children of `AppLayout` (the sidebar layout); `/` (LandingPage), `/talk` (StudioPage) and `/login` (LoginPage) are top-level routes with their own layouts.
+
+Sign-in gate: `/talk` and the whole sidebar layout have a loader (`src/login/requireSignIn.js`) that asks `GET /auth/me` before the page is drawn; a 401 goes to `/login`. `/` and `/login` are public. With `[auth] enabled=false` on the backend, everyone is let in and the sidebar shows "Operator".
 
 In development, `/login?preview=off|checking|refused|error|onair` shows each sign-in state without a backend or a Google client ID (`src/login/loginPreview.js`). Real sign-in needs `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`, the same ID as the backend's `VAANI_AUTH__GOOGLE_CLIENT_ID`.
 

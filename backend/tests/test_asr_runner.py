@@ -19,7 +19,10 @@ PCM = b"\x00\x00" * 1600  # 100 ms of silence; the fake ignores content
 
 
 def asr_cfg(**update):
-    return Settings().asr.model_copy(update={"enabled": True, **update})
+    # _env_file=None: a timeout override in backend/.env must not change the
+    # timings these tests rely on.
+    base = Settings(_env_file=None).asr
+    return base.model_copy(update={"enabled": True, **update})
 
 
 def new_runner(

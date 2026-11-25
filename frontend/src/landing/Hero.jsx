@@ -1,12 +1,16 @@
 /**
- * Hero -- the header ("On air" clock, Open the app), the headline "TALK
- * OVER IT." whose letters rise one by one, the description, the Start
- * talking pill, the live tape and the spec strip.
+ * Hero -- the header ("On air" clock, Sign in or the signed-in name, Open
+ * the app), the headline "TALK OVER IT." whose letters rise one by one, the
+ * description, the Start talking pill, the live tape and the spec strip.
  */
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { APP_PATH, CLOCK, HERO, SPECS } from './landingContent.js';
 import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
+import { AUTH_CHECK_TIMEOUT_MS } from '../config.js';
+import { fetchMe } from '../api/authApi.js';
+import { landingAuthFor } from '../login/loginState.js';
 import useIstClock from './useIstClock.js';
 import LiveTape from './LiveTape.jsx';
 import Arrow from './Arrow.jsx';
@@ -22,6 +26,23 @@ const HEADLINE = HERO.headline.map((word) => ({
 
 export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
   const clock = useIstClock();
+  // Starts as "nothing extra", so the header draws at once, exactly as it
+  // did before sign-in existed. The landing page is public and never waits
+  // on the backend: /auth/me only ever ADDS a Sign in link or a name.
+  const [auth, setAuth] = useState({ signIn: false, who: '' });
+
+  useEffect(() => {
+    // Two ways to stop the request, merged into one signal (as in
+    // login/requireSignIn.js): the page unmounting (the visitor left), or
+    // the backend hanging past AUTH_CHECK_TIMEOUT_MS. fetchMe never throws;
+    // an aborted call comes back as {status: null}, which means "nothing extra".
+    const leaving = new AbortController();
+    const signal = AbortSignal.any([leaving.signal, AbortSignal.timeout(AUTH_CHECK_TIMEOUT_MS)]);
+    fetchMe({ signal }).then(({ status, body }) => {
+      if (!leaving.signal.aborted) setAuth(landingAuthFor(status, body));
+    });
+    return () => leaving.abort();
+  }, []);
 
   return (
     <>
@@ -34,6 +55,12 @@ export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
             <span className="lp-dot lp-blink" aria-hidden="true" />
             {HERO.onAir} &middot; {CLOCK.label} {clock}
           </span>
+          {auth.who && (
+            <span className="lp-mono lp-onair">
+              <span className="lp-sr">{HERO.signedInAs} </span>{auth.who}
+            </span>
+          )}
+          {auth.signIn && <Link to="/login" className="lp-mono lp-outline-pill">{HERO.signIn}</Link>}
           <Link to={APP_PATH} className="lp-mono lp-outline-pill">{HERO.openApp}</Link>
         </div>
       </header>

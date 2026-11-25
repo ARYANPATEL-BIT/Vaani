@@ -14,9 +14,10 @@ or the gitignored backend/.env file.
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, SecretStr, field_validator
+from pydantic import BaseModel, SecretStr, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -106,6 +107,14 @@ class BargeInSettings(BaseModel):
     threshold: float = 0.5
 
 
+# Settings that moved out of [asr.whisper] into [asr] (feat/groq-stt), because
+# both engines now read them: old key -> its new environment variable.
+_MOVED_TO_ASR = {
+    "language": "VAANI_ASR__LANGUAGE",
+    "initial_prompt": "VAANI_ASR__INITIAL_PROMPT",
+}
+
+
 class WhisperSettings(BaseModel):
     """faster-whisper parameters, under [asr.whisper] in config.toml.
 
@@ -121,14 +130,50 @@ class WhisperSettings(BaseModel):
     compute_type: str
     # CPU threads per inference; 0 lets CTranslate2 choose.
     cpu_threads: int
-    # Forced language code. Never auto-detect (see docs/spikes/asr-hinglish.md).
-    language: str
-    # Example text in the style we want back (romanized Hinglish).
-    initial_prompt: str
     # Candidate sequences kept while decoding; higher is slower, slightly better.
     beam_size: int
     # Temperatures tried in turn when a decode looks bad. [0.0] = one decode.
     temperature: list[float]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _refuse_moved_keys(cls, data: object) -> object:
+        """Fail on an old-style language/prompt setting instead of ignoring it.
+
+        A stale VAANI_ASR__WHISPER__LANGUAGE in backend/.env (or the old key
+        left in config.toml) would otherwise be dropped without a word, since
+        unknown keys are ignored. "before" means this sees the raw merged
+        values from every source, before pydantic checks the fields. Only the
+        key is named in the error, never its value.
+        """
+        if isinstance(data, dict):
+            for key, new_var in _MOVED_TO_ASR.items():
+                if key in data:
+                    raise ValueError(
+                        f"asr.whisper.{key} has moved to asr.{key}: rename "
+                        f"VAANI_ASR__WHISPER__{key.upper()} to {new_var} in "
+                        f"backend/.env or the environment (or move the key "
+                        f"from [asr.whisper] to [asr] in config.toml)"
+                    )
+        return data
+
+
+class GroqAsrSettings(BaseModel):
+    """Groq's hosted Whisper, under [asr.groq] in config.toml.
+
+    Used only when [asr].engine = "groq". The API key is the same
+    VAANI_GROQ_API_KEY the LLM provider uses (Settings.groq_api_key).
+    """
+
+    # Exact model ID, e.g. "whisper-large-v3".
+    model: str
+    # Groq's OpenAI-compatible API root; /audio/transcriptions is appended.
+    base_url: str
+    # Sampling temperature, 0 to 1. 0 = always the most likely text.
+    temperature: float
+    # Per-process cap on transcription requests, checked before each one is
+    # sent. Separate from [llm].max_requests_per_process.
+    max_requests_per_process: int
 
 
 class AsrSettings(BaseModel):
@@ -136,17 +181,24 @@ class AsrSettings(BaseModel):
 
     # When false the gateway never transcribes and no model is loaded.
     enabled: bool = True
-    # Which recogniser implementation to build. Only "whisper" exists today.
-    engine: str
+    # Which recogniser to build: local faster-whisper, or Groq's hosted Whisper.
+    engine: Literal["faster-whisper", "groq"]
     # Process-wide inference threads; also the number of sessions that can be
-    # transcribed at the same moment.
+    # transcribed at the same moment. faster-whisper only.
     max_concurrent: int
     # Longest we wait for one transcription before giving up on it.
     timeout_s: float
     # Re-decode the growing utterance this often while the user speaks, to
     # produce transcript.partial. 0 = partials off.
     partial_interval_ms: int
+    # Forced language code, for both engines. Never auto-detect (see
+    # docs/spikes/asr-hinglish.md).
+    language: str
+    # Example text in the style we want back (romanized Hinglish), for both
+    # engines: faster-whisper's initial_prompt, Groq's prompt.
+    initial_prompt: str
     whisper: WhisperSettings
+    groq: GroqAsrSettings
 
 
 class PersonaVoice(BaseModel):
@@ -170,6 +222,9 @@ class PiperSettings(BaseModel):
     # Persona key -> language ("hi", "en") -> its voice. Every key of
     # [personas] needs one per language in vaani/language.py's LANGUAGES.
     voices: dict[str, dict[str, PersonaVoice]]
+    # ONNX Runtime threads per synthesis. 0 = its default, one per CPU core
+    # it can see (feat/render-deploy: the Docker image sets 1).
+    intra_op_threads: int = 0
 
 
 class TtsSettings(BaseModel):
@@ -297,6 +352,15 @@ class DbSettings(BaseModel):
     close_timeout_s: float = 2.0
 
 
+class FrontendSettings(BaseModel):
+    """The built browser app, under [frontend] in config.toml."""
+
+    # Vite's production build (npm run build), relative to backend/. app.py
+    # serves it at / only when the folder exists: in the Docker image. In
+    # local development Vite's own server serves the page instead.
+    dist_dir: str = "../frontend/dist"
+
+
 class AuthSettings(BaseModel):
     """Google sign-in and the session cookie, under [auth] (vaani/auth.py).
 
@@ -314,6 +378,10 @@ class AuthSettings(BaseModel):
     session_secret: SecretStr | None = None
     # The only Google accounts allowed in. Compared lowercased.
     allowed_emails: list[str] = []
+    # True: any Google account with a verified email gets in, and
+    # allowed_emails is ignored (it may be empty). Anyone can then spend the
+    # shared LLM quota, and one user cannot be locked out by email.
+    allow_all_emails: bool = False
     # Exact browser origins (scheme://host:port) allowed to sign in and to
     # open /ws/session. Also the CORS allow-list.
     allowed_origins: list[str] = []
@@ -352,6 +420,12 @@ class Settings(BaseSettings):
         # Ignore unknown keys rather than erroring, so config.toml can carry
         # comments/keys this version does not yet model.
         extra="ignore",
+        # A config error names the field and the reason but never the value:
+        # pydantic would otherwise append "input_value=..." to the message,
+        # which could print a secret, or a stale value from backend/.env
+        # (WhisperSettings._refuse_moved_keys). Only the outermost model's
+        # setting counts, so it is set here, once, for every section.
+        hide_input_in_errors=True,
     )
 
     # Non-secret settings (filled from config.toml, overridable by env).
@@ -370,6 +444,12 @@ class Settings(BaseSettings):
     auth: AuthSettings = AuthSettings()
     # Persona key -> system prompt. session.start's "persona" must be a key.
     personas: dict[str, str]
+    # Which [personas] this server serves (feat/render-deploy). Only their
+    # voices load at startup, about 100 MB of RAM each. Unset = every persona:
+    # the validator below fills it in, so once loaded it is always a list.
+    served_personas: list[str] | None = None
+    # The built browser app, served at / when it exists (app.py).
+    frontend: FrontendSettings = FrontendSettings()
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
     # the value out of logs and reprs unless explicitly unwrapped.
@@ -378,6 +458,23 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = None
     # Env var VAANI_GROQ_API_KEY. Required only if "groq" is in provider_order.
     groq_api_key: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def _served_are_personas(self) -> "Settings":
+        """Unset served_personas means every persona; a name that is not a
+        [personas] key, or an empty list, stops the server starting."""
+        if self.served_personas is None:
+            self.served_personas = list(self.personas)
+        unknown = sorted(set(self.served_personas) - self.personas.keys())
+        if unknown:
+            raise ValueError(
+                f"served_personas names {unknown}, which are not keys of [personas]"
+            )
+        if not self.served_personas:
+            raise ValueError(
+                "served_personas is empty; unset it to serve every persona"
+            )
+        return self
 
     @classmethod
     def settings_customise_sources(

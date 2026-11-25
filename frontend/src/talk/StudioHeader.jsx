@@ -10,7 +10,9 @@
  */
 
 import { useRef } from 'react';
+import { useLoaderData } from 'react-router-dom';
 import useSignOut from '../login/useSignOut.js';
+import { operatorFor } from '../login/loginState.js';
 import StudioSettings from './StudioSettings.jsx';
 import { PERSONAS, TEXT } from './talkContent.js';
 import { VaaniIcon } from '../components/brand/VaaniLogo.jsx';
@@ -18,6 +20,7 @@ import { VaaniIcon } from '../components/brand/VaaniLogo.jsx';
 export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleInk }) {
   const sheetRef = useRef(null);
   const signOut = useSignOut();
+  const { signedIn } = operatorFor(useLoaderData()); // no Sign out when auth is off
   const station = PERSONAS.find((p) => p.id === settings.persona) ?? PERSONAS[0];
 
   return (
@@ -49,7 +52,7 @@ export default function StudioHeader({ settings, lamp, lampTone, ink, onToggleIn
         <button type="button" className="tk-mono tk-pill" onClick={onToggleInk}>
           {ink ? TEXT.rail.paper : TEXT.rail.ink}
         </button>
-        <button type="button" className="tk-mono tk-pill" onClick={signOut}>{TEXT.rail.signOut}</button>
+        {signedIn && <button type="button" className="tk-mono tk-pill" onClick={signOut}>{TEXT.rail.signOut}</button>}
         <button type="button" className="tk-mono tk-pill tk-sheet-close" onClick={() => sheetRef.current?.close()}>
           {TEXT.close}
         </button>

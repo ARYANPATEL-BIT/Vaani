@@ -1,0 +1,12 @@
+id	kind	lang	chars	synth_ms	audio_s	rtf	wav	error
+h1	hindi	hi	57	22161	11.88	1.865	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/h1_hi.wav	
+h2	hindi-numbers	hi	73					NotImplementedError: 
+h3	hindi-question	hi	58	3300	1.58	2.09	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/h3_hi.wav	
+e1	english	en	54	8039	3.95	2.037	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/e1_en.wav	
+e2	english-numbers	en	67	30893	15.18	2.035	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/e2_en.wav	
+m1	hinglish-romanized	hi	65	19209	9.98	1.924	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/m1_hi.wav	
+m1	hinglish-romanized	en	65	8294	4.22	1.964	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/m1_en.wav	
+m2	hinglish-romanized-question	hi	58	5754	2.83	2.036	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/m2_hi.wav	
+m2	hinglish-romanized-question	en	58	31983	16.02	1.996	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/m2_en.wav	
+m3	hinglish-mixed-script	hi	56					NotImplementedError: 
+m3	hinglish-mixed-script	en	56	3213	1.53	2.106	tools/voice_clone_eval/audio/out/xtts_cpu_clip_a_take1_dn/20261121-211947/m3_en.wav	

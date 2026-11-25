@@ -5,6 +5,9 @@ environment, and the invariant that secrets are not exposed in the object's
 string form.
 """
 
+import pytest
+from pydantic import ValidationError
+
 from vaani.config import Settings
 from vaani.language import LANGUAGES
 
@@ -100,3 +103,73 @@ def test_every_persona_has_a_voice_per_language() -> None:
     voices = settings.tts.piper.voices
     assert voices.keys() == settings.personas.keys()
     assert all(set(v) == set(LANGUAGES) for v in voices.values())
+
+
+def test_asr_engine_defaults_to_faster_whisper() -> None:
+    """feat/groq-stt: local faster-whisper stays the committed default; the
+    shared language and prompt now live in [asr], not [asr.whisper]."""
+    asr = Settings(_env_file=None).asr
+
+    assert asr.engine == "faster-whisper"
+    assert asr.language == "hi"
+    assert asr.initial_prompt  # set in config.toml, never in code
+    # Not -turbo: with the romanized prompt it wrote Hindi in Latin letters
+    # (docs/findings/groq-stt/script_20261125.txt).
+    assert asr.groq.model == "whisper-large-v3"
+    assert asr.groq.base_url.startswith("https://")
+    assert asr.groq.max_requests_per_process > 0
+
+
+def test_asr_engine_groq_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("VAANI_ASR__ENGINE", "groq")
+
+    assert Settings(_env_file=None).asr.engine == "groq"
+
+
+def test_unknown_asr_engine_is_refused(monkeypatch) -> None:
+    monkeypatch.setenv("VAANI_ASR__ENGINE", "whisper")  # the pre-groq name
+
+    with pytest.raises(ValidationError, match="faster-whisper"):
+        Settings(_env_file=None)
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("VAANI_ASR__WHISPER__LANGUAGE", "VAANI_ASR__LANGUAGE"),
+        ("VAANI_ASR__WHISPER__INITIAL_PROMPT", "VAANI_ASR__INITIAL_PROMPT"),
+    ],
+)
+def test_old_asr_setting_names_stop_startup(monkeypatch, old, new) -> None:
+    """A stale backend/.env line must not be silently ignored."""
+    monkeypatch.setenv(old, "secret-looking-value")
+
+    with pytest.raises(ValidationError, match=new) as info:
+        Settings(_env_file=None)
+    # Only the variable's NAME is in the message, never what it was set to.
+    assert "secret-looking-value" not in str(info.value)
+
+
+# --- served personas (feat/render-deploy) --------------------------------------
+
+
+def test_served_personas_unset_means_every_persona() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.served_personas == list(settings.personas)
+
+
+def test_served_personas_from_env(monkeypatch) -> None:
+    """The Docker image's setting: a JSON list in one variable."""
+    monkeypatch.setenv("VAANI_SERVED_PERSONAS", '["default"]')
+
+    assert Settings(_env_file=None).served_personas == ["default"]
+
+
+@pytest.mark.parametrize(
+    ("served", "message"),
+    [(["default", "nobody"], "nobody"), ([], "empty")],
+)
+def test_bad_served_personas_stop_startup(served, message) -> None:
+    with pytest.raises(ValidationError, match=message):
+        Settings(_env_file=None, served_personas=served)

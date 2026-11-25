@@ -113,7 +113,6 @@ export const TEXT = {
     history: 'History (coming soon)',
     ink: 'Ink mode',
     paper: 'Paper mode',
-    operator: 'Operator',
     signOut: 'Sign out',
   },
   aria: {

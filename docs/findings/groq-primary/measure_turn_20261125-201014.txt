@@ -1,0 +1,24 @@
+measure_turn run at 2026-11-25 20:10:14
+commit 6b30490 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+server: ws://127.0.0.1:8011/ws/session (render-deploy gate: run 3, shipped config: threads=1 + MALLOC_ARENA_MAX=2)
+clip: speech_16k_mono.wav, 2 turns
+server: {'type': 'session.started', 'session_id': 'c8b2fb05a9574ba2b43e42f2b1e4b440', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! I’m your assistant. How can I help you with your voice activity detection test?'
+  last voice -> final 1329 ms, -> first text 1712 ms, -> first audio 2256 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: "Hello! I'm your assistant. What would you like to test about voice activity detection?"
+  last voice -> final 1341 ms, -> first text 1874 ms, -> first audio 2453 ms
+
+over 2 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 1335  p95 1341 ms
+  -> first agent.text  p50 1793  p95 1874 ms
+  -> first audio frame p50 2354  p95 2453 ms
+per stage (client clock):
+  endpoint + ASR     p50  1335  p95  1341 ms
+  model first token  p50   458  p95   533 ms
+  first chunk + TTS  p50   561  p95   579 ms
+wrote measure_turn_20261125-201014.txt
