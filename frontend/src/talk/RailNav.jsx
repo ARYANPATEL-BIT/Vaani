@@ -12,6 +12,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { History, LogOut, Mic, Moon, Sun } from 'lucide-react';
 import useSignOut from '../login/useSignOut.js';
 import { TEXT } from './talkContent.js';
+import { VaaniIcon } from '../components/brand/VaaniLogo.jsx';
 
 const ICON = 20; // px, lucide takes a number
 
@@ -20,7 +21,9 @@ export default function RailNav({ ink, onToggleInk }) {
   const signOut = useSignOut();
   return (
     <nav className="tk-rail" aria-label={TEXT.rail.nav}>
-      <Link to="/" className="tk-dv tk-rail-mark" aria-label={TEXT.rail.home}>वाणी</Link>
+      <Link to="/" className="tk-rail-mark" aria-label={TEXT.rail.home}>
+        <VaaniIcon size={28} ink="var(--tk-text)" paper="var(--tk-bg)" />
+      </Link>
       <div className="tk-rail-group">
         {/* NavLink adds aria-current="page" when /talk is open. */}
         <NavLink to="/talk" className="tk-rail-btn" aria-label={TEXT.rail.talk} title={TEXT.rail.talk}>

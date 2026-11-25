@@ -56,7 +56,6 @@ export const CURSOR_HOTSPOT = { x: 5, y: 2 };
 
 export const BRAND = {
   hindi: 'वाणी', // the word Vaani in Devanagari
-  latin: 'Vaani',
   hindiWord: 'हिन्दी', // "Hindi" in Devanagari
 };
 

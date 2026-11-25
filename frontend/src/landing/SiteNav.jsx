@@ -5,13 +5,16 @@
  */
 
 import { Link } from 'react-router-dom';
-import { APP_PATH, BRAND, HERO, NAV_LINKS } from './landingContent.js';
+import { APP_PATH, HERO, NAV_LINKS } from './landingContent.js';
+import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
 import Arrow from './Arrow.jsx';
 
 export default function SiteNav() {
   return (
     <nav className="lp-nav" aria-label="Main">
-      <a href="#top" className="lp-dv lp-nav-mark" aria-label={HERO.backToTop}>{BRAND.hindi}</a>
+      <a href="#top" className="lp-nav-mark" aria-label={HERO.backToTop}>
+        <VaaniLogo height={22} ink="var(--lp-paper)" paper="var(--lp-ink)" />
+      </a>
       <div className="lp-nav-links">
         {NAV_LINKS.map((l) => (
           <a key={l.href} href={l.href} className="lp-mono lp-nav-link">{l.label}</a>

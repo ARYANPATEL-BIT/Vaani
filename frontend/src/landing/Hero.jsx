@@ -5,7 +5,8 @@
  */
 
 import { Link } from 'react-router-dom';
-import { APP_PATH, BRAND, CLOCK, HERO, SPECS } from './landingContent.js';
+import { APP_PATH, CLOCK, HERO, SPECS } from './landingContent.js';
+import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
 import useIstClock from './useIstClock.js';
 import LiveTape from './LiveTape.jsx';
 import Arrow from './Arrow.jsx';
@@ -26,8 +27,7 @@ export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
     <>
       <header className="lp-header lp-wrap">
         <a href="#top" className="lp-brand" aria-label={HERO.backToTop}>
-          <span className="lp-dv lp-brand-hi">{BRAND.hindi}</span>
-          <span className="lp-cd lp-brand-latin">{BRAND.latin}</span>
+          <VaaniLogo height={36} ink="var(--lp-ink)" paper="var(--lp-paper)" />
         </a>
         <div className="lp-header-right">
           <span className="lp-mono lp-onair">

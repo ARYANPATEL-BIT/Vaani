@@ -10,6 +10,7 @@ import {
   ChevronRight, LogOut, UserCheck, Moon, Sun
 } from 'lucide-react';
 import { applyTheme, saveTheme } from '../theme/theme.js';
+import { VaaniIcon, VaaniLogo } from './brand/VaaniLogo.jsx';
 import './AppLayout.css';
 
 // Width of the sidebar's icon column in px. Every row (nav and footer) uses
@@ -52,11 +53,13 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       {/* Logo */}
-      <NavLink to="/" className="sidebar-logo">
-        <div className="logo-icon" aria-hidden="true">
-          {[1,2,3,4,5].map(i => <div key={i} className="logo-bar" />)}
-        </div>
-        <span className="logo-wordmark">Vaani</span>
+      <NavLink to="/" className="sidebar-logo" aria-label="Vaani home">
+        <span className="logo-wordmark">
+          <VaaniLogo height={28} ink="var(--logo-ink)" paper="var(--logo-paper)" />
+        </span>
+        <span className="logo-icon">
+          <VaaniIcon size={28} ink="var(--logo-ink)" paper="var(--logo-paper)" />
+        </span>
       </NavLink>
 
       {/* Navigation */}
