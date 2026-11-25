@@ -302,3 +302,31 @@ def test_valid_frames_are_counted(caplog) -> None:
         int(rec.args[1]) for rec in caplog.records if "frames in last" in rec.msg
     ]
     assert sum(reported) == 5
+
+
+# --- served personas (v0.12, feat/render-deploy) -------------------------------
+
+
+def serving_only_default() -> TestClient:
+    return TestClient(create_app(Settings(served_personas=["default"])))
+
+
+def test_persona_not_served_gets_its_code_and_the_socket_stays_open() -> None:
+    with serving_only_default().websocket_connect("/ws/session") as ws:
+        ws.send_json({**START, "persona": "tutor"})
+        reply = ws.receive_json()
+        assert reply["code"] == "PERSONA_NOT_SERVED"
+        # The message names the refused persona and what IS served.
+        assert "tutor" in reply["message"] and "default" in reply["message"]
+
+        # No session was made, but the socket lives: a served persona starts.
+        ws.send_json(START)
+        assert ws.receive_json()["type"] == "session.started"
+
+
+def test_unknown_persona_is_still_bad_message() -> None:
+    """Not a persona at all is a client mistake, not a deployment choice."""
+    with serving_only_default().websocket_connect("/ws/session") as ws:
+        ws.send_json({**START, "persona": "nobody"})
+
+        assert ws.receive_json()["code"] == "BAD_MESSAGE"

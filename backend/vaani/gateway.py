@@ -15,6 +15,7 @@ Day 4 FLUSH: the server tells the browser to silence a turn (audio.flush);
 the browser's flush.ack, handled here, closes the round trip.
 
 Day 11: session.start's persona must be a key of config.toml's [personas].
+Served personas (v0.12): and one of served_personas, or PERSONA_NOT_SERVED.
 
 Day 12: the agent's reply is spoken; its audio leaves through the same
 send_bytes as the echo did (speaker.py, called from reply.py).
@@ -231,6 +232,18 @@ async def session_endpoint(websocket: WebSocket) -> None:
                     await websocket.send_json(
                         error(
                             ErrorCode.BAD_MESSAGE, f"unknown persona: {start.persona}"
+                        )
+                    )
+                    continue
+                # v0.12: a real persona whose voices this server did not load
+                # (served_personas). No session starts; the socket stays open
+                # so the client can send a session.start with a served one.
+                if start.persona not in settings.served_personas:
+                    await websocket.send_json(
+                        error(
+                            ErrorCode.PERSONA_NOT_SERVED,
+                            f"persona {start.persona} is not served here; "
+                            f"served: {', '.join(settings.served_personas)}",
                         )
                     )
                     continue

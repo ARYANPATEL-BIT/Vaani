@@ -1,0 +1,40 @@
+measure_turn run at 2026-11-25 19:37:42
+commit 6b30490 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Silent
+server: ws://127.0.0.1:8011/ws/session (render-deploy BEFORE (dev 6b30490): asr groq, cpu, auth off)
+clip: speech_16k_mono.wav, 6 turns
+server: {'type': 'session.started', 'session_id': 'a7585ade75394af299954c1b1e7fc8be', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: "Hello! I'm your assistant."
+  last voice -> final 1313 ms, -> first text 1583 ms, -> first audio 1628 ms
+turn 2:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो, यह एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रोजेक्ट है।'
+  last voice -> final 1393 ms, -> first text 1876 ms, -> first audio 1916 ms
+turn 3:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो, यह एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रोजेक्ट है।'
+  last voice -> final 1455 ms, -> first text 1928 ms, -> first audio 1961 ms
+turn 4:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो, यह एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रोजेक्ट है।'
+  last voice -> final 1470 ms, -> first text 1951 ms, -> first audio 1985 ms
+turn 5:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो, यह एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रोजेक्ट है।'
+  last voice -> final 1469 ms, -> first text 1618 ms, -> first audio 1658 ms
+turn 6:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो, यह एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रोजेक्ट है।'
+  last voice -> final 1471 ms, -> first text 1773 ms, -> first audio 1806 ms
+
+over 6 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 1462  p95 1471 ms
+  -> first agent.text  p50 1824  p95 1951 ms
+  -> first audio frame p50 1861  p95 1985 ms
+per stage (client clock):
+  endpoint + ASR     p50  1462  p95  1471 ms
+  model first token  p50   388  p95   483 ms
+  first chunk + TTS  p50    37  p95    45 ms
+wrote measure_turn_20261125-193742.txt

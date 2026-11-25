@@ -1,0 +1,38 @@
+# .dockerignore - what `docker build` may NOT see (feat/render-deploy).
+#
+# A whitelist: everything is ignored, then only backend/ and frontend/ are let
+# back in, then the parts of those that must never reach an image are ignored
+# again. Anything new at the repo root stays out by default. Later lines win.
+
+**
+
+!backend/
+!frontend/
+
+# Secrets: every real env file (the image gets its secrets from the host).
+**/.env
+**/.env.*
+
+# The SQLite database: what users said.
+backend/data/
+
+# Audio: test fixtures, recordings, anything spoken.
+**/*.wav
+**/audio/
+
+# Voice weights: the build downloads and hash-checks them instead.
+# silero_vad.onnx is committed and needed, so it is let back in.
+backend/models/*.onnx
+!backend/models/silero_vad.onnx
+
+# Built or installed locally; the image builds its own.
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+frontend/dist/
+
+# The voice-cloning eval spike (biometric data). Outside the whitelist
+# anyway; listed so the rule survives a change to the lines above.
+tools/voice_clone_eval/

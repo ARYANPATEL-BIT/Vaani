@@ -25,13 +25,15 @@ process, not per voice.
 
 import asyncio
 import hashlib
+import json
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from time import perf_counter
 
-from piper import PiperVoice, SynthesisConfig
+import onnxruntime as ort
+from piper import PiperConfig, PiperVoice, SynthesisConfig
 
 from vaani.config import PersonaVoice, TtsSettings
 from vaani.tts.base import Synthesizer, TtsError
@@ -59,15 +61,16 @@ def build_piper(cfg: TtsSettings) -> dict[str, dict[str, "PiperSynthesizer"]]:
         for language, pv in by_language.items():
             key = (pv.voice, pv.sha256)
             if key not in loaded:
-                loaded[key] = _load(models_dir, pv)
+                loaded[key] = _load(models_dir, pv, cfg.piper.intra_op_threads)
             synths[persona][language] = PiperSynthesizer(
                 loaded[key], pv.length_scale, pool
             )
     return synths
 
 
-def _load(models_dir: Path, pv: PersonaVoice) -> PiperVoice:
-    """Check, load and warm up one voice file."""
+def _load(models_dir: Path, pv: PersonaVoice, threads: int) -> PiperVoice:
+    """Check, load and warm up one voice file. `threads` 0 = ONNX Runtime's
+    default thread count."""
     model = models_dir / f"{pv.voice}.onnx"
     if not model.exists():
         raise TtsError(
@@ -82,7 +85,21 @@ def _load(models_dir: Path, pv: PersonaVoice) -> PiperVoice:
             f"Piper voice {model} has sha256 {actual}, config expects {pv.sha256}"
         )
     started = perf_counter()
-    voice = PiperVoice.load(model, config_path=models_dir / f"{pv.voice}.onnx.json")
+    # Built by hand rather than with PiperVoice.load, which always uses ONNX
+    # Runtime's default options: one thread per CPU core it can see. Inside a
+    # container held to 0.1 of a CPU those threads only fight over that share
+    # (feat/render-deploy), so the count comes from [tts.piper].
+    opts = ort.SessionOptions()
+    if threads:
+        opts.intra_op_num_threads = threads
+        opts.inter_op_num_threads = 1
+    config_json = (models_dir / f"{pv.voice}.onnx.json").read_text(encoding="utf-8")
+    voice = PiperVoice(
+        config=PiperConfig.from_dict(json.loads(config_json)),
+        session=ort.InferenceSession(
+            str(model), sess_options=opts, providers=["CPUExecutionProvider"]
+        ),
+    )
     # The first synthesis loads espeak-ng and warms ONNX Runtime; do it now
     # so a user's first reply does not pay for it.
     for _ in voice.synthesize("namaste"):
@@ -111,6 +128,7 @@ class PiperSynthesizer(Synthesizer):
 
     def _run(self, text: str, stop: threading.Event) -> bytes | None:
         """Runs on a pool thread. Returns None if `stop` was set."""
+        started = perf_counter()
         parts: list[bytes] = []
         # One AudioChunk per sentence of `text`. Each step runs the network
         # once; between steps is the only place synthesis can be stopped.
@@ -120,7 +138,20 @@ class PiperSynthesizer(Synthesizer):
             parts.append(chunk.audio_int16_bytes)
         if stop.is_set():
             return None
-        return b"".join(parts)
+        audio = b"".join(parts)
+        # Real-time factor = synthesis time / audio length; under 1 the voice
+        # is made faster than it plays. 2 bytes per 16-bit sample. Logs the
+        # length only, never the text, so replies stay out of the logs.
+        synth_s = perf_counter() - started
+        audio_s = len(audio) / 2 / self.sample_rate
+        log.info(
+            "piper chunk: %d chars, synth %.0f ms, audio %.0f ms, rtf %.2f",
+            len(text),
+            synth_s * 1000,
+            audio_s * 1000,
+            synth_s / audio_s if audio_s else 0.0,
+        )
+        return audio
 
     async def synthesize(self, text: str, cancel: asyncio.Event) -> bytes | None:
         # `stop` is a threading.Event, not the asyncio.Event: the worker thread

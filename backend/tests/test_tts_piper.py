@@ -13,6 +13,7 @@ files, without their 63 MB .onnx.
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -136,3 +137,35 @@ def test_startup_refuses_a_persona_without_an_english_voice() -> None:
     hindi_only = {p: {"hi": DEFAULT_HI} for p in Settings().personas}
     with pytest.raises(TtsError, match=r"default\.en"):
         create_app(Settings(tts=only(**hindi_only)))
+
+
+def test_only_served_personas_voices_load() -> None:
+    """feat/render-deploy: tutor's voices are not fetched in CI, so loading
+    them would fail startup here; only default's two voices must load."""
+    tts = CFG.model_copy(update={"enabled": True})
+    app = create_app(Settings(tts=tts, served_personas=["default"]))
+
+    assert set(app.state.synthesizers) == {"default"}
+    assert set(app.state.synthesizers["default"]) == set(LANGUAGES)
+
+
+def test_each_chunk_logs_its_real_time_factor(caplog) -> None:
+    with caplog.at_level(logging.INFO, logger="vaani.tts"):
+        synthesize("namaste")
+
+    lines = [r.getMessage() for r in caplog.records]
+    chunk = next(line for line in lines if line.startswith("piper chunk:"))
+    assert "rtf" in chunk
+    # The length is logged, never the text the agent said.
+    assert "namaste" not in chunk
+
+
+def test_thread_count_reaches_onnx_runtime() -> None:
+    """[tts.piper] intra_op_threads (feat/render-deploy): 1 in the Docker image."""
+    piper = CFG.piper.model_copy(update={"intra_op_threads": 1})
+    one = only(default={"hi": DEFAULT_HI}).model_copy(update={"piper": piper})
+    one.piper.voices = {"default": {"hi": DEFAULT_HI}}
+
+    voice = build_synthesizers(one)["default"]["hi"]._voice
+
+    assert voice.session.get_session_options().intra_op_num_threads == 1

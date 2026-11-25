@@ -1,0 +1,43 @@
+render-deploy gate run at 2026-11-25 19:59:20
+label: run 2, piper intra_op_threads=1 (image ENV)
+image: vaani:render-deploy sha256:fdc1ec758716
+limits: --memory=512m --memory-swap=512m (no swap) --cpus=0.1; PORT=10000; engine groq (image ENV), served_personas ["default"] (image ENV), auth off (-e)
+extra env: none
+startup: docker run -> first /health 200 in 26.1 s
+GET /: 200 text/html; charset=utf-8, has #root div: True
+GET /talk (spa fallback): 200, same index.html: True
+pid 1: /app/backend/.venv/bin/python .venv/bin/uvicorn vaani.app:ap
+idle: uvicorn VmRSS 324 MB, VmHWM (peak RSS) 324 MB; cgroup current 281 MB (anon 275, file cache 0), cgroup peak 282 MB
+
+2 turns, scripts/measure_turn.py (client clock):
+  turn 1:
+  last voice -> final 1368 ms, -> first text 1793 ms, -> first audio 2499 ms
+  turn 2:
+  last voice -> final 1424 ms, -> first text 1845 ms, -> first audio 2473 ms
+  -> transcript.final  p50 1396  p95 1424 ms
+  -> first agent.text  p50 1819  p95 1845 ms
+  -> first audio frame p50 2486  p95 2499 ms
+  endpoint + ASR     p50  1396  p95  1424 ms
+  model first token  p50   423  p95   425 ms
+  first chunk + TTS  p50   667  p95   706 ms
+  wrote measure_turn_20261125-195952.txt
+after 2 turns: uvicorn VmRSS 453 MB, VmHWM (peak RSS) 453 MB; cgroup current 411 MB (anon 404, file cache 0), cgroup peak 412 MB
+
+server log, timing lines only (no transcripts or replies):
+  INFO: vaani.db: database /app/backend/data/vaani.db open (WAL, schema v1)
+  INFO: vaani.vad: VAD model loaded in 198.4 ms
+  INFO: vaani.tts: piper hi_IN-priyamvada-medium (22050 Hz) loaded and warmed up in 9.30 s
+  INFO: vaani.tts: piper en_US-kristin-medium (22050 Hz) loaded and warmed up in 9.50 s
+  INFO:     Application startup complete.
+  INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
+  INFO: vaani.reply: session 133ac30c613f4f4f8638585967b45192: turn ee7e0d83bdad40ba9f45de5154837013 first token: 441 ms after request, turn_ended->first agent.text 833 ms
+  INFO: vaani.tts: piper chunk: 6 chars, synth 728 ms, audio 708 ms, rtf 1.03
+  INFO: vaani.speaker: session 133ac30c613f4f4f8638585967b45192: turn ee7e0d83bdad40ba9f45de5154837013 first audio frame sent, turn_ended->first audio 1564 ms
+  INFO: vaani.tts: piper chunk: 49 chars, synth 3000 ms, audio 2717 ms, rtf 1.10
+  INFO: vaani.reply: session 133ac30c613f4f4f8638585967b45192: turn 7ecd524975574eebb254c892e2edfc20 first token: 441 ms after request, turn_ended->first agent.text 887 ms
+  INFO: vaani.tts: piper chunk: 5 chars, synth 641 ms, audio 662 ms, rtf 0.97
+  INFO: vaani.speaker: session 133ac30c613f4f4f8638585967b45192: turn 7ecd524975574eebb254c892e2edfc20 first audio frame sent, turn_ended->first audio 1536 ms
+  INFO: vaani.tts: piper chunk: 73 chars, synth 5395 ms, audio 5306 ms, rtf 1.02
+  INFO: vaani.tts: piper chunk: 28 chars, synth 2196 ms, audio 2299 ms, rtf 0.96
+
+verdict inputs: peak RSS (VmHWM) 453 MB vs 470 limit; max chunk rtf 1.1 vs 0.8 limit over 5 chunks
