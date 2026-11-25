@@ -116,11 +116,19 @@ threshold = 0.5
 # [endpoint] (and so [vad]) enabled: no utterances, nothing to transcribe.
 enabled = true
 
-# Which recogniser to build. Only "whisper" (faster-whisper, local) exists.
-engine = "whisper"
+# Which recogniser to build:
+#   "faster-whisper"  local, on this machine's CPU or GPU ([asr.whisper]).
+#                     Nothing leaves the machine. The default.
+#   "groq"            Groq's hosted Whisper over HTTPS ([asr.groq]), for a
+#                     machine with no GPU. Every turn's AUDIO IS UPLOADED to
+#                     Groq. Needs VAANI_GROQ_API_KEY (the same key as
+#                     [llm.groq]); faster-whisper is then never loaded.
+# Override with VAANI_ASR__ENGINE=groq in backend/.env or the environment.
+engine = "faster-whisper"
 
-# Inference threads for the whole process. Each live session uses at most one
-# at a time, so this is also how many sessions can be transcribed at once.
+# faster-whisper only: inference threads for the whole process. Each live
+# session uses at most one at a time, so this is also how many sessions can be
+# transcribed at once. Groq has no threads: each request just waits on HTTP.
 max_concurrent = 2
 
 # Give up on one transcription after this long and report it as failed. The
@@ -131,8 +139,25 @@ timeout_s = 5.0
 # While the user speaks, re-decode the utterance-so-far this often and send
 # transcript.partial. 0 = off. Off by default: on cpu/small one re-decode
 # costs about as much as the final, and a partial still running when the turn
-# ends delays the final (numbers in docs/learning 10-asr.md).
+# ends delays the final (numbers in docs/learning 10-asr.md). With
+# engine = "groq" this MUST stay 0, or startup fails: each partial would be
+# another paid request, billed as at least 10 s of audio, and one user would
+# hit Groq's 20 requests a minute within seconds.
 partial_interval_ms = 0
+
+# Both engines read these two (moved here from [asr.whisper] in
+# feat/groq-stt; the old names now stop startup with a message naming the
+# new ones). Env overrides: VAANI_ASR__LANGUAGE, VAANI_ASR__INITIAL_PROMPT.
+#
+# Forced to Hindi. Auto-detection flips between hi, ur and la for the same
+# speaker, and "en" TRANSLATES Hindi into English instead of transcribing it.
+# Forcing "hi" still transcribes clean English correctly on large-v3.
+language = "hi"
+
+# Text "before" the audio, in the style we want back. A romanized Hinglish
+# sentence nudges Whisper to keep English words in Latin script. Groq limits
+# its prompt to 224 tokens.
+initial_prompt = "mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena"
 
 [asr.whisper]
 # DELIBERATELY THE DEGRADED DEFAULT. cpu/small runs on any laptop and in CI,
@@ -150,15 +175,6 @@ compute_type = "int8"
 # 0 = let CTranslate2 pick the number of CPU threads per inference.
 cpu_threads = 0
 
-# Forced to Hindi. Auto-detection flips between hi, ur and la for the same
-# speaker, and "en" TRANSLATES Hindi into English instead of transcribing it.
-# Forcing "hi" still transcribes clean English correctly on large-v3.
-language = "hi"
-
-# Text "before" the audio, in the style we want back. A romanized Hinglish
-# sentence nudges Whisper to keep English words in Latin script.
-initial_prompt = "mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena"
-
 # Candidate transcripts kept while decoding (faster-whisper's default is 5).
 beam_size = 5
 
@@ -166,6 +182,34 @@ beam_size = 5
 # the output looks bad; in the spike that turned one clip into a 62 s stall.
 # A wrong transcript is recoverable; a 62 s stall loses the turn.
 temperature = [0.0]
+
+[asr.groq]
+# Groq's hosted Whisper (vaani/asr/groq.py), used only with engine = "groq".
+# Each turn's 16 kHz mono audio is sent as one WAV to POST {base_url}/audio/
+# transcriptions. No vad_filter option: trailing silence goes up too.
+# Exact model ID. whisper-large-v3, NOT -turbo: with [asr].initial_prompt,
+# turbo wrote even pure Hindi in Latin letters; large-v3 wrote Hindi in
+# Devanagari and English in Latin, as large-v3 does locally on the GPU
+# (docs/findings/groq-stt/script_20261125.txt). $0.111 per audio hour against
+# turbo's $0.04 (console.groq.com/docs/speech-to-text, read 2026-11-25);
+# every request is billed as at least 10 s of audio, however short the turn.
+model = "whisper-large-v3"
+
+# Groq's OpenAI-compatible API root, the same as [llm.groq].
+base_url = "https://api.groq.com/openai/v1"
+
+# Groq takes one temperature, 0 to 1 (faster-whisper takes a list). 0 = the
+# most likely text, the same intent as [asr.whisper]'s [0.0].
+temperature = 0.0
+
+# Per-process cap on transcription requests, checked BEFORE each is sent,
+# separate from [llm].max_requests_per_process (one turn = one of each).
+# Groq's limits for both Whisper models, from console.groq.com/docs/rate-limits
+# (read 2026-11-25; the page calls them Developer-plan base limits; check your
+# key's own at console.groq.com/settings/limits): 20 requests a minute, 2,000
+# a day, 7,200 audio seconds an hour, 28,800 a day. With the 10 s minimum,
+# that is at most 2,880 turns a day.
+max_requests_per_process = 200
 
 [llm]
 # Language model providers, first choice first. If one is rate-limited, times

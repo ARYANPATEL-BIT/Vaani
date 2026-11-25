@@ -209,7 +209,9 @@ def test_allow_all_is_off_by_default():
 def test_allow_all_permits_an_empty_allowlist_and_warns_once(caplog):
     create_app(Settings(auth=auth_settings(allowed_emails=[], allow_all_emails=True)))
     warnings = [
-        r.message for r in caplog.records if r.name == "vaani.auth" and r.levelname == "WARNING"
+        r.message
+        for r in caplog.records
+        if r.name == "vaani.auth" and r.levelname == "WARNING"
     ]
     assert warnings == ["auth: all verified google accounts are allowed"]
 
