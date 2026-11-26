@@ -81,7 +81,6 @@
   .tk .tk-wide-only, .tk .tk-rail { display: none; }
   .tk .tk-header { display: flex; justify-content: space-between; padding: 8px 16px; }
   .tk .tk-brand { flex-direction: row; align-items: center; gap: 10px; }
-  .tk .tk-brand-mark { font-size: 20px; }
   .tk .tk-title { font-size: 24px; }
   .tk .tk-error { margin: 10px 16px 0; }
   .tk .tk-stage { padding: 16px 16px 12px; gap: 14px; }

@@ -222,6 +222,9 @@ class PiperSettings(BaseModel):
     # Persona key -> language ("hi", "en") -> its voice. Every key of
     # [personas] needs one per language in vaani/language.py's LANGUAGES.
     voices: dict[str, dict[str, PersonaVoice]]
+    # ONNX Runtime threads per synthesis. 0 = its default, one per CPU core
+    # it can see (feat/render-deploy: the Docker image sets 1).
+    intra_op_threads: int = 0
 
 
 class TtsSettings(BaseModel):
@@ -349,6 +352,15 @@ class DbSettings(BaseModel):
     close_timeout_s: float = 2.0
 
 
+class FrontendSettings(BaseModel):
+    """The built browser app, under [frontend] in config.toml."""
+
+    # Vite's production build (npm run build), relative to backend/. app.py
+    # serves it at / only when the folder exists: in the Docker image. In
+    # local development Vite's own server serves the page instead.
+    dist_dir: str = "../frontend/dist"
+
+
 class AuthSettings(BaseModel):
     """Google sign-in and the session cookie, under [auth] (vaani/auth.py).
 
@@ -432,6 +444,12 @@ class Settings(BaseSettings):
     auth: AuthSettings = AuthSettings()
     # Persona key -> system prompt. session.start's "persona" must be a key.
     personas: dict[str, str]
+    # Which [personas] this server serves (feat/render-deploy). Only their
+    # voices load at startup, about 100 MB of RAM each. Unset = every persona:
+    # the validator below fills it in, so once loaded it is always a list.
+    served_personas: list[str] | None = None
+    # The built browser app, served at / when it exists (app.py).
+    frontend: FrontendSettings = FrontendSettings()
 
     # Secret settings (env only; never written to config.toml). SecretStr keeps
     # the value out of logs and reprs unless explicitly unwrapped.
@@ -440,6 +458,23 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = None
     # Env var VAANI_GROQ_API_KEY. Required only if "groq" is in provider_order.
     groq_api_key: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def _served_are_personas(self) -> "Settings":
+        """Unset served_personas means every persona; a name that is not a
+        [personas] key, or an empty list, stops the server starting."""
+        if self.served_personas is None:
+            self.served_personas = list(self.personas)
+        unknown = sorted(set(self.served_personas) - self.personas.keys())
+        if unknown:
+            raise ValueError(
+                f"served_personas names {unknown}, which are not keys of [personas]"
+            )
+        if not self.served_personas:
+            raise ValueError(
+                "served_personas is empty; unset it to serve every persona"
+            )
+        return self
 
     @classmethod
     def settings_customise_sources(

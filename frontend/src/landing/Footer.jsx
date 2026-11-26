@@ -5,6 +5,7 @@
 
 import { BRAND, CLOCK, FOOTER, NAV_LINKS } from './landingContent.js';
 import useIstClock from './useIstClock.js';
+import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
 
 export default function Footer() {
   const clock = useIstClock();
@@ -12,7 +13,7 @@ export default function Footer() {
     <footer className="lp-footer lp-on-ink">
       <div className="lp-wrap lp-footer-grid">
         <div className="lp-footer-col">
-          <span className="lp-cd lp-footer-name">{BRAND.latin}</span>
+          <VaaniLogo height={56} ink="var(--lp-paper)" paper="var(--lp-ink)" className="lp-footer-name" />
           <span className="lp-muted lp-footer-tag">{FOOTER.tagline}</span>
         </div>
         <nav aria-label="Footer" className="lp-mono lp-footer-nav">

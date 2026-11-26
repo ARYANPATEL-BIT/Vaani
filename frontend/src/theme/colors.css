@@ -25,7 +25,8 @@
   --sidebar-bg: rgba(255,255,255,0.72);
   --sidebar-border: rgba(226,232,240,0.9);
   --sidebar-footer-border: rgba(226,232,240,0.8);
-  --logo-bar: var(--c-indigo);
+  --logo-ink: #171513;
+  --logo-paper: #FDFBFA;
   --nav-text: var(--c-slate);
   --nav-hover-bg: rgba(79,70,229,0.06);
   --nav-active-bg: var(--c-lavender);
@@ -159,7 +160,8 @@
   --sidebar-bg: #111111;
   --sidebar-border: rgba(255,255,255,0.08);
   --sidebar-footer-border: rgba(255,255,255,0.08);
-  --logo-bar: #f5f5f5;
+  --logo-ink: #E6E0D5;
+  --logo-paper: var(--sidebar-bg);
   --nav-text: #f5f5f5;
   --nav-hover-bg: rgba(255,255,255,0.06);
   --nav-active-bg: #2a2a2a;

@@ -5,7 +5,7 @@ here and NOWHERE else. Centralising the wire format means there is exactly one
 place to look when asking "what can the client send?" or "what can the server
 send back?", and one place to change when the protocol evolves.
 
-This is SHARED PROTOCOL v0.11. The same shapes are mirrored on the frontend.
+This is SHARED PROTOCOL v0.12. The same shapes are mirrored on the frontend.
 Version numbers come from docs/contracts.md, the source of truth; the
 history below repeats its version table, and only the PR that changes
 contracts.md bumps the version.
@@ -91,6 +91,12 @@ socket opens and nothing is sent. With [auth] enabled = false neither check
 runs. The /auth/* HTTP routes answer errors in this file's error shape, with
 the AUTH_* codes below.
 
+v0.12 is SERVED PERSONAS. A server may load only some personas' voices
+([served_personas] in config.toml; the Docker image serves only "default").
+A session.start naming a persona that exists but is not served here gets
+PERSONA_NOT_SERVED; no session starts, and the socket stays open for a
+session.start with a served persona. An unknown persona is still BAD_MESSAGE.
+
 Pydantic models are used because they validate incoming JSON for us: if the
 client sends the wrong shape, constructing the model raises instead of letting
 a malformed message through.
@@ -119,6 +125,8 @@ class ErrorCode(StrEnum):
     LLM_FAILED = "LLM_FAILED"  # the agent could not answer
     INPUT_REJECTED = "INPUT_REJECTED"  # the turn was blocked before the model
     TTS_FAILED = "TTS_FAILED"  # the reply could not be spoken
+    # v0.12: session.start named a persona this server does not load.
+    PERSONA_NOT_SERVED = "PERSONA_NOT_SERVED"
     # v0.11: HTTP /auth/* responses only, never sent on the socket.
     AUTH_REQUIRED = "AUTH_REQUIRED"  # 401: no valid session cookie
     AUTH_INVALID_TOKEN = "AUTH_INVALID_TOKEN"  # 401: Google ID token rejected

@@ -1,0 +1,62 @@
+# render.yaml - Render Blueprint for Vaani phase 1 (feat/render-deploy).
+#
+# One free Docker web service: the Dockerfile at the repo root builds the
+# browser app and the backend into one image, and FastAPI serves both from
+# one origin. No secret VALUE is in this file: `sync: false` means "ask for
+# it in the Render dashboard", and generateValue means Render makes one.
+# Walkthrough and measured limits: docs/learning/backend-learning/24-render-deploy.md
+#
+# What the image fixes for itself (Dockerfile ENV, not here): Groq speech to
+# text, only the default persona's two voices, one ONNX Runtime thread.
+
+services:
+  - type: web
+    name: vaani
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # A new deploy has 15 minutes to pass this; startup measured 26-29 s at
+    # 0.1 CPU. Each check gets 5 s; /health answered in at most 148 ms during
+    # turns (docs/findings/render-deploy/gate_20261125-200939.txt).
+    healthCheckPath: /health
+    envVars:
+      # --- Sign-in, pinned ON. The image never turns auth off. ---
+      - key: VAANI_AUTH__ENABLED
+        value: "true"
+      # Any Google account with a verified email gets in: no email list.
+      - key: VAANI_AUTH__ALLOW_ALL_EMAILS
+        value: "true"
+      # The site is HTTPS only, so the cookie is sent over HTTPS only.
+      - key: VAANI_AUTH__SECURE_COOKIE
+        value: "true"
+      # Signs the vaani_session cookie. Render generates a random value once,
+      # when the service is created; nobody ever sees or types it.
+      - key: VAANI_AUTH__SESSION_SECRET
+        generateValue: true
+      # JSON list with this service's own address, e.g.
+      # ["https://vaani.onrender.com"]: known only after the service exists.
+      - key: VAANI_AUTH__ALLOWED_ORIGINS
+        sync: false
+      # The Google OAuth Web client ID (public, but per deployment).
+      - key: VAANI_AUTH__GOOGLE_CLIENT_ID
+        sync: false
+      # The SAME client ID, for the browser app. Render passes it to the
+      # Docker build as a build arg (Dockerfile ARG); Vite bakes it in.
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+
+      # --- Hosted model keys (secret). ---
+      # Speech to text AND the primary language model.
+      - key: VAANI_GROQ_API_KEY
+        sync: false
+      # The language model failover; required while [llm] provider_order
+      # names gemini.
+      - key: VAANI_GEMINI_API_KEY
+        sync: false
+
+      # --- Memory. ---
+      # Caps glibc's per-thread memory pools: peak RSS 382 MB with it, 453 MB
+      # without, on a 512 MB plan (gate runs 3 and 2).
+      - key: MALLOC_ARENA_MAX
+        value: "2"

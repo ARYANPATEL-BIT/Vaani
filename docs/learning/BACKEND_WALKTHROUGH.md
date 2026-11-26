@@ -47,18 +47,18 @@ being imported. If any step raises, uvicorn has no app and the server does not s
 
 1. `uv run uvicorn vaani.app:app` -> uvicorn imports the module `vaani.app` and takes its `app` attribute -> next: Python runs the package first.
 2. `vaani/__init__.py` -> sets `__version__` (`"0.1.0"`) -> next: `app.py`'s imports.
-3. `vaani/app.py` lines 16-36 -> the imports pull in every `vaani` module except `asr/whisper.py` and `tts/piper.py` (most arrive through `gateway.py` -> `turns.py`), plus httpx, numpy, onnxruntime and google-auth. faster-whisper and Piper are NOT imported yet; those two files load them in steps 11 and 13 -> next: the last line of the file.
-4. `vaani/app.py` line 186 -> `app = create_app()` -> next: settings.
-5. `vaani/config.py` -> `get_settings` (408) builds `Settings()` once and caches it. `settings_customise_sources` (383) sets who wins, highest first: values passed in code (tests only), real environment variables (`VAANI_` prefix, `__` between levels, e.g. `VAANI_ASR__TIMEOUT_S`), the gitignored `backend/.env`, `backend/config.toml`, then the defaults written in the settings classes. pydantic's secrets-directory source is last and nothing configures it. Sections with no defaults (`vad`, `asr`, `llm`, `tts`, `chunker`, `guardrail`, `personas`) must be present. Three checks run here: the time zone exists (`_known_zone`), every guardrail pattern compiles (`_compiles`), allowlist emails are lowercased (`_lowercase`). Unknown keys are ignored -> next: logging.
-6. `vaani/app.py` -> `_configure_logging` (39) attaches one handler to the `vaani` logger at INFO -> next: the first startup check.
+3. `vaani/app.py` lines 18-40 -> the imports pull in every `vaani` module except `asr/whisper.py` and `tts/piper.py` (most arrive through `gateway.py` -> `turns.py`), plus httpx, numpy, onnxruntime and google-auth. faster-whisper and Piper are NOT imported yet; those two files load them in steps 11 and 13 -> next: the last line of the file.
+4. `vaani/app.py` line 235 -> `app = create_app()` -> next: settings.
+5. `vaani/config.py` -> `get_settings` (505) builds `Settings()` once and caches it. `settings_customise_sources` (480) sets who wins, highest first: values passed in code (tests only), real environment variables (`VAANI_` prefix, `__` between levels, e.g. `VAANI_ASR__TIMEOUT_S`), the gitignored `backend/.env`, `backend/config.toml`, then the defaults written in the settings classes. pydantic's secrets-directory source is last and nothing configures it. Sections with no defaults (`vad`, `asr`, `llm`, `tts`, `chunker`, `guardrail`, `personas`) must be present. Four checks run here: the time zone exists (`_known_zone`), every guardrail pattern compiles (`_compiles`), allowlist emails are lowercased (`_lowercase`), and `served_personas` names only `[personas]` keys and is not empty (`_served_are_personas`, 463; unset, it becomes every persona). Unknown keys are ignored -> next: logging.
+6. `vaani/app.py` -> `_configure_logging` (50) attaches one handler to the `vaani` logger at INFO -> next: the first startup check.
 7. `vaani/auth.py` -> `check_settings` (59), only if `[auth].enabled`: raises `AuthConfigError` naming the missing variable (client ID, session secret, a secret under 32 characters, empty allowlist, empty origin list), never its value -> next: the database.
 8. `vaani/db.py` -> `open_db` (75), only if `[db].enabled`: creates the folder and file, sets WAL mode and foreign keys, checks the schema version, runs `schema.sql`. Any problem raises `DbOpenError`. Then `DbWriter.__init__` (118) starts the writer thread `vaani-db-writer`, which waits on an empty queue -> next: the app object.
-9. `vaani/app.py` lines 97-115 -> `FastAPI(...)` with the `lifespan` function (90); stores `db`, `settings` and `verify_google` on `app.state`; adds `CORSMiddleware` with `[auth].allowed_origins` -> next: models.
+9. `vaani/app.py` lines 108-126 -> `FastAPI(...)` with the `lifespan` function (101); stores `db`, `settings` and `verify_google` on `app.state`; adds `CORSMiddleware` with `[auth].allowed_origins` -> next: models.
 10. `vaani/vad.py` -> `load_model` (72), only if `[vad].enabled`: reads the Silero ONNX file, checks its sha256 against config, builds an onnxruntime session on CPU with one thread. Cached, so it loads once per process -> next: Whisper.
 11. `vaani/asr/__init__.py` -> `build_recognizer` (16) -> `_build` (27) -> `vaani/asr/whisper.py` `WhisperRecognizer.__init__` (82), only if `[asr].enabled`: imports faster-whisper, refuses `cuda` without a GPU, loads the model, creates the `asr` thread pool (`[asr].max_concurrent` threads) and runs one tiny decode (`_warm_up`, 127) -> next: the LLM.
 12. `vaani/spend.py` `RequestCap` (22) then `vaani/providers/chain.py` `build_chain` (111), only if `[llm].enabled`: for each name in `[llm].provider_order` (groq, gemini) `_require_key` (140) raises `AuthenticationError` if its key is missing; `GroqProvider` and `GeminiProvider` each create one long-lived `httpx.AsyncClient` (`providers/groq.py` line 71, `providers/gemini.py` line 73). No request is sent at startup -> next: voices.
-13. `vaani/app.py` lines 154-164 then `vaani/tts/__init__.py` `build_synthesizers` (16) -> `vaani/tts/piper.py` `build_piper` (44), only if `[tts].enabled`: first checks every persona has a voice for `hi` and `en` (`TtsError` if not); creates ONE `tts` thread pool; `_load` (69) checks each voice file exists and matches its sha256, loads it and synthesises one word to warm up -> next: routes.
-14. `vaani/app.py` lines 166-179 -> registers `GET /health`, then `gateway.py`'s router (`/ws/session`), then `auth.py`'s router (`/auth/google`, `/auth/me`, `/auth/logout`). FastAPI's own `/docs` pages are also served `[unverified]` -> next: `create_app` returns.
+13. `vaani/app.py` lines 163-183 then `vaani/tts/__init__.py` `build_synthesizers` (16) -> `vaani/tts/piper.py` `build_piper` (46), only if `[tts].enabled`: first checks every SERVED persona has a voice for `hi` and `en` (`TtsError` if not), then hands `build_synthesizers` a copy of `[tts]` holding only the served personas' voices, so only those load (each holds about 100 MB of RAM; feat/render-deploy); creates ONE `tts` thread pool; `_load` (71) checks each voice file exists and matches its sha256, builds its ONNX Runtime session with `[tts.piper].intra_op_threads` threads (0 = ONNX Runtime's default), and synthesises one word to warm up -> next: routes.
+14. `vaani/app.py` lines 185-203 -> registers `GET /health`, then `gateway.py`'s router (`/ws/session`), then `auth.py`'s router (`/auth/google`, `/auth/me`, `/auth/logout`), then, only if the `[frontend].dist_dir` folder exists (the Docker image), `_serve_frontend` (208): one catch-all `GET` route, added last so every API route is matched first (journey a2). FastAPI's own `/docs` pages are also served `[unverified]` -> next: `create_app` returns.
 15. uvicorn starts the event loop and runs `lifespan`: nothing at start; at shutdown it calls `DbWriter.close` (journey i).
 
 Each stage can be switched off with its `enabled` flag. Tests switch off ASR, LLM, TTS,
@@ -70,7 +70,15 @@ Each step: what arrives, where it is handled, what changes, what goes back.
 
 ### a. `GET /health`
 
-1. In: `GET /health`. Where: `app.py` `health` (167). Does: returns a fixed status and `__version__`; reads no settings, so it cannot leak config. Out: `{"status": "ok", "version": "0.1.0"}` (contracts.md 1). It is a plain `def`, so FastAPI runs it on its own worker threads, not the event loop `[unverified]`.
+1. In: `GET /health`. Where: `app.py` `health` (186). Does: returns a fixed status and `__version__`; reads no settings, so it cannot leak config. Out: `{"status": "ok", "version": "0.1.0"}` (contracts.md 1). It is a plain `def`, so FastAPI runs it on its own worker threads, not the event loop `[unverified]`.
+
+### a2. Any other `GET` path: the browser app (feat/render-deploy)
+
+Only when `[frontend].dist_dir` (`../frontend/dist`) exists, as in the Docker image; in local development Vite serves the page and this route does not exist.
+
+1. In: `GET /`, `GET /talk`, `GET /assets/index-abc.js` and so on. Where: `app.py` `_serve_frontend` (208), the route `frontend`. FastAPI tries it last, after every API route.
+2. Does: a first path segment `auth`, `ws` or `health` (`API_PREFIXES`) -> 404, so a mistyped API path never gets the page. A file that exists inside the dist folder -> that file. Anything else -> `index.html`, and the browser's router draws the page. The resolved path must stay inside the folder, so `..` cannot reach other files.
+3. Out: the file, with its content type. Never touches settings or secrets.
 
 ### b. Sign-in routes (contracts.md 2.9)
 
@@ -92,29 +100,29 @@ Each step: what arrives, where it is handled, what changes, what goes back.
 
 ### c. WebSocket handshake (contracts.md 2.9)
 
-1. In: an HTTP upgrade request for `/ws/session`. Where: `gateway.py` `session_endpoint` (129). Does: reads settings from `app.state`; `expected_frame_bytes` (71) works out the frame size from config (640 bytes).
-2. Where: `auth.py` `handshake_refusal` (128), called at `gateway.py` line 140. Does: auth disabled -> accept. Else the `Origin` must be allowed and `read_cookie` must accept the `vaani_session` cookie. Local work only, no network.
-3. Refused: logs a warning and closes before accepting (`gateway.py` lines 141-144). Out: no socket; the comment there and `tests/test_auth_gateway.py` say uvicorn answers HTTP 403 `[unverified]`.
-4. Accepted: `websocket.accept()` (line 147). State: `session`, `telemetry`, `pipeline` and `log_task` are all `None`, and `end_reason` is `"disconnect"`. No `Session` object exists yet; it is made at `session.start`.
-5. Does: the read loop starts (line 157). It handles ONE message at a time, in the order they arrive; every later journey starts from this loop.
+1. In: an HTTP upgrade request for `/ws/session`. Where: `gateway.py` `session_endpoint` (130). Does: reads settings from `app.state`; `expected_frame_bytes` (72) works out the frame size from config (640 bytes).
+2. Where: `auth.py` `handshake_refusal` (128), called at `gateway.py` line 141. Does: auth disabled -> accept. Else the `Origin` must be allowed and `read_cookie` must accept the `vaani_session` cookie. Local work only, no network.
+3. Refused: logs a warning and closes before accepting (`gateway.py` lines 142-145). Out: no socket; the comment there and `tests/test_auth_gateway.py` say uvicorn answers HTTP 403 `[unverified]`.
+4. Accepted: `websocket.accept()` (line 148). State: `session`, `telemetry`, `pipeline` and `log_task` are all `None`, and `end_reason` is `"disconnect"`. No `Session` object exists yet; it is made at `session.start`.
+5. Does: the read loop starts (line 158). It handles ONE message at a time, in the order they arrive; every later journey starts from this loop.
 
-Before `session.start`, a binary frame or any other message gets `SESSION_NOT_STARTED` (`gateway.py` lines 168, 277).
+Before `session.start`, a binary frame or any other message gets `SESSION_NOT_STARTED` (`gateway.py` lines 169, 290).
 
 ### d. `session.start` (contracts.md 2.3)
 
-1. In: a JSON text message. Where: `gateway.py` lines 187-202. Does: parses it. Out on failure: `BAD_MESSAGE` (not JSON, or no `type`).
-2. Where: `protocol.py` `SessionStart` (162), validated at `gateway.py` line 208. Does: `persona` defaults to `"default"`, `mode` must be `vad` or `ptt`, `reply_language` must be `any`, `en` or `hi`. Out on failure: `BAD_MESSAGE`.
-3. A session already exists (`gateway.py` line 216). Out: the same `session.started` again; nothing changes.
-4. Does: `_audio_matches` (84) compares the claimed audio format with `[audio]`; the persona must be a key of `[personas]`. Out on failure: `UNSUPPORTED_FORMAT` or `BAD_MESSAGE`.
+1. In: a JSON text message. Where: `gateway.py` lines 188-203. Does: parses it. Out on failure: `BAD_MESSAGE` (not JSON, or no `type`).
+2. Where: `protocol.py` `SessionStart` (170), validated at `gateway.py` line 209. Does: `persona` defaults to `"default"`, `mode` must be `vad` or `ptt`, `reply_language` must be `any`, `en` or `hi`. Out on failure: `BAD_MESSAGE`.
+3. A session already exists (`gateway.py` line 217). Out: the same `session.started` again; nothing changes.
+4. Does: `_audio_matches` (85) compares the claimed audio format with `[audio]`; the persona must be a key of `[personas]`, and (v0.12, line 241) one of `served_personas`. Out on failure: `UNSUPPORTED_FORMAT`, `BAD_MESSAGE` (not a persona at all) or `PERSONA_NOT_SERVED` (a persona this server did not load); for each, no session starts and the socket stays open.
 5. State: `Session` (`session.py` 32) is created with a new `session_id`, the persona, the mode and the reply language, all fixed for the connection. `Telemetry` (`telemetry.py` 137) is created for timings.
-6. Where: `turns.py` `TurnPipeline.__init__` (65). Does: builds this session's chain of stages, each only if the one before it exists: `TurnStateMachine` (state `idle`), `Echo`, `VadStream`, then `Endpointer` in a `vad` session or `PttBuffer` in a `ptt` session, `AsrRunner`, `Responder`, `BargeIn`, `TurnLog`. The models, the LLM chain and the database writer are the shared ones from startup; the voices are the persona's pair (`gateway.py` line 251).
+6. Where: `turns.py` `TurnPipeline.__init__` (65). Does: builds this session's chain of stages, each only if the one before it exists: `TurnStateMachine` (state `idle`), `Echo`, `VadStream`, then `Endpointer` in a `vad` session or `PttBuffer` in a `ptt` session, `AsrRunner`, `Responder`, `BargeIn`, `TurnLog`. The models, the LLM chain and the database writer are the shared ones from startup; the voices are the persona's pair (`gateway.py` line 264).
 7. Where: `reply.py` `Responder.__init__` (71). Does: looks up the persona's system prompt once; `reply_language` `en` or `hi` becomes the forced voice, `any` leaves the voice to each reply's first chunk.
 8. Where: `turn_log.py` `TurnLog.__init__` (80). Does: queues the session's row (`DbWriter.insert_session`) and hooks itself into the state machine (`turns.py` line 152).
-9. Does: starts the background task `_log_frames` (`gateway.py` 100), which logs the frame count every `[gateway].frame_log_interval_s`. Out: `session.started` with `session_id`, `mode`, `reply_language`.
+9. Does: starts the background task `_log_frames` (`gateway.py` 101), which logs the frame count every `[gateway].frame_log_interval_s`. Out: `session.started` with `session_id`, `mode`, `reply_language`.
 
 ### e. One hands-free turn (contracts.md 2.1 to 2.5)
 
-1. In: a binary frame. Where: `gateway.py` lines 166-184. Does: wrong size -> `BAD_FRAME_SIZE`, frame dropped. Else `Session.record_frame` counts it and `TurnPipeline.on_frame` gets it.
+1. In: a binary frame. Where: `gateway.py` lines 167-185. Does: wrong size -> `BAD_FRAME_SIZE`, frame dropped. Else `Session.record_frame` counts it and `TurnPipeline.on_frame` gets it.
 2. Where: `turns.py` `on_frame` (162) -> `vad.py` `VadStream.push` (185). Does: turns the bytes into floats and adds them to a buffer; each time 512 samples have built up, `_infer` (204) runs Silero and gives a speech probability. `Hysteresis.update` (125) turns that into events: `speech_started` after `[vad].start_frames` (4) speech frames in a row, `speech_ended` after `[vad].end_frames` (10) silent ones. This runs on the event loop and is timed (`Telemetry.record_vad_decision`).
 3. Where: `turns.py` `on_frame` lines 183-193. Does: the routing choice. State `thinking` or `speaking` -> journey g. Otherwise `_endpoint` (250).
 4. Where: `endpoint.py` `Endpointer.push` (167). Does: while nobody speaks, frames only refill the pre-roll (`[endpoint].preroll_ms`, 300 ms). On `speech_started` the utterance opens with that pre-roll in front, so the first syllable is kept.
@@ -131,7 +139,7 @@ Before `session.start`, a binary frame or any other message gets `SESSION_NOT_ST
 15. Where: `persona.py` `assemble` (57). Does: builds the request: the persona prompt, then the clock line (`clock_line`, 32, the time now in `[llm].timezone`), then a "Reply language" line if the session forces `en` or `hi`; then the history; then this transcript. The history window is `Session.history`, already cut to the last `[llm].history_turns` (6) exchanges when each was stored (`session.py` `remember`, 95).
 16. Where: `providers/chain.py` `ProviderChain.stream` (64). Does: tries Groq first. `providers/groq.py` `GroqProvider.stream` (78) first calls `RequestCap.check_and_count` (`spend.py` 33), the spend cap, then sends the request through `providers/streaming.py` `stream_lines` (80). If Groq is rate-limited, times out or is down BEFORE its first chunk, the chain tries Gemini (`providers/gemini.py` `GeminiProvider.stream` (81)). After a first chunk there is no failover.
 17. Where: `reply.py` `_answer`, the loop at lines 207-235. Does, per chunk of text: on the first one stamps `llm_first_token` and records which provider and model answered. Out: `agent.text`. Then `chunker.py` `ClauseChunker.push` (52) may return finished chunks: the first is cut at the earliest sentence end or comma, later ones at sentence ends.
-18. Where: `speaker.py` `Speaker.say` (118). Does: the first chunk picks the voice (`_lock_voice`, 200): the forced language if there is one, else the chunk's script (`language.py` `reply_language`, 31: any Devanagari is `hi`). The voice is locked for the whole reply. Then `tts/piper.py` `synthesize` (125) runs the chunk on the `tts` thread pool.
+18. Where: `speaker.py` `Speaker.say` (118). Does: the first chunk picks the voice (`_lock_voice`, 200): the forced language if there is one, else the chunk's script (`language.py` `reply_language`, 31: any Devanagari is `hi`). The voice is locked for the whole reply. Then `tts/piper.py` `synthesize` (156) runs the chunk on the `tts` thread pool.
 19. Where: `speaker.py` `_start` (231), first audio only. State: moves to `speaking`. Out: `turn.state speaking`, `audio.start` with the voice's sample rate, then binary frames of 20 ms; the token is checked before every frame. After the first frame `tts_first_audio` is stamped.
 20. Where: `reply.py` `_answer` lines 236-284. Does: `ClauseChunker.flush` (68) gives the last chunk, which is spoken. Out: `agent.done`, then `audio.end` (`speaker.py` `Speaker.finish` (188)). `finish` then waits until the audio should have finished playing in the browser (an estimate).
 21. Where: `reply.py` `remember` (154). State: the exchange (transcript, full reply) goes into `Session.history`. Then `TurnStateMachine.move_to` (`turn_state.py` 68) checks the move is legal and sets `idle`.
@@ -144,7 +152,7 @@ With `[tts]` off there is no `Speaker`: the reply is text only, `thinking` then 
 
 A session started with `"mode": "ptt"` has a `PttBuffer` and NO `Endpointer` (`turns.py` lines 95-120).
 
-1. In: `ptt.start`. Where: `gateway.py` lines 296-306. Does: in a `vad` session -> `BAD_MESSAGE`. Else `turns.py` `on_ptt_start` (196).
+1. In: `ptt.start`. Where: `gateway.py` lines 309-319. Does: in a `vad` session -> `BAD_MESSAGE`. Else `turns.py` `on_ptt_start` (196).
 2. Where: `on_ptt_start`. Does: a press already open -> ignored. Agent `thinking` or `speaking` -> `_interrupt` at once (journey g, no speech judging). Else `_open_turn`. Then `VadStream.reset` (`vad.py` 163) wipes Silero's memory of the last press and `PttBuffer.press` (`ptt.py` 56) opens the press. Out: `turn.state listening`.
 3. In: frames. Where: `on_frame` -> `VadStream.push`, then `PttBuffer.push` (`ptt.py` 62). Does: VAD still runs, only to count voiced frames. With no press open the frame is dropped. A press that reaches `[endpoint].max_utterance_ms` ends as if stop were pressed.
 4. In: `ptt.end`. Where: `turns.py` `on_ptt_end` (217) -> `_release` (358) -> `PttBuffer.release` (`ptt.py` 78). Does: no press open -> ignored. Too few voiced frames -> `_discard_turn`, no transcription. Else `_end_turn`, and steps 8 to 23 of journey e run unchanged.
@@ -157,13 +165,13 @@ the turn, and an interruption happens on the press, not after 200 ms of speech.
 1. In: frames while the state is `thinking` or `speaking`. Where: `turns.py` `_watch` (274) -> `barge_in.py` `BargeIn.push` (77). Does: holds every frame. After `speech_started` it counts frames whose probability reaches `[barge_in].threshold`; at `[barge_in].min_speech_ms` (200 ms) the speech is an interruption. A `speech_ended` first means a noise: the reply goes on.
 2. Where: `turns.py` `_barge_in` (285) -> `_interrupt` (293) -> `barge_in.py` `stop_reply` (155). Does, in this order: stamps the `barge_in` span; `Responder.cancel` (`reply.py` 145) sets the reply's token, with no `await` before it, so from this line no more audio can be sent; `Session.flush` (`session.py` 108) marks the turn flushed. Out: `audio.flush`, the first message.
 3. LLM cancel: `providers/streaming.py` `until_cancelled` (43) is racing every network wait against the token, so the HTTP response is closed at once (`stream_lines`, lines 109-116). `reply.py` `_answer` sees the token and returns without `agent.done`.
-4. TTS discard: `speaker.py` `say` checks the token before starting, after synthesis and before every frame. A Piper call already running finishes on its thread and its audio is thrown away (`tts/piper.py` lines 134-139).
+4. TTS discard: `speaker.py` `say` checks the token before starting, after synthesis and before every frame. A Piper call already running finishes on its thread and its audio is thrown away (`tts/piper.py` lines 165-170).
 5. History: `barge_in.py` `heard_text` (126) estimates how much of the reply had played, from each chunk's play-out window (`Speaker.spoken`). Heard something -> `Responder.remember` stores the transcript with only the heard part. Heard nothing -> the transcript is returned as CARRIED WORDS and kept in `TurnPipeline._carried`.
 6. Where: `turns.py` `_interrupt` lines 310-313. State: moves to `cancelling` (the cut turn's row is queued here, outcome `cut`), then `_open_turn` gives a new `turn_id`. Out: `turn.state cancelling`, then `turn.state listening`.
 7. Where: `turns.py` `_barge_in` lines 290-291. Does: replays the held frames into the endpointer, so the new turn starts at the user's first sound. From here it is journey e, step 6.
 8. Carried words: the next reply answers them together with the new transcript (`_reply`, `join_speech`). If the new speech was too short to be a turn, `_discard_turn` answers the carried words alone.
 9. The flushed-turn race fix: a turn cut while still being transcribed keeps its transcription. If that transcript arrives while `audio.flush` or `cancelling` is still being sent, the cut turn is still the current one. `_on_final` (line 399) checks `Session.is_flushed` and carries the words instead of answering the cut turn; `_interrupt` resets `_answer_carried` before its first `await` (line 300).
-10. In: `flush.ack`. Where: `gateway.py` lines 283-294 -> `session.py` `handle_flush_ack` (143). Does: logs the round trip. An ack nobody waits for is logged and ignored.
+10. In: `flush.ack`. Where: `gateway.py` lines 296-307 -> `session.py` `handle_flush_ack` (143). Does: logs the round trip. An ack nobody waits for is logged and ignored.
 
 If the reply ends while a speech is still being judged, that speech becomes the user's
 next turn, first frames included (`turns.py` lines 188-192).
@@ -194,8 +202,8 @@ and what follows: contracts.md 2.3. The row is written by `turn_log.py` `_write`
 
 ### i. Disconnect
 
-1. In: one of three endings. Where: `gateway.py`. The socket closes (line 162 or 322): `end_reason` stays `disconnect`. `session.end` arrives (line 308): `client_end`, `TurnPipeline.on_session_end`, then the server closes with code 1000. The loop raises (line 325): `error`, and the exception is re-raised.
-2. Where: `gateway.py`, the `finally` block of `session_endpoint` (lines 328-344). Does: cancels and awaits the `_log_frames` task, then `TurnPipeline.close` (`turns.py` 229).
+1. In: one of three endings. Where: `gateway.py`. The socket closes (line 163 or 335): `end_reason` stays `disconnect`. `session.end` arrives (line 321): `client_end`, `TurnPipeline.on_session_end`, then the server closes with code 1000. The loop raises (line 338): `error`, and the exception is re-raised.
+2. Where: `gateway.py`, the `finally` block of `session_endpoint` (lines 341-357). Does: cancels and awaits the `_log_frames` task, then `TurnPipeline.close` (`turns.py` 229).
 3. Where: `turns.py` `close`. Does: `Responder.cancel` sets the current reply's token, and `Responder.wait` waits for every reply task, so each HTTP stream is closed. `AsrRunner.close` (`asr/runner.py` 141) empties its queue, abandons the running job and cancels its task; a decode already on a thread runs on and nobody reads it. `Endpointer.close` or `PttBuffer.close` only log what was thrown away.
 4. Where: `turn_log.py` `session_closed` (117). Does: if the state is not `idle`, a turn was live: its row is queued with outcome `closed`. Then the session's end (time and `end_reason`) is queued.
 5. Server shutdown: `app.py` `lifespan` -> `db.py` `DbWriter.close` (139) lets the writer finish its queue for at most `[db].close_timeout_s` (2 s) and logs what was not written.
@@ -253,12 +261,12 @@ On the event loop (one thread):
 - One coroutine per socket: `gateway.py` `session_endpoint`. It owns the `Session`, so nothing in a session needs a lock.
 - Per frame, inline: Silero inference (`vad.py` `_infer`), endpointing, barge-in judging, push-to-talk buffering.
 - Per reply, inline: guardrail, prompt assembly, chunking, building the turn's row, every send.
-- Background tasks: `_log_frames` per session (`gateway.py` line 266); the ASR drain task and its inner transcribe task (`asr/runner.py` lines 162, 185); one `_answer` task per reply (`reply.py` line 139).
+- Background tasks: `_log_frames` per session (`gateway.py` line 279); the ASR drain task and its inner transcribe task (`asr/runner.py` lines 162, 185); one `_answer` task per reply (`reply.py` line 139).
 
 On threads:
 
 - `asr` pool, `[asr].max_concurrent` (2) threads (`asr/whisper.py` line 114): Whisper decodes (`_decode`). One job at a time per session.
-- `tts` pool, `[tts].max_concurrent` (2) threads, shared by all voices (`tts/piper.py` line 49): Piper synthesis (`_run`).
+- `tts` pool, `[tts].max_concurrent` (2) threads, shared by all voices (`tts/piper.py` line 51): Piper synthesis (`_run`), which also logs each chunk's real-time factor (synthesis time / audio length).
 - `vaani-db-writer`, one thread (`db.py` line 125): every database write, in queue order.
 - asyncio's default executor (`auth.py` line 198, `asyncio.to_thread`): the Google token check.
 - At startup, before the loop serves anything: all model loading (section 2).
@@ -269,7 +277,7 @@ Where cancellation is checked:
 - `providers/chain.py` `ProviderChain.stream`: between providers (line 70). Each provider: before counting the request (`providers/groq.py` line 81, `providers/gemini.py` line 85).
 - `providers/streaming.py` `until_cancelled` (43): races every wait (headers, each line) against the token.
 - `speaker.py` `Speaker.say`: before synthesis, after synthesis, before every frame (lines 120, 162, 175); `finish` waits on the token itself (line 198).
-- `asr/whisper.py` (line 163) and `tts/piper.py` (line 118): a `threading.Event` the worker reads between segments or sentences; the work itself cannot be stopped part-way.
+- `asr/whisper.py` (line 163) and `tts/piper.py` (line 136): a `threading.Event` the worker reads between segments or sentences; the work itself cannot be stopped part-way.
 - `asr/runner.py`: each job has its own token and an `abandoned` flag, checked right before each send (lines 210, 245, 259).
 
 ## 6. File index
@@ -291,6 +299,7 @@ with `_` are private to their file.
 
 `app.py` - builds the FastAPI app; all of startup (section 2).
 - `_configure_logging` - makes the project's INFO logs visible.
+- `_serve_frontend` - serves the built browser app at `/` when `frontend/dist` exists (journey a2).
 - `create_app` - runs every startup step and returns the app; takes test stand-ins.
 - `lifespan` (inside `create_app`) - at shutdown, stops the database writer.
 - `health` (inside `create_app`) - `GET /health`.
@@ -319,7 +328,8 @@ with `_` are private to their file.
 - `ClauseChunker` - `push` (add text, get finished chunks), `flush` (the last chunk), `_find_cut`, `_boundaries`, `_last_space`.
 
 `config.py` - the typed settings object.
-- `AudioSettings` ... `AuthSettings` (17 classes) - one per `config.toml` table.
+- `AudioSettings` ... `AuthSettings` (18 classes) - one per `config.toml` table.
+- `Settings._served_are_personas` - fills in and checks `served_personas`.
 - `LLMSettings._known_zone`, `GuardrailSettings._compiles`, `AuthSettings._lowercase` - checks run at load.
 - `Settings` - the whole config plus the three secrets.
 - `Settings.settings_customise_sources` - the precedence order.
@@ -474,7 +484,7 @@ with `_` are private to their file.
 
 `piper.py` - Piper behind that interface.
 - `build_piper` - one pool, each voice file loaded once, one synthesiser per persona and language.
-- `_load` - checks, loads and warms up one voice.
+- `_load` - checks, loads and warms up one voice, with `[tts.piper].intra_op_threads` ONNX Runtime threads.
 - `PiperSynthesizer` - `_run` (on a pool thread), `synthesize`.
 - `_ignore_result` - quiets an abandoned synthesis's error.
 
@@ -565,8 +575,8 @@ across `vaani/`, `scripts/` and `tests/`. Nothing here was removed.
 Nothing in the server uses these:
 
 - `Settings.secret_key` (`config.py`): read only by `tests/test_config.py`.
-- `protocol.PttStart` and `protocol.PttEnd`: referenced nowhere. `ptt.start` and `ptt.end` are parsed in `gateway.py` `session_endpoint` (129), at lines 296-306: the code compares the message's `type` string, checks `session.mode`, and calls `TurnPipeline.on_ptt_start` or `on_ptt_end`. They have no field but `type`, so no model is built.
-- `protocol.SessionEnd`: referenced nowhere, for the same reason; `session.end` is matched by its `type` string at `gateway.py` line 308.
+- `protocol.PttStart` and `protocol.PttEnd`: referenced nowhere. `ptt.start` and `ptt.end` are parsed in `gateway.py` `session_endpoint` (130), at lines 309-319: the code compares the message's `type` string, checks `session.mode`, and calls `TurnPipeline.on_ptt_start` or `on_ptt_end`. They have no field but `type`, so no model is built.
+- `protocol.SessionEnd`: referenced nowhere, for the same reason; `session.end` is matched by its `type` string at `gateway.py` line 321.
 - `telemetry.PLAYBACK_START`: never recorded; only the browser knows when playback starts.
 - `Session.created_at` (`session.py`): set, never read.
 - `TurnEnded.forced` (`endpoint.py`, `ptt.py`): set, read only by `tests/test_endpoint.py`. `turns.py` tells a forced end by `speech_ended_at is None`.
@@ -580,19 +590,19 @@ Live code that committed config switches off:
 - `echo.py`, the `frame_received` and `echo_sent` spans, `Session.late_frames_dropped`: need `[gateway].echo_enabled = true`.
 - Partial transcripts (`AsrRunner.request_partial`, `maybe_request_partial`, `protocol.transcript_partial`, the `asr_partial` span): need `[asr].partial_interval_ms` above 0.
 
-Stale comments, not code: `protocol.py` lines 43-44 and 135-136 say the legal state
+Stale comments, not code: `protocol.py` lines 43-44 and 143-144 say the legal state
 moves are decided in `turns.py`; they are in `turn_state.py`.
 
 ## 8. Where to look for X
 
 | Question | File and function |
 |---|---|
-| Where does the server start? | `app.py` `create_app`, called at line 186 |
+| Where does the server start? | `app.py` `create_app`, called at line 235 |
 | Where is the settings precedence decided? | `config.py` `Settings.settings_customise_sources` |
-| Where is a frame's size checked? | `gateway.py` `session_endpoint`, line 173; size from `expected_frame_bytes` |
-| Where is sign-in checked on the socket? | `auth.py` `handshake_refusal`, called at `gateway.py` line 140 |
+| Where is a frame's size checked? | `gateway.py` `session_endpoint`, line 174; size from `expected_frame_bytes` |
+| Where is sign-in checked on the socket? | `auth.py` `handshake_refusal`, called at `gateway.py` line 141 |
 | Where is the cookie made and read? | `auth.py` `sign_cookie`, `read_cookie` |
-| Where is a session created? | `gateway.py` `session_endpoint`, line 237; `session.py` `Session` |
+| Where is a session created? | `gateway.py` `session_endpoint`, line 250; `session.py` `Session` |
 | Where is hands-free or push-to-talk chosen? | `turns.py` `TurnPipeline.__init__`, lines 95-120 |
 | Where is speech detected? | `vad.py` `VadStream.push`, `Hysteresis.update` |
 | Where does a turn end? | `endpoint.py` `Endpointer.push` and `_finish`; `turns.py` `_end_turn` |

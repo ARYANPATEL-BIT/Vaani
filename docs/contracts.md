@@ -35,7 +35,7 @@ Real-time bidirectional channel for voice conversation.
 | Direction   | Bidirectional                  |
 | Initiated by| Frontend                       |
 
-**Current version: SHARED PROTOCOL v0.11.** This file is the source of truth
+**Current version: SHARED PROTOCOL v0.12.** This file is the source of truth
 for version numbers; `backend/vaani/protocol.py` repeats the same history.
 Only the PR that changes this file bumps the version.
 
@@ -52,6 +52,7 @@ Only the PR that changes this file bumps the version.
 | v0.9 | Push-to-talk. `session.start.mode` (`"vad"` default, or `"ptt"`); `session.started.mode`; `ptt.start`, `ptt.end`; `BAD_MESSAGE` also for a ptt message in a vad session | 2.3, 2.8 |
 | v0.10 | Reply language. `session.start.reply_language` (`"any"` default, `"en"` or `"hi"`); `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language` | 2.3, 2.5 |
 | v0.11 | Sign-in. No new socket message or field. The `/ws/session` handshake is refused (HTTP 403) without an allowed `Origin` and a valid `vaani_session` cookie; `/auth/google`, `/auth/me`, `/auth/logout` HTTP routes; `AUTH_*` error codes (HTTP only) | 2.9 |
+| v0.12 | Served personas. No new message or field. A server may serve only some personas (`served_personas`); a known persona it does not serve gets `PERSONA_NOT_SERVED` instead of `session.started` | 2.1, 2.3 |
 
 ### 2.1 Client → Server: Audio Frames (Agreed / Client Implemented)
 
@@ -121,7 +122,11 @@ Control messages use JSON text frames (not binary).
 `UNKNOWN_MESSAGE_TYPE`.
 
 `persona` must be one of `default`, `tutor`, `support` (config.toml
-`[personas]`); anything else gets `BAD_MESSAGE`. `audio` must be exactly
+`[personas]`); anything else gets `BAD_MESSAGE`. It must also be one this
+server serves (v0.12, `served_personas` in config.toml; every persona unless
+set, and only `default` in the Docker image); a known persona that is not
+served gets `PERSONA_NOT_SERVED`, no session starts, and the socket stays
+open for another `session.start`. `audio` must be exactly
 `16000` / `1` / `20`; anything else gets `UNSUPPORTED_FORMAT`. `mode` must be
 `"vad"` or `"ptt"`; anything else gets `BAD_MESSAGE`. `reply_language` must be
 `"any"`, `"en"` or `"hi"`; anything else gets `BAD_MESSAGE`. A second
@@ -155,6 +160,7 @@ on `code`.
 | `LLM_FAILED` | The agent could not answer: every provider failed, a provider error, the spend cap, or an empty reply | No `agent.done`; `turn.state idle`. Must be shown to the user, never silence. The backend does **not** yet speak an apology; text only |
 | `INPUT_REJECTED` | The user's turn was blocked by the input guardrail before reaching the model | `turn.state idle`. The message is deliberately vague ("that turn wasn't processed") |
 | `TTS_FAILED` | The reply could not be spoken (speech synthesis failed) | `audio.end` if audio had started, then `error`, then `turn.state idle`; no `agent.done` (v0.6) |
+| `PERSONA_NOT_SERVED` | `session.start` named a persona that exists but is not served by this server (v0.12). `message` names the persona and the ones that are served | No `session.started`; the socket stays open, send `session.start` with a served persona |
 
 ### 2.4 Transcripts — SHARED PROTOCOL v0.3 (Agreed)
 

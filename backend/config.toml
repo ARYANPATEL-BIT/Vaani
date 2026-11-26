@@ -9,6 +9,13 @@
 # Human-readable application name (used as the FastAPI/OpenAPI title).
 app_name = "vaani"
 
+# Which [personas] this server serves (feat/render-deploy). Only their Piper
+# voices load at startup, and each voice holds about 100 MB of RAM. A
+# session.start naming any other persona gets PERSONA_NOT_SERVED. Left unset
+# here, so every persona is served; the Docker image sets
+# VAANI_SERVED_PERSONAS='["default"]' to fit a 512 MB host.
+# served_personas = ["default", "tutor", "support"]
+
 [audio]
 # Samples of audio captured per second. 16000 Hz (16 kHz) is the rate the
 # speech models in this project expect.
@@ -322,6 +329,13 @@ models_dir = "models"
 # downloader uses.
 voices_url = "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117"
 
+# ONNX Runtime threads per synthesis. 0 = its default: one thread per CPU core
+# it can see. On a machine with a small CPU share (Render free: 0.1 of a CPU,
+# while the container still SEES every host core) those threads only fight
+# over that share, so the Docker image sets VAANI_TTS__PIPER__INTRA_OP_THREADS=1
+# (feat/render-deploy). VAD is always one thread (vaani/vad.py).
+intra_op_threads = 0
+
 # One table per persona key of [personas] AND language; a persona missing
 # either language stops the server at startup. sha256 is of the .onnx,
 # checked by fetch_models.py and again when the voice loads. LICENCE, from
@@ -414,6 +428,13 @@ path = "data/vaani.db"
 # Past it, shutdown goes on and the count of rows not written is logged:
 # a stuck disk must never hang the server's exit.
 close_timeout_s = 2.0
+
+[frontend]
+# Vite's production build of the browser app (npm run build), relative to
+# backend/. When this folder exists the backend serves it at /, with every
+# unknown non-API path answered by index.html (vaani/app.py). In local
+# development the folder is usually absent and Vite serves the page.
+dist_dir = "../frontend/dist"
 
 [auth]
 # Google sign-in (vaani/auth.py, docs/contracts.md 2.9). Only the Google
