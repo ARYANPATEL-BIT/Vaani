@@ -1,0 +1,44 @@
+voice studio GPU measurements, 2026-11-26 (feat/voice-studio)
+machine: RTX 5070 Laptop GPU (8150 MiB), i7-14650HX, on AC power, ASUS power plan "Silent"
+model: ResembleAI/chatterbox@5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18, t3 = v3, fp32, torch 2.8.0+cu128
+reference: backend/tests/fixtures/speech_16k_mono.wav (Windows SAPI voice, 5.5 s)
+
+VRAM (generate_20261126-152918.txt and generate_20261126-154111.txt, the same in both)
+  after load:        3074 MiB allocated
+  peak, 2 sentences: 3326 to 3342 MiB allocated, 3406 to 3462 MiB reserved by torch
+  torch.cuda.mem_get_info at start: 6999 of 8150 MiB free. nvidia-smi had shown
+  5002 MiB used some minutes earlier; the two were not reconciled, and whether the
+  voice agent's Whisper was on the GPU during these runs was not checked.
+
+Watermark: perth get_watermark = 1.0 on every sentence of every run.
+
+Generation speed: NOT STABLE on this machine. Two states were seen.
+
+  slow state (most of the session):
+    2-sentence script (41 + 22 chars, about 4.7 s of audio), warm:
+      26.4, 26.9 s with tqdm off (generate_20261126-154111.txt)
+      27.1, 29.0 s with tqdm on  (generate_20261126-152918.txt)
+    one English sentence (41 chars, about 2.4 s of audio), warm: 13.7 to 15.3 s
+      over 7 runs; T3 (token loop) 10.7 to 11.9 s, S3Gen 3.0 to 3.9 s
+    model load from the local cache: 36 to 43 s
+
+  fast state (about 15:33 to 15:38 only, scratch profiling scripts, not kept):
+    the same English sentence, warm: 2.19 s with tqdm off (T3 1.57 s, S3Gen 0.46 s),
+      2.73 s with tqdm on and stderr to a file, 2.75 s under cProfile
+    one bare transformer step (2 x 1 token, KV cache 150 to 290): 21.8 to 24.5 ms
+    model load from the local cache: 11.5 s
+
+  What differs between the states was not found. Not tqdm (slow with it off),
+  not CUDA synchronisation (A/B in one process: no change). The token loop is
+  CPU-bound: GPU utilisation stayed at 7 to 11 percent while it ran. The Silent
+  plan caps the CPU; Windows reported 2200 MHz. Turbo was not tried.
+
+  Do not poll nvidia-smi while timing: with it sampling every 0.5 s, one
+  transformer step took 120 to 160 ms instead of about 22 ms.
+
+tqdm: off in the studio (voice_studio/__main__.py). Effect measured once, in the
+fast state: 2.73 s on, 2.19 s off for the same sentence. Not a large effect.
+
+Not measured: the Turbo plan; a run with the voice agent's Whisper large-v3
+loaded on the same GPU; a CUDA out-of-memory in a real run (only the fake tests
+in studio/tests/test_cloner.py and test_generate.py cover it).

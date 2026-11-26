@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { NavLink, useLoaderData } from 'react-router-dom';
 import {
   Mic, Video, History, User, BarChart2, Settings,
-  ChevronRight, LogOut, UserCheck, Moon, Sun
+  ChevronRight, LogOut, AudioLines, Moon, Sun
 } from 'lucide-react';
 import { applyTheme, saveTheme } from '../theme/theme.js';
 import { operatorFor } from '../login/loginState.js';
@@ -25,13 +25,13 @@ import './AppLayout.css';
 const ICON_SIZE = 20;
 
 // hidden: true keeps an item out of the sidebar only. Its route and page
-// still exist, so /loopback and /enrol/* still open when typed as a URL.
+// still exist, so /loopback still opens when typed as a URL.
 // Remove the flag to bring an item back.
 const NAV_ITEMS = [
   { to: '/talk', label: 'Conversation', icon: Mic },
   { to: '/loopback', label: 'Studio', icon: Video, hidden: true },
-  // Week 3 Day 3: enrolment screens
-  { to: '/enrol', label: 'Enrol', icon: UserCheck, hidden: true },
+  // Phase 2: enrol your own voice and generate speech in it (/voice).
+  { to: '/voice', label: 'Voice studio', icon: AudioLines },
   { to: '/history', label: 'History', icon: History, disabled: true },
   { to: '/identity', label: 'Identity', icon: User, disabled: true, hidden: true },
   { to: '/spend', label: 'Spend & Quota', icon: BarChart2, disabled: true, hidden: true },

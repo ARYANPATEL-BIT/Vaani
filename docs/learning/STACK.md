@@ -43,6 +43,7 @@ A few words used throughout:
 | Clock line | Python `zoneinfo` with tzdata 2026.5 | The model gets the real date and time | `backend/vaani/reply.py:91,180`, `[llm].timezone` |
 | Database | SQLite through Python's standard `sqlite3`, raw SQL, WAL mode | A file inside our process: no server, no new dependency | `backend/vaani/db.py`, `schema.sql` |
 | Sign-in (feat/google-auth) | Google ID tokens checked with google-auth 2.62.2 (+ requests 2.34.2); our own HMAC-SHA256 cookie (standard `hmac`); FastAPI's `CORSMiddleware` | Only allowlisted Google accounts get in, so strangers cannot spend the free LLM quota; no passwords stored, no sessions table | `backend/vaani/auth.py`, `app.py`, `[auth]` |
+| Voice studio (feat/voice-studio, phase 2) | A second FastAPI app in its own uv project and process, `studio/` on `127.0.0.1:8100`, behind Vite's `/studio` proxy; Chatterbox Multilingual v3 on torch 2.8.0 cu128 | torch and the model stay out of the backend's lock, image and memory; the studio reuses the backend's cookie check, settings and Whisper as an editable dependency | `studio/voice_studio/`, `studio/config.toml`, section 3b |
 | Tests and lint | pytest 9.1.1, ruff 0.16.8; frontend `npm test` (plain Node scripts) | Every stage tested with fakes, no models or keys | `backend/tests/`, `frontend/package.json:10` |
 | CI | GitHub Actions, uv 0.11.28, `uv sync --frozen` | Every PR checked the same way on a clean machine | `.github/workflows/ci.yml`, `asr-slow.yml` |
 | External: Groq | Groq's OpenAI-compatible REST API; key in the `Authorization` header | Fastest first token we measured (p50 788 ms, `config.toml:265-270`) | `providers/groq.py:89`, `[llm.groq]` |
@@ -294,6 +295,24 @@ All four output 22050 Hz, read from the voice file, never assumed (`tts/piper.py
 The voice files are fetched from a pinned revision and checked by sha256 at fetch and
 at load (`config.toml:319-327`, `tts/piper.py:69-83`).
 
+## 3b. The voice studio (phase 2)
+
+Its own uv project, `studio/` (Python 3.12, its own `uv.lock`), so none of this is in
+`backend/uv.lock`. Versions: `docs/versions.md`, "Voice studio". Flow: `PROJECT.md` d3.
+Routes: `docs/contracts.md` section 4. Why each value: `studio/config.toml`.
+
+| Choice | What it is | Why we use it | The one alternative | Why not the alternative |
+|---|---|---|---|---|
+| A separate process and project | `studio/voice_studio/`, started with `uv run python -m voice_studio` | torch and Chatterbox never enter the backend's lock or the Render image, and a GPU out-of-memory can never happen inside the voice agent's process | Routes inside the backend, torch as an optional extra | One process: a studio crash or GPU memory spike would hit live conversations |
+| `vaani` as an editable path dependency | `studio/pyproject.toml` `[tool.uv.sources]` | The cookie check (`vaani.auth.read_cookie`), the secret (`vaani.config.get_settings`) and Whisper (`vaani.asr.whisper`) are the backend's own code, never copied; faster-whisper stays imported only in `vaani/asr/` | Copy the 15 lines of cookie check into the studio | Two copies of security code drift apart; the copy would also need the secret read a second way |
+| Chatterbox Multilingual v3 | A 0.5B text-to-speech model that clones a voice from a few seconds of audio; MIT code and weights; 23 languages incl. Hindi | One model for Hindi and English; built-in Perth watermark; about 3.3 GB of GPU memory at peak (`docs/findings/voice-studio/notes_20261126.txt`) | XTTS-v2 (coqui-tts) | Non-commercial CPML licence; failed 2 of 11 spike clips with NotImplementedError (`docs/findings/voice-cloning/xtts_cuda_clip_a_take1_run_20261121-211638.tsv`) |
+| `chatterbox-tts` from a GitHub commit | `ab55923c27757c90cfcc407baa57dc25a7d25217` | v3 exists only on master: PyPI's newest, 0.1.7 (2026-03-26), loads the v2 checkpoint | PyPI 0.1.7 | It cannot load v3 |
+| torch 2.8.0 cu128, overriding Chatterbox's pin | `[tool.uv] override-dependencies` | Chatterbox pins torch 2.6.0, which has no kernels for this RTX 50xx GPU; 2.8.0 is what the spike ran | torch 2.6.0 | Does not run on a Blackwell GPU |
+| PyAV for decoding uploads | `audio_checks.decode` | Reads the browser's WebM/Opus and a phone's M4A with the FFmpeg its wheel bundles, and resamples | soundfile | Reads WAV/FLAC/OGG only, not WebM or M4A |
+| Chatterbox's voice encoder for the speaker check | `model.SpeakerEncoder`, cosine of two 256-number embeddings | Already a dependency; the same encoder Chatterbox clones from; clean same-speaker 0.914 to 0.947 vs other voices at most 0.443 (`calibration_20261126-151301.txt`) | SpeechBrain ECAPA (the spike's scorer) | One more dependency and model download for the same job |
+| A random 5-word English phrase | `verify.py`, 42 words in `config.toml` | Whisper `small` on CPU reads English words reliably; a clip recorded earlier cannot contain words drawn now | A fixed sentence | Can be pre-recorded or cut from any video of the person |
+| A JSON file per user, not SQLite | `store.py`: a folder per user, `consent.json` | Delete is one folder removal (ETH-4), and nothing about a voice is left in a shared file | A `voices` table in `backend/data/vaani.db` | The backend owns that file and its writer thread; a second process writing to it adds locking for no gain |
+
 ## 4. The database
 
 ### Why SQLite, and why plain SQL
@@ -537,6 +556,8 @@ they are not repeated here.
 | Nothing checks the protocol version at runtime | Versioning lives in documents only (2e) | |
 | Errors do not say which turn they belong to | `error` has no `turn_id` (`protocol.py:195-200`) | A late `ASR_FAILED` of a cut turn shows as a banner (`PROJECT.md` known gaps) |
 | Everything lives in one process | History, request cap and pipelines are in memory (`session.py:59-62`, `spend.py:22-27`) | A restart forgets conversations and resets the cap |
+| A cloned sentence takes seconds, not milliseconds | Chatterbox generates speech tokens one by one in a CPU-bound Python loop | 26 to 29 s for a 63-character script in this laptop's slow state; 2.2 s a short sentence in its fast state (`docs/findings/voice-studio/notes_20261126.txt`). Not usable in a live conversation |
+| A second install of about 5 GB | torch cu128, Chatterbox and its weights for the studio | `studio/uv.lock`; weights in the Hugging Face cache, downloaded on first use |
 | Licences | piper-tts GPL-3.0-or-later; Hindi voices non-commercial | `versions.md:107-110`, `config.toml:330-331`; not checked for our distribution case |
 
 ## 7. Likely viva questions

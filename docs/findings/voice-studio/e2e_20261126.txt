@@ -1,0 +1,60 @@
+voice studio end-to-end over HTTP, 2026-11-26 (feat/voice-studio)
+server: python -m voice_studio on 127.0.0.1:8100, VAANI_STUDIO__DEVICE=cuda, a throwaway
+test session secret and a scratch data folder (not backend/data). Laptop on the Silent plan.
+speakers: Windows SAPI voices. David = the enrolling user, Zira = someone else.
+script for generate: 1 English sentence (41 chars) + 1 Hindi sentence (22 chars).
+client: a scratch script (httpx), not committed; it mints a cookie with the test secret.
+
+== run 1: straight to :8100 (the first generate includes the model's first load) ==
+health, no cookie: 200
+voice, no cookie: 401 AUTH_REQUIRED
+voice: enrolled False | limits {'sample_min_s': 10.0, 'sample_max_s': 30.0, 'challenge_max_s': 15.0, 'max_script_chars': 300, 'generations_left_today': 30}
+challenge phrase: doctor jacket tiger camera yellow
+sample: 16.6 s
+enrol, phrase read by another voice: 422 STUDIO_CHALLENGE_MISMATCH
+enrol, phrase read by the sample's voice: 200
+  {'enrolled': True, 'enrolled_at': '2026-11-26T10:26:20+00:00', 'duration_s': 16.6, 'snr_db': 164.0, 'challenge_match': 0.8, 'speaker_similarity': 0.885} in 11.8 s
+generate, 2 sentences: 200
+  5.02 s of audio at 24000 Hz in 40.6 s, id a8e6ad86a5eb, comment starts: 'Synthetic speech: Vaani voice studio, Re'
+health: {'status': 'ok', 'model_loaded': True, 'device': 'cuda', 'vram_allocated_mib': 3122, 'vram_peak_mib': 3497}
+delete: 200
+  voice after delete: enrolled False
+generate after delete: 403 STUDIO_NOT_ENROLLED
+
+== run 2: through the Vite proxy, http://localhost:5173/studio/... (model already loaded) ==
+health, no cookie: 200
+voice, no cookie: 401 AUTH_REQUIRED
+  message: Sign in first.
+voice: enrolled False | limits {'sample_min_s': 10.0, 'sample_max_s': 30.0, 'challenge_max_s': 15.0, 'max_script_chars': 300, 'generations_left_today': 29}
+challenge phrase: ticket river engine lemon butter
+sample: 16.6 s
+enrol, phrase read by another voice: 422 STUDIO_SPEAKER_MISMATCH
+  message: The voice reading the phrase does not match the voice in the sample. Only your own voice can be enrolled: record both yourself, with the same microphone if you can.
+enrol, phrase read by the sample's voice: 200
+  {'enrolled': True, 'enrolled_at': '2026-11-26T10:27:41+00:00', 'duration_s': 16.6, 'snr_db': 164.0, 'challenge_match': 1.0, 'speaker_similarity': 0.874} in 7.6 s
+generate, 2 sentences: 200
+  5.14 s of audio at 24000 Hz in 29.4 s, id 4f506a66a289, comment starts: 'Synthetic speech: Vaani voice studio, Re'
+generate again (model already loaded): 200
+  256626 bytes in 30.9 s
+health: {'status': 'ok', 'model_loaded': True, 'device': 'cuda', 'vram_allocated_mib': 3122, 'vram_peak_mib': 3501}
+delete: 200
+  voice after delete: enrolled False
+generate after delete: 403 STUDIO_NOT_ENROLLED
+  message: Enrol your voice first, with consent.
+
+== run 3: cancellation through the proxy (server restarted, so the model loads again) ==
+the client gives up after 8 s on a 4-sentence script; the server logs when its worker stops
+enrol: 200
+client gave up after 8.0 s
+server logged the stop 46.2 s after the start
+files generated: 0
+provenance lines added: 0
+delete: {'deleted': True}
+
+notes
+- run 1: Zira's reading failed on the WORDS (Whisper small heard under 4 of 5), so the
+  speaker check was not reached; in run 2 Whisper heard her and the speaker check refused.
+- run 3: the client left during the model's first load (42.9 s, not interruptible); the
+  worker returned before the first sentence. No file, no provenance line. (Since then
+  model.py also skips conditioning when the stop came during the load.)
+- snr 164 dB: SAPI writes digital silence between words; a microphone never does.

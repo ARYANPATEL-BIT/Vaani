@@ -3,7 +3,7 @@
  *
  * A loader is a function the router runs, and waits for, BEFORE it shows a
  * route. router.jsx gives this one to /talk and to the sidebar layout (the
- * enrol pages, /loopback, the 404 page). So a signed-out visitor never sees
+ * voice studio, /loopback, the 404 page). So a signed-out visitor never sees
  * those pages at all: the router gets the redirect first and opens /login.
  *
  *   GET /auth/me answers 401        -> throw redirect('/login')

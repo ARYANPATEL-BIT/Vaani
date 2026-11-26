@@ -1,0 +1,27 @@
+calibration 20261126-151301
+
+SNR (dB)
+     5.9  noisy  clip_a_take1
+     8.4  noisy  clip_a_take1_dn
+     9.2  noisy  clip_b_take1
+    11.8  noisy  clip_b_take1_dn
+    43.0  clean  hinglish_real_16k
+    43.7  clean  short_answers_16k
+    29.0  other  persona_default_en_US-kristin-medium_ls1.0_20261008-150404
+    47.3  other  persona_default_hi_IN-priyamvada-medium_ls1.0_20261007-124213
+    46.8  other  persona_default_hi_IN-priyamvada-medium_ls1.0_20261008-150404
+    45.5  other  persona_support_en_US-kristin-medium_ls1.15_20261008-150404
+    43.1  other  persona_support_hi_IN-priyamvada-medium_ls1.15_20261007-124213
+    45.6  other  persona_support_hi_IN-priyamvada-medium_ls1.15_20261008-150404
+    75.0  other  persona_support_hi_IN-rohan-medium_ls1.15_20261007-124254
+    49.5  other  persona_tutor_en_US-norman-medium_ls1.0_20261008-150404
+    63.3  other  persona_tutor_hi_IN-pratham-medium_ls1.0_20261007-124213
+    56.4  other  persona_tutor_hi_IN-pratham-medium_ls1.0_20261008-150404
+   163.9  other  speech_16k_mono
+
+Speaker similarity (cosine), whole and 4 s window, min / max (n)
+  0.914 / 0.947 (n=2)  same speaker, clean vs clean
+  0.802 / 0.963 (n=12)  same speaker, noisy vs noisy
+  0.357 / 0.397 (n=16)  same speaker, clean vs noisy
+  0.363 / 0.443 (n=44)  other vs clean operator
+  0.451 / 0.630 (n=88)  other vs noisy operator

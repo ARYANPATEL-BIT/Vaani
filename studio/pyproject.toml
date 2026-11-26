@@ -1,0 +1,86 @@
+# pyproject.toml - the voice studio (phase 2): voice enrolment and cloned speech.
+#
+# Its own uv project and its own process, so torch and Chatterbox never enter
+# backend/uv.lock or the Render image. It depends on the backend package
+# (`vaani`, editable) for three things it must NOT copy: the session cookie
+# check (vaani/auth.py), the settings that hold the cookie secret
+# (vaani/config.py) and the Whisper recogniser (vaani/asr/whisper.py).
+# Rationale: docs/learning/backend-learning/25-voice-studio.md
+
+[project]
+name = "vaani-studio"
+version = "0.1.0"
+description = "Vaani voice studio: enrol your own voice, hear a script in it."
+# 3.12: the version the voice-cloning spike ran Chatterbox and torch 2.8 on.
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    "vaani",                     # the backend package (path source below)
+    # Chatterbox Multilingual v3 (Resemble AI, MIT). v3 is on GitHub master
+    # only: the newest PyPI release, 0.1.7, still loads the v2 checkpoint.
+    # Pinned to one commit, so an upstream push cannot change what we run.
+    "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217",
+    "torch==2.8.0",              # cu128 build (Blackwell GPUs need CUDA 12.8+)
+    "torchaudio==2.8.0",
+    "huggingface-hub>=1.3",      # fetches the weights on first use
+    "av>=14",                    # decodes browser webm/opus and phone m4a uploads
+    "soundfile>=0.12",           # reads and writes WAV
+    "numpy>=1.26,<2",            # Chatterbox needs numpy 1.x on Python 3.12
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.18",  # FastAPI needs it to read multipart uploads
+    "pydantic-settings>=2.2",
+    # resemble-perth (the watermark) imports pkg_resources, which setuptools
+    # 81+ no longer ships; without it the watermarker is silently None and
+    # the model refuses to load (found in the spike, commit b7ef4ba).
+    "setuptools<81",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[tool.uv]
+# chatterbox-tts pins torch==2.6.0, which has no kernels for an RTX 50xx
+# (Blackwell, sm_120; first supported in the 2.7 cu128 builds). The override
+# replaces that pin with the 2.8.0 the spike ran. A deviation from upstream's
+# tested pair: a failure here may be ours, not theirs.
+override-dependencies = ["torch==2.8.0", "torchaudio==2.8.0"]
+
+[tool.uv.sources]
+vaani = { path = "../backend", editable = true }
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true # only torch and torchaudio come from this index
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["voice_studio"]
+
+[tool.hatch.metadata]
+# Lets the chatterbox-tts git URL above stand as a dependency (hatchling
+# refuses URL dependencies unless told they are intended).
+allow-direct-references = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The smoke test loads the real model on a CUDA GPU (a few GB of weights):
+# skipped by default. Run it with: uv run pytest -m slow
+markers = ["slow: loads the real Chatterbox model on CUDA (run with -m slow)"]
+addopts = "-m 'not slow'"

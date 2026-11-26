@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
   // it; Vite never puts it into the code it sends to the browser.
   const env = loadEnv(mode, process.cwd(), '')
   const target = env.VAANI_PROXY_TARGET || 'http://127.0.0.1:8000'
+  // The voice studio is its own process (studio/, port 8100 in
+  // studio/config.toml). Same idea: the browser only ever talks to :5173.
+  const studioTarget = env.VAANI_STUDIO_PROXY_TARGET || 'http://127.0.0.1:8100'
 
   // changeOrigin is left false (the default): the backend gets the browser's
   // own Host and Origin headers. Origin matters: auth.py checks it against
@@ -23,6 +26,9 @@ export default defineConfig(({ mode }) => {
     '/auth': { target },
     '/health': { target },
     '/ws': { target, ws: true }, // ws: also forward WebSocket upgrades
+    // Voice studio routes (docs/contracts.md section 4). changeOrigin stays
+    // false here too: the studio checks Origin the way auth.py does.
+    '/studio': { target: studioTarget },
   }
 
   // Vite refuses requests whose Host it does not know (a guard against DNS
