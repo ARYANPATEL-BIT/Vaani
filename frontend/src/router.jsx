@@ -13,16 +13,14 @@
 
 import { createBrowserRouter } from 'react-router-dom';
 import { AUTH_CHECK_TIMEOUT_MS } from './config.js';
+import { fetchVoice } from './api/studioApi.js';
 import AppLayout from './components/AppLayout.jsx';
 import StudioPage from './talk/StudioPage.jsx';
 import LoginPage from './login/LoginPage.jsx';
 import { NO_USER, requireSignIn } from './login/requireSignIn.js';
-import EnrolConsentPage from './pages/EnrolConsentPage.jsx';
-import EnrolRecordPage from './pages/EnrolRecordPage.jsx';
-import EnrolValidationPage from './pages/EnrolValidationPage.jsx';
-import EnrolVerifyPage from './pages/EnrolVerifyPage.jsx';
 import LoopbackPage from './pages/LoopbackPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import VoiceStudioPage from './voice/VoiceStudioPage.jsx';
 
 /**
  * The gate's loader. `request.signal` is aborted by the router if the
@@ -63,13 +61,10 @@ const router = createBrowserRouter([
     children: [
       // Week 2 Day 5: loopback measurement rig (speaker → mic round-trip delay)
       { path: 'loopback', element: <LoopbackPage /> },
-      // Week 3 Day 3: enrolment — consent + reference voice recording
-      { path: 'enrol', element: <EnrolConsentPage /> },
-      { path: 'enrol/record', element: <EnrolRecordPage /> },
-      // Week 3 Day 5: enrolment validation feedback
-      { path: 'enrol/validation', element: <EnrolValidationPage /> },
-      // Week 4 Tuesday: hear the cloned voice, approve it or record again
-      { path: 'enrol/verify', element: <EnrolVerifyPage /> },
+      // Phase 2 voice studio: enrol your own voice, hear a script in it.
+      // Replaces the four /enrol pages (feat/voice-studio).
+      // Its loader asks the studio whether this user's voice is enrolled.
+      { path: 'voice', element: <VoiceStudioPage />, loader: () => fetchVoice() },
       // Future routes:
       // { path: 'profiles', lazy: () => import('./pages/ProfilesPage.jsx') },
       // { path: 'settings', lazy: () => import('./pages/SettingsPage.jsx') },

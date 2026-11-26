@@ -437,9 +437,50 @@ sequenceDiagram
 
 ## 3. Future Contracts (Planned)
 
-These will be specified as their implementation days arrive:
+None at the moment. The voice enrolment API planned for week 4 is now section 4.
 
-- **Voice enrolment API** — Week 4
+---
+
+## 4. Voice studio API — STUDIO API v0.1 (Implemented: feat/voice-studio)
+
+The phase 2 voice studio (`studio/voice_studio/`) is a **separate server**
+(its own process, `127.0.0.1:8100` from `studio/config.toml`). The browser
+reaches it on the page's own origin: Vite forwards `/studio` to it
+(`frontend/vite.config.js`), as it forwards `/auth` and `/ws` to the backend.
+
+**Why its own version.** The backend never sees these routes and
+`backend/vaani/protocol.py` does not define them, so they are versioned on
+their own, starting at STUDIO API v0.1. The SHARED PROTOCOL version (section
+2) is unchanged.
+
+**Sign-in.** Every route except `GET /studio/health` needs the backend's
+`vaani_session` cookie (section 2.9), checked with the backend's own code and
+secret. No valid cookie: `401 AUTH_REQUIRED`. `POST` and `DELETE` also need an
+`Origin` in `[auth] allowed_origins`, else `403 AUTH_BAD_ORIGIN`. Errors use
+the same shape: `{ "type": "error", "code": "...", "message": "..." }`, where
+`message` is written for the user (what went wrong and how to fix it).
+
+| Route | Request | Success | Errors |
+|---|---|---|---|
+| `GET /studio/health` | nothing | `200 { "status": "ok", "model_loaded", "device", "vram_allocated_mib", "vram_peak_mib" }` (VRAM `null` on CPU) | none |
+| `GET /studio/voice` | the cookie | `200 { "enrolled", "enrolled_at" (ISO 8601 UTC or null), "consent_text", "limits": { "sample_min_s", "sample_max_s", "challenge_max_s", "max_script_chars", "generations_left_today" } }` | `401` |
+| `POST /studio/challenge` | no body | `200 { "phrase": "<5 random words>", "expires_in_s" }`; replaces any earlier phrase | `401`, `403` |
+| `POST /studio/enrol` | multipart: `sample` (audio file, 10 to 30 s), `challenge` (audio file, the phrase read aloud), `consent_text` (exactly the `consent_text` from `GET /studio/voice`) | `200 { "enrolled": true, "enrolled_at", "duration_s", "snr_db", "challenge_match", "speaker_similarity" }` | `422 STUDIO_CONSENT_REQUIRED`; `409 STUDIO_NO_CHALLENGE` (none issued, or expired: ask for a new one); `413 STUDIO_FILE_TOO_LARGE`; `422 STUDIO_BAD_AUDIO`, `STUDIO_BAD_LENGTH`, `STUDIO_LOW_SNR`, `STUDIO_CHALLENGE_MISMATCH`, `STUDIO_SPEAKER_MISMATCH` |
+| `POST /studio/generate` | JSON `{ "script": "..." }` | `200 audio/wav` (24 kHz mono 16-bit), header `X-Generation-Id` | `403 STUDIO_NOT_ENROLLED`; `422 STUDIO_SCRIPT_EMPTY`, `STUDIO_SCRIPT_TOO_LONG`, `STUDIO_SENTENCE_TOO_LONG`; `429 STUDIO_CAP_REACHED`; `409 STUDIO_BUSY` (another generation is running); `503 STUDIO_GPU_BUSY` (GPU out of memory, retry later); `503 STUDIO_MODEL_UNAVAILABLE`; `500 STUDIO_FAILED` |
+| `DELETE /studio/voice` | no body | `200 { "deleted": true }` (`false` if nothing was enrolled) | `409 STUDIO_BUSY` (a generation is running) |
+
+Notes:
+
+- Enrolment checks run in the order of the error list, cheapest first, and a
+  refused enrolment stores nothing. A phrase is spent by a successful
+  enrolment; after `STUDIO_NO_CHALLENGE` the client asks for a new one.
+- `POST /studio/generate` splits the script into sentences; a sentence with any
+  Devanagari is spoken as Hindi, any other as English. Closing the request
+  cancels it: the studio stops before the next sentence and stores nothing.
+- The WAV's `comment` tag carries a provenance note (generation id, time,
+  model, script sha256), and the audio carries Resemble's Perth watermark.
+- Limits (lengths, caps, thresholds) come from `studio/config.toml`; read the
+  live values from `GET /studio/voice`, do not hard-code them.
 
 ---
 
@@ -465,4 +506,4 @@ These will be specified as their implementation days arrive:
 | 2026-11-11 | Aryan   | Shared protocol v0.10 (feat/reply-language): `session.start.reply_language` (`any` default, `en`, `hi`) and `session.started.reply_language`; `BAD_MESSAGE` also for an unknown `reply_language`; §2.5 note: a forced language is asked of the model and picks the voice for the whole reply |
 | 2026-11-16 | Aryan   | Shared protocol v0.11 (feat/google-auth): §2.9 sign-in. `/ws/session` handshake refused (HTTP 403, no socket) without an allowed `Origin` and a valid `vaani_session` cookie; `POST /auth/google`, `GET /auth/me`, `POST /auth/logout`; `AUTH_REQUIRED`, `AUTH_INVALID_TOKEN`, `AUTH_EMAIL_UNVERIFIED`, `AUTH_NOT_ALLOWED`, `AUTH_BAD_ORIGIN`, `AUTH_UNAVAILABLE` (HTTP only). No new socket message or field |
 | 2026-11-24 | Aryan   | Editorial, no version change (fix/ui-polish-2): §2.9 notes `[auth] allow_all_emails`; when true any verified Google account passes and the handshake skips the allowlist. No message, field or status change |
-| 2026-11-25 | Aryan   | Shared protocol v0.12 (feat/render-deploy): `served_personas`; `PERSONA_NOT_SERVED` for a known persona this server does not serve (section 2.3, session.start note). No new message or field |
+| 2026-11-26 | Aryan   | STUDIO API v0.1 (feat/voice-studio): section 4, the voice studio's HTTP routes on its own server (`/studio/health`, `/studio/voice` GET and DELETE, `/studio/challenge`, `/studio/enrol`, `/studio/generate`) and their `STUDIO_*` error codes. Section 3's planned enrolment API is replaced by it. SHARED PROTOCOL version unchanged |

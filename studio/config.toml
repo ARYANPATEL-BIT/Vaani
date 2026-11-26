@@ -1,0 +1,94 @@
+# config.toml - the voice studio's committed, non-secret settings.
+# Read by voice_studio/config.py. Override any key from the environment as
+# VAANI_STUDIO__<KEY> (nested: VAANI_STUDIO__WHISPER__MODEL), or put the
+# override in the gitignored backend/.env.
+# Why each value: docs/learning/backend-learning/25-voice-studio.md
+
+# --- the process ---------------------------------------------------------------
+# Its own port on localhost only. The browser never calls it directly: Vite
+# forwards /studio to it (frontend/vite.config.js), so the page, the backend
+# and the studio share one origin and the vaani_session cookie goes along.
+host = "127.0.0.1"
+port = 8100
+# One folder per user under here, plus provenance.jsonl. Relative to studio/.
+# backend/data/ is gitignored, so voices can never be committed.
+data_dir = "../backend/data/studio"
+
+# --- the model -------------------------------------------------------------------
+# CPU in committed config (CLAUDE.md: CPU by default). A GPU run is a local
+# override: VAANI_STUDIO__DEVICE=cuda. The model loads on the first generate,
+# not at startup, so a studio that is never used never takes GPU memory.
+device = "cpu"
+# Chatterbox Multilingual (Resemble AI, MIT). One model speaks Hindi and English.
+hf_repo = "ResembleAI/chatterbox"
+# The repo's commit on 2026-11-26; it holds t3_mtl23ls_v3.safetensors.
+hf_revision = "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"
+t3_model = "v3"
+
+# --- enrolment (ETH-1, ETH-2, ETH-3) ------------------------------------------------
+# The voice sample: 10 to 30 seconds of the user reading anything.
+sample_min_s = 10.0
+sample_max_s = 30.0
+# The live challenge phrase recording: five words take 2 to 5 s to read.
+challenge_max_s = 15.0
+# Per uploaded file. A 30 s WAV at 48 kHz stereo 24-bit is about 8.6 MB.
+max_upload_bytes = 15_000_000
+# Signal-to-noise floor, in dB, for the sample AND the challenge recording,
+# with the estimator in voice_studio/audio_checks.py. Measured in
+# docs/findings/voice-studio/calibration_20261126-151301.txt: the spike's
+# clips read 5.9 to 11.8 dB (clip A, at 5.9, cloned to no recognisable words),
+# clean recordings 29.0 to 43.7 dB. 20 is the middle of that gap.
+min_snr_db = 20.0
+# The challenge: challenge_word_count words drawn at random from this list.
+# Two-syllable words with no common homophone ("two"/"to"), so Whisper's
+# spelling never decides the result.
+challenge_words = [
+    "apple", "basket", "butter", "camera", "candle", "doctor", "dragon",
+    "engine", "finger", "forest", "garden", "guitar", "hammer", "honey",
+    "island", "jacket", "kitten", "ladder", "lemon", "market", "monkey",
+    "orange", "pencil", "pepper", "planet", "rabbit", "rainbow", "river",
+    "rocket", "silver", "spider", "summer", "ticket", "tiger", "tomato",
+    "village", "violin", "wallet", "window", "winter", "yellow", "zebra",
+]
+challenge_word_count = 5
+# A phrase is valid for this long after it is shown, then a new one is needed.
+challenge_ttl_s = 300.0
+# Share of the phrase's words that must be in the transcript: 4 of 5 (0.8)
+# passes, so one misheard word does not fail an honest user.
+min_challenge_match = 0.8
+# Cosine similarity floor between the sample and the challenge recording,
+# with Chatterbox's own voice encoder. Same file: the same speaker on clean
+# recordings scored 0.914 to 0.947, other (synthetic) voices at most 0.443.
+min_speaker_similarity = 0.75
+# Shown beside the checkbox, stored word for word with a timestamp (ETH-3).
+consent_text = "I am enrolling my own voice. This recording is of me, made by me. I consent to Vaani storing my voice sample and using it to generate speech in my voice, for me only. I can delete my voice and everything made from it at any time."
+# The challenge phrase is English words, so Whisper is told English.
+challenge_language = "en"
+
+# --- generation (ETH-3, ETH-5) ------------------------------------------------------
+# Script length cap. Measured (docs/findings/voice-studio/notes_20261126.txt):
+# a 63-character script, about 4.7 s of speech, took 26 to 29 s to generate on
+# this laptop in its slow state and about 2.2 s per short sentence in its fast
+# state. 300 characters is about 18 s of speech: roughly 2 minutes in the slow
+# state, the longest a user should sit and wait (the page has a Cancel button).
+max_script_chars = 300
+# Per sentence: about 16 s of speech, well inside Chatterbox's limit of 1,000
+# speech tokens (40 s) per call; longer inputs also drift more.
+max_sentence_chars = 250
+# Silence between sentences in the joined file.
+sentence_gap_ms = 300
+# Generations per user in any rolling 24 hours, counted from provenance.jsonl.
+max_generations_per_day = 30
+# How often a running generation checks whether the browser has gone away.
+disconnect_poll_s = 0.5
+
+# The studio's own Whisper, for the challenge phrase only. Small on CPU: a
+# five-word phrase decodes in about a second, and it never competes with the
+# voice agent's Whisper for the GPU.
+[whisper]
+model = "small"
+device = "cpu"
+compute_type = "int8"
+cpu_threads = 0
+beam_size = 5
+temperature = [0.0]

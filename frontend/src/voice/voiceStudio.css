@@ -1,0 +1,101 @@
+/* voiceStudio.css -- the Voice studio page (/voice). Every colour is a theme
+   variable from theme/colors.css, defined for both light and dark mode. */
+
+.vs-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vs-page h1 {
+  margin: 0 0 4px;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  color: var(--header-title);
+}
+
+.vs-card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vs-card h2 { margin: 0; font-size: 1.2rem; color: var(--header-title); }
+.vs-card h3 { margin: 12px 0 0; font-size: 1rem; color: var(--header-title); }
+
+.vs-hint { margin: 0; color: var(--header-subtitle); font-size: 0.9rem; }
+.vs-error { margin: 0; color: var(--err-text); font-size: 0.9rem; }
+
+.vs-consent {
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--nav-active-text);
+  color: var(--header-title);
+  font-size: 0.95rem;
+}
+
+.vs-check, .vs-upload { color: var(--header-title); font-size: 0.95rem; }
+.vs-check input { margin-right: 8px; }
+
+.vs-phrase {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--header-title);
+}
+
+.vs-recorder, .vs-result {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vs-script {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--header-title);
+  font: inherit;
+  resize: vertical;
+}
+
+.vs-btn {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 1px solid var(--pill-border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--header-title);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.vs-btn:disabled { opacity: 0.45; cursor: default; }
+.vs-primary { background: var(--cta-bg); border-color: transparent; color: var(--cta-text); }
+.vs-stop { background: var(--stop-bg); border-color: var(--stop-border); color: var(--stop-text); }
+.vs-delete { background: var(--stop-text); border-color: var(--stop-text); color: var(--cta-text); }
+.vs-danger { border-color: var(--stop-border); }
+
+.vs-link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--nav-active-text);
+  font: inherit;
+  cursor: pointer;
+}

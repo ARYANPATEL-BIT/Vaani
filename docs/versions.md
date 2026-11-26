@@ -100,6 +100,39 @@ Only for `asr.whisper.device = "cuda"`. CI and CPU machines never install these.
 | @types/react | 19.3.0 | MIT | React type definitions, for the editor |
 | @types/react-dom | 19.3.0 | MIT | React DOM type definitions, for the editor |
 
+## Voice studio (`studio/uv.lock`, feat/voice-studio)
+
+Its own lock file, resolved separately from `backend/uv.lock`, so a package can
+have a different version here (fastapi 0.163.2 here, 0.141.1 in the backend). The
+backend package `vaani` itself is installed into it, editable, from `../backend`.
+Licences from each installed package's metadata, as above.
+
+| Package | Version | License | Why it is here |
+|---|---|---|---|
+| Python | 3.12 | | `studio/.python-version`; the version the spike ran Chatterbox on |
+| chatterbox-tts | 0.1.7 metadata, GitHub commit `ab55923c27757c90cfcc407baa57dc25a7d25217` | MIT | Chatterbox Multilingual v3 (not on PyPI) |
+| resemble-perth | 1.1.0, GitHub master at `ff1c8ac55a976971245cdd53c18d6131ca00d993` (chatterbox asks for master unpinned; the lock pins this commit) | MIT | The Perth watermark |
+| torch | 2.8.0+cu128 | BSD-3-Clause | Runs the model; overrides chatterbox's 2.6.0 pin |
+| torchaudio | 2.8.0+cu128 | BSD | Paired with torch |
+| transformers | 5.2.0 | Apache-2.0 | Chatterbox's Llama backbone (pinned by chatterbox) |
+| huggingface-hub | 1.33.0 | Apache-2.0 | Downloads the weights at a pinned revision |
+| av | 19.0.2 | BSD-3-Clause (bundles FFmpeg, LGPL) | Decodes WebM, M4A, MP3, WAV uploads |
+| soundfile | 0.14.0 | BSD-3-Clause | WAV read and write |
+| numpy | 1.26.4 | BSD | Chatterbox needs 1.x on Python 3.12 |
+| fastapi | 0.163.2 | MIT | The studio's web app |
+| uvicorn | 0.54.0 | BSD-3-Clause | Runs it |
+| pydantic-settings | 2.16.3 | MIT | `studio/config.toml` + env |
+| python-multipart | 0.0.34 | Apache-2.0 | FastAPI's multipart (file upload) parser |
+| setuptools | 80.10.2 | MIT | Below 81: perth imports `pkg_resources` |
+| faster-whisper / ctranslate2 | 1.2.1 / 4.9.1 | MIT | Via `vaani`; the challenge phrase check |
+| gradio, diffusers, librosa | 6.8.0, 0.29.0, 0.11.0 | Apache-2.0, Apache-2.0, ISC | Required by chatterbox-tts; the studio does not use gradio |
+| pytest, ruff (dev) | 9.2.0, 0.17.6 | MIT | Tests and lint |
+
+| Model | Pinned by | License | Notes |
+|---|---|---|---|
+| `ResembleAI/chatterbox`: `ve.pt`, `t3_mtl23ls_v3.safetensors`, `s3gen.pt`, `grapheme_mtl_merged_expanded_v1.json`, `Cangjie5_TC.json` | `hf_revision = "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"` in `studio/config.toml` | MIT | Downloaded on first use into the Hugging Face cache |
+| Whisper `small` for the challenge | **Not pinned**, as in the backend | MIT | `[whisper]` in `studio/config.toml` |
+
 ## Model files
 
 Not in either lock file. Pinned in `backend/config.toml` where a pin exists.

@@ -1,0 +1,12 @@
+generate 20261126-153905
+torch 2.8.0+cu128 | NVIDIA GeForce RTX 5070 Laptop GPU
+model ResembleAI/chatterbox@5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18 t3=v3
+reference backend/tests/fixtures/speech_16k_mono.wav (Windows SAPI voice)
+script: 1 English sentence (41 chars) + 1 Hindi (22 chars)
+gpu free at start: 6999 of 8150 MiB (other processes hold the rest)
+tqdm progress bars: off
+download_and_load_s: 37.5
+vram_after_load_mib: 3074
+run 1: 33.97 s for 4.86 s of audio (rtf 6.99) | sentences [2.48, 2.08] s | peak vram 3326 MiB (reserved 3406) | watermark [1.0, 1.0]
+run 2: 26.43 s for 4.70 s of audio (rtf 5.62) | sentences [2.32, 2.08] s | peak vram 3331 MiB (reserved 3462) | watermark [1.0, 1.0]
+run 3: 26.91 s for 4.74 s of audio (rtf 5.68) | sentences [2.48, 1.96] s | peak vram 3342 MiB (reserved 3462) | watermark [1.0, 1.0]
