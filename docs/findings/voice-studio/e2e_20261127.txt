@@ -1,0 +1,93 @@
+voice studio end-to-end verification, 2026-11-27 (fix/studio-verify from dev at df0c0b3, no code changes)
+machine: RTX 5070 Laptop GPU (8151 MiB), on AC power, ASUS power plan "Performance" for every timed run
+  (switched from "Silent" before the runs; the earlier 11-26 numbers were all on Silent).
+  Epic Games Launcher, Lively Wallpaper and extra Chrome tabs closed. An earlier attempt the same
+  morning was killed by Claude Code's low-memory reaper with those apps open (no numbers kept).
+servers: backend `uvicorn vaani.app:app` on :8000 and studio `python -m voice_studio` on :8100,
+  side by side, both with [auth] on and the session secret from backend/.env.
+  studio: VAANI_STUDIO__DEVICE=cuda, data dir = a scratch folder (not backend/data/studio).
+client: a scratch httpx script (not committed). Cookie minted in-process from the backend's
+  settings for studio-e2e@example.com, never printed. Generated WAVs written outside the repo.
+agent turns: backend/scripts/measure_turn.py through a scratch wrapper that adds the cookie and
+  Origin to the WebSocket handshake; clip speech_16k_mono.wav; run files are the four
+  measure_turn_20261127-*.txt next to this file.
+
+IMPORTANT: the enrolled "clean reference" is SYNTHETIC: a 17.7 s Windows SAPI voice
+(Microsoft David) with a -60 dBFS hiss added so the SNR reads like a quiet room (44.2 dB), and
+the challenge phrases were read by the same SAPI voice. It proves the FLOW (checks, storage,
+generation, delete), NOT cloning quality. No committed fixture is both clean and 10 to 30 s
+long (speech_16k_mono 5.5 s; short_answers_16k is 34.9 s of a real person, who cannot read a
+fresh challenge phrase). Cloning quality is to be judged by hand with a phone recording.
+
+== setups ==
+A: backend ASR = faster-whisper large-v3, cuda, float16 (VAANI_ASR__WHISPER__* in the environment)
+B: backend ASR = groq (VAANI_ASR__ENGINE=groq): no Whisper on the GPU
+
+== pass/fail (identical in A and B) ==
+PASS  GET /studio/voice, POST /studio/generate, POST /studio/challenge with no cookie -> 401 AUTH_REQUIRED
+PASS  enrol with tools/voice_clone_eval/audio/reference/clip_a_take1.wav -> 422 STUDIO_LOW_SNR
+      "...its signal-to-noise ratio is 6 dB and it needs 20 dB. Move to a quiet room, turn off
+      fans and AC, hold the mic a hand-width from your mouth, and speak at a normal volume."
+      answered in 0.15 s (A) / 0.07 s (B); nothing stored
+PASS  wrong words read for the challenge -> 422 STUDIO_CHALLENGE_MISMATCH; nothing stored
+PASS  clean sample + correct phrase -> 200 (A: 11.1 s, similarity 0.884; B: 8.5 s, similarity 0.913;
+      both match 1.0, snr 44.2 dB, 17.7 s). consent.json holds the configured consent text word for
+      word and a UTC timestamp; the folder holds exactly reference.wav, embedding.npy, consent.json
+PASS  the spent phrase reused -> 409 STUDIO_NO_CHALLENGE
+PASS  generate English, Hindi (Devanagari), mixed -> 200 audio/wav 24 kHz (times below)
+PASS  second generate while one runs -> 409 STUDIO_BUSY; DELETE while one runs -> 409 STUDIO_BUSY
+PASS  301-char script -> 422 STUDIO_SCRIPT_TOO_LONG; 274-char sentence -> 422 STUDIO_SENTENCE_TOO_LONG;
+      blank -> 422 STUDIO_SCRIPT_EMPTY
+PASS  15,000,001-byte sample -> 413 STUDIO_FILE_TOO_LARGE; garbage bytes -> 422 STUDIO_BAD_AUDIO;
+      wrong consent text -> 422 STUDIO_CONSENT_REQUIRED; foreign Origin -> 403 AUTH_BAD_ORIGIN
+PASS  daily cap: provenance seeded to 30 for the test user -> 429 STUDIO_CAP_REACHED, /studio/voice
+      shows 0 left (seed lines removed afterwards)
+PASS  client gives up after 4 s on a 6-sentence script -> server logs "stopped: client
+      disconnected", studio free again 6 s (A) / 8 s (B) later, no file, no provenance line
+PASS  DELETE /studio/voice -> {"deleted": true}; the user folder no longer exists (only
+      provenance.jsonl is left in the data dir, by design); voice shows enrolled false;
+      generate -> 403 STUDIO_NOT_ENROLLED; a second delete -> {"deleted": false}
+NOTE  malformed JSON body -> 422 in FastAPI's own {"detail": [...]} shape, not the contract's
+      {"type": "error", ...}. The page never sends one; studioApi.js shows "The studio answered 422."
+
+== generation, request sent -> WAV received (client clock) ==
+                         A (gpu whisper)            B (groq asr)
+English, 2 sentences     65.4 s -> 6.66 s audio     59.0 s -> 5.78 s audio   (first generate: includes
+                                                                              the model load, 33.6 / 34.2 s)
+Hindi, 2 sentences       27.1 s -> 7.10 s audio     26.6 s -> 7.06 s audio
+mixed, 4 sentences       37.6 s -> 9.42 s audio     37.6 s -> 9.54 s audio
+long, 6 sentences        85.5 s -> 19.70 s audio    82.1 s -> 19.46 s audio  (during the agent turns)
+per sentence RTF, warm   3.9 to 4.9                 3.8 to 5.0
+per sentence RTF while agent turns ran: up to 6.32 (A), 5.75 (B)
+Chatterbox is as slow with no Whisper on the GPU as with it: the GPU is not what limits it
+(notes_20261126.txt: its token loop is CPU-bound). Performance did not bring the 11-26 "fast state".
+
+== VRAM, nvidia-smi total used (one-off reads, never during a timed run) ==
+                                        A          B
+nothing running (baseline)              694 MiB    388 MiB
+after backend start                     4748       388      (A: Whisper large-v3 about 4,050 MiB)
+after studio start (model not loaded)   4827       549
+after the first studio generate         7385       4236
+after three generates                   7435       4286
+peak, untimed pass polling every 0.5 s  7435       4378     (the mixed script)
+torch peak in the studio (/health)      3522       3533     (allocated by torch, its own count)
+Windows per-process counters after the generates: studio 3,850 MiB dedicated + 78 MiB shared (A),
+3,836 + 78 (B); backend 3,040 MiB dedicated (A). The same 78 MiB "shared" with 4 GB free (B)
+means it is host memory torch keeps, not a spill. No STUDIO_GPU_BUSY in A: about 700 MiB of the
+8,151 stays free. Anything else that takes ~1 GB of GPU memory (a game, a second model) would push A over.
+
+== contention: agent turn_ended -> first audio (server log, speaker.py), 3 turns each ==
+                          turn 1   turn 2   turn 3   p50       ASR decode per turn
+A, studio idle            3968     2614     2584     2614 ms   2286, 1661, 1487 ms
+A, studio generating      3858     3642     3455     3642 ms   2916, 2818, 2626 ms
+B, studio idle            1537     1678     1223     1537 ms   541, 727, 457 ms
+B, studio generating      1341     1237     1254     1254 ms   335, 515, 311 ms
+client clock, last voice -> first audio p50: A idle 3644, A busy 4663, B idle 2545, B busy 2268 ms
+A: about +1.0 s at p50 with the studio generating, all of it in Whisper's GPU decode (LLM first
+token and TTS unchanged). No errors. B: no slowdown (within run-to-run noise); Groq's decode is
+off the machine. The A idle decode matches 2026-10-08 (groq-primary/measure_turn_20261008-103320*).
+
+== found on the way, not changed (ASR is outside this task's scope) ==
+Groq whisper-large-v3 with [asr] language "hi" and our prompt wrote the ENGLISH clip in Devanagari
+transliteration in 3 of 6 turns (B idle turns 2 and 3, one B busy turn), e.g. the clip "Hello, this
+is a short test..." as Devanagari letters. Local large-v3 wrote it in Latin in all 6 turns of A.
