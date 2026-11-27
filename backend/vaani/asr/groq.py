@@ -10,7 +10,17 @@ Request:  POST {base_url}/audio/transcriptions, OpenAI's API shape, sent as
           file plus model, language, prompt, temperature, response_format.
 Auth:     the same VAANI_GROQ_API_KEY as the LLM provider, in the
           `Authorization: Bearer <key>` header, never in the URL.
-Response: {"text": "...", "x_groq": {...}} for response_format=json.
+Response: {"text": "...", "x_groq": {...}} for response_format=json;
+          verbose_json adds "language" ("English", "Urdu"...), the language
+          Groq detected when none was given.
+
+Language pick (pick_language, fix/language-and-login): forced "hi" writes
+some English speech in Devanagari letters, and auto-detect writes pure Hindi
+as Urdu, in Arabic script. So TWO requests go out at once for the same audio,
+one auto-detected and one forced to [asr].language, and the auto one is kept
+only if Groq says it heard English. Asking one after the other would add a
+whole round trip to every Hindi turn; at once, the turn waits only for the
+slower of the two. Both are counted against the cap before either is sent.
 
 No thread pool, unlike whisper.py: the work happens on Groq's side, and
 waiting on a socket does not block the event loop. So cancelling is
@@ -72,6 +82,7 @@ class GroqRecognizer(Recognizer):
     ) -> None:
         self._cfg = cfg.groq
         self._language = cfg.language
+        self._pick = cfg.groq.pick_language
         self._prompt = cfg.initial_prompt
         self._sample_rate = sample_rate
         self._api_key = api_key  # SecretStr: prints as '**********'
@@ -89,37 +100,76 @@ class GroqRecognizer(Recognizer):
             return None  # abandoned before we began: send nothing, pay nothing
         try:
             # Checked and counted BEFORE anything is sent: a refused request
-            # costs nothing. Converted to AsrError because the runner turns
-            # only AsrError into ASR_FAILED; any other exception would leave
-            # the turn waiting for a transcript that never comes.
-            self._cap.check_and_count()
+            # costs nothing. Both pick requests together, or neither.
+            # Converted to AsrError because the runner turns only AsrError
+            # into ASR_FAILED; any other exception would leave the turn
+            # waiting for a transcript that never comes.
+            self._cap.check_and_count(2 if self._pick else 1)
         except SpendCapExceededError as exc:
             raise AsrError(f"groq stt: {exc}") from exc
 
-        request = self._client.post(
-            self._url,
-            headers={"Authorization": f"Bearer {self._api_key.get_secret_value()}"},
-            # (filename, bytes, content type): the filename's extension is how
-            # Groq knows the format.
-            files={
-                "file": ("turn.wav", pcm_to_wav(pcm, self._sample_rate), "audio/wav")
-            },
-            data={
-                "model": self._cfg.model,
-                "language": self._language,
-                "prompt": self._prompt,
-                "temperature": str(self._cfg.temperature),
-                "response_format": "json",
-            },
-            timeout=self._timeout,
+        wav = pcm_to_wav(pcm, self._sample_rate)
+        work = (
+            self._pick_language(wav) if self._pick else self._post(wav, self._language)
         )
         try:
-            # Races the request against the cancel token (providers/
-            # streaming.py). If the token wins, the request task is cancelled,
-            # which closes the socket, and Cancelled is raised here.
-            response = await until_cancelled(request, cancel)
+            # Races the request(s) against the cancel token (providers/
+            # streaming.py). If the token wins, the work is cancelled, which
+            # closes every socket it has open, and Cancelled is raised here.
+            result = await until_cancelled(work, cancel)
         except Cancelled:
             return None  # a barge-in or timeout: not an error
+        if self._pick:
+            return result
+        text, _ = result
+        # Forced, so Groq's json answer has no language field: report the
+        # forced one, as faster-whisper does when the language is forced.
+        return Transcript(text, self._language)
+
+    async def _pick_language(self, wav: bytes) -> Transcript:
+        """Both requests at once; the auto one wins only if it heard English.
+
+        asyncio.TaskGroup runs the two side by side, and if one fails it
+        cancels the other before raising: no request is left running unowned.
+        Being cancelled from outside (the token) cancels both the same way.
+        """
+        try:
+            async with asyncio.TaskGroup() as group:
+                auto = group.create_task(self._post(wav, None))
+                forced = group.create_task(self._post(wav, self._language))
+        except ExceptionGroup as failed:
+            # TaskGroup wraps the failure; the runner expects a plain AsrError.
+            raise failed.exceptions[0] from None
+        auto_text, detected = auto.result()
+        if detected.lower() == "english":
+            return Transcript(auto_text, "en", picked="en")
+        forced_text, _ = forced.result()
+        return Transcript(forced_text, self._language, picked=self._language)
+
+    async def _post(self, wav: bytes, language: str | None) -> tuple[str, str]:
+        """One transcription request: (text, detected language or "").
+
+        `language` None means auto-detect, asked for as verbose_json, the
+        only format whose answer names the language Groq detected.
+        """
+        data = {
+            "model": self._cfg.model,
+            "prompt": self._prompt,
+            "temperature": str(self._cfg.temperature),
+            "response_format": "json" if language else "verbose_json",
+        }
+        if language:
+            data["language"] = language
+        try:
+            response = await self._client.post(
+                self._url,
+                headers={"Authorization": f"Bearer {self._api_key.get_secret_value()}"},
+                # (filename, bytes, content type): the filename's extension is
+                # how Groq knows the format.
+                files={"file": ("turn.wav", wav, "audio/wav")},
+                data=data,
+                timeout=self._timeout,
+            )
         except httpx.TimeoutException as exc:
             raise AsrError(f"groq stt: no response within {self._timeout_s} s") from exc
         except httpx.HTTPError as exc:
@@ -129,12 +179,10 @@ class GroqRecognizer(Recognizer):
         if response.status_code != 200:
             raise self._error_for(response)
         try:
-            text = response.json()["text"]
-        except (ValueError, KeyError, TypeError) as exc:
+            body = response.json()
+            return str(body["text"]).strip(), str(body.get("language") or "")
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise AsrError("groq stt: malformed response") from exc
-        # Groq's json answer has no language field. We forced the language, so
-        # report that, as faster-whisper does when the language is forced.
-        return Transcript(str(text).strip(), self._language)
 
     def _error_for(self, response: httpx.Response) -> AsrError:
         """A short AsrError for the browser; Groq's own detail goes to the log.

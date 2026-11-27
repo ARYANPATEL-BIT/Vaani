@@ -1,0 +1,176 @@
+Latency before/after, fix/language-and-login, 2026-11-28
+
+What is timed: recogniser.transcribe() wall time on each clip's endpointed
+turn (the live gateway's cut), pick_language off (before) vs on (after), ONE
+loaded model with the switch flipped between runs and the order alternated,
+6 runs per clip per mode, 3 clips (English SAPI fixture, Aryan's Hindi clip,
+Aryan's Hinglish clip). Script: the session scratchpad's latency_ab.py
+(not in git); conditions per block. nvidia-smi was not polled during runs.
+
+Summary (p50 over all 18 runs per mode)
+  GPU large-v3 cuda/float16, Silent plan, AC:       off 5295 ms, on 5636 ms, +341 ms
+  GPU large-v3 cuda/float16, Performance plan, AC:  off 1021 ms, on 1193 ms, +172 ms
+  Groq whisper-large-v3 (network, plan-independent): off  390 ms, on  431 ms,  +41 ms
+
+End to end (scripts/measure_turn.py, 12 turns each, English fixture, real
+server with auth off, cuda/large-v3, groq openai/gpt-oss-20b, Performance plan,
+AC), client clock from the last voiced frame:
+                         before (pick off)   after (pick on)
+  -> transcript.final    p50 1531 p95 1701   p50 1709 p95 1775
+  -> first agent.text    p50 1993 p95 2136   p50 2187 p95 2590
+  -> first audio frame   p50 2034 p95 2177   p50 2223 p95 2625   (+189 ms p50)
+  model first token      p50  451 p95  485   p50  450 p95  869
+  Files: e2e_before_pick_off_20261128-022642.txt, e2e_after_pick_on_20261128-022908.txt
+  Both are over the 1000 ms target before this change: the endpoint + ASR stage
+  alone is 1531 ms p50 on this clip.
+
+Not measured: the note's effect on LLM first token in isolation (it adds about
+40-60 words to the request; the E2E first-token p50 did not move, 451 vs 450),
+and the forced-session hold (it delays agent.text, not audio: the voice waits
+for the first chunk anyway). The retry, when it fires, adds a whole second LLM
+request; it fired 0 times in 33 forced-session probe replies.
+
+=================== ab_gpu_silent ===================
+engine=faster-whisper large-v3/cuda/float16 beam=5 forced_language='hi' english_min_prob=0.5
+runs per clip per mode: 6, interleaved; ms = recogniser.transcribe() wall time
+
+english   run1 off    2118 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run1 on     2367 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 on     2262 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 off    1978 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 off    2009 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 on     2231 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 on     2489 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 off    2231 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 off    2051 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 on     2455 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 on     2379 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 off    2057 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   p50 off 2054 ms, on 2373 ms, delta +319 ms
+
+hindi     run1 off    6484 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run1 on     6779 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 on     6958 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 off    6106 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 off    6288 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 on     6782 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 on     7014 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 off    6149 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 off    5736 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 on     6680 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 on     6357 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 off    6114 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     p50 off 6131 ms, on 6781 ms, delta +649 ms
+
+hinglish  run1 off    5254 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run1 on     5486 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run2 on     5762 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run2 off    5347 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run3 off    5437 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run3 on     5590 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run4 on     5486 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run4 off    5217 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run5 off    5337 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run5 on     5854 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run6 on     5683 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run6 off    5249 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  p50 off 5295 ms, on 5636 ms, delta +341 ms
+
+ALL clips: off p50 5295 / p95 6288 ms; on p50 5636 / p95 6958 ms; p50 delta +341 ms
+
+=================== ab_gpu_performance ===================
+engine=faster-whisper large-v3/cuda/float16 beam=5 forced_language='hi' english_min_prob=0.5
+runs per clip per mode: 6, interleaved; ms = recogniser.transcribe() wall time
+
+english   run1 off     508 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run1 on      678 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 on      682 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 off     522 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 off     507 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 on      723 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 on      718 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 off     519 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 off     502 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 on      732 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 on      753 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 off     510 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   p50 off 509 ms, on 720 ms, delta +211 ms
+
+hindi     run1 off    1202 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run1 on     1392 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 on     1358 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 off    1192 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 off    1188 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 on     1435 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 on     1422 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 off    1188 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 off    1228 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 on     1382 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 on     1358 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 off    1148 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     p50 off 1190 ms, on 1387 ms, delta +196 ms
+
+hinglish  run1 off    1016 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run1 on     1187 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run2 on     1216 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run2 off    1026 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run3 off    1008 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run3 on     1193 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run4 on     1202 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run4 off    1050 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run5 off     999 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  run5 on     1193 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run6 on     1160 ms  picked=hi words=8 latin=0 deva=8 arab=0
+hinglish  run6 off    1045 ms  picked=None words=8 latin=0 deva=8 arab=0
+hinglish  p50 off 1021 ms, on 1193 ms, delta +172 ms
+
+ALL clips: off p50 1021 / p95 1202 ms; on p50 1193 / p95 1422 ms; p50 delta +172 ms
+
+=================== ab_groq ===================
+engine=groq groq_model=whisper-large-v3 forced_language='hi' english_min_prob=0.5
+runs per clip per mode: 6, interleaved; ms = recogniser.transcribe() wall time
+
+english   run1 off     515 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run1 on      415 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 on      542 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run2 off     375 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 off     376 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run3 on      403 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 on      430 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run4 off     344 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 off     361 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   run5 on      401 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 on      414 ms  picked=en words=14 latin=14 deva=0 arab=0
+english   run6 off     392 ms  picked=None words=14 latin=14 deva=0 arab=0
+english   p50 off 376 ms, on 415 ms, delta +39 ms
+
+hindi     run1 off     450 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run1 on      493 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 on      432 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run2 off     470 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 off     450 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run3 on      480 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 on      567 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run4 off     516 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 off     437 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     run5 on      473 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 on      454 ms  picked=hi words=13 latin=0 deva=13 arab=0
+hindi     run6 off     422 ms  picked=None words=13 latin=0 deva=13 arab=0
+hindi     p50 off 450 ms, on 477 ms, delta +27 ms
+
+hinglish  run1 off     388 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  run1 on      397 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run2 on      432 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run2 off     381 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  run3 off     336 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  run3 on      405 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run4 on      427 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run4 off     398 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  run5 off     331 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  run5 on      451 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run6 on      422 ms  picked=hi words=12 latin=7 deva=5 arab=0
+hinglish  run6 off     344 ms  picked=None words=12 latin=7 deva=5 arab=0
+hinglish  p50 off 363 ms, on 425 ms, delta +62 ms
+
+ALL clips: off p50 390 / p95 515 ms; on p50 431 / p95 542 ms; p50 delta +41 ms
+

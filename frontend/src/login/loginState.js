@@ -65,17 +65,37 @@ export function firstName(body) {
 }
 
 /**
- * What the landing page header adds, from its own GET /auth/me (Hero.jsx).
- * The header never waits for this: it starts as "nothing extra" and only
- * changes if a clear answer comes back.
- *   401                        -> a Sign in link (signIn: true)
- *   200 {email, name}          -> the first name; no name, the email's initial
- *   200 {email: null} (auth off), 5xx, no answer, timed out -> nothing extra
+ * What the landing page header shows, from its own GET /auth/me (Hero.jsx,
+ * drawn by HeaderAuth.jsx). The header never waits for this: it starts as
+ * "nothing extra" and changes when the answer (or the timeout) comes.
+ *   200 {email, name}          -> the first name and a Log out button
+ *                                 (no name: the email's initial)
+ *   200 {email: null}          -> nothing extra: auth is off, there is no
+ *                                 sign-in to offer
+ *   401, 5xx, no answer, timed out -> a Sign in link
+ * Before fix/language-and-login only a 401 showed Sign in, so a backend that
+ * was down, still loading its models, or waking from a Render cold start
+ * (past AUTH_CHECK_TIMEOUT_MS) left the header with no way in at all. The
+ * link is safe to show when unsure: /login itself sends a visitor who is
+ * already signed in straight on.
  */
 export function landingAuthFor(status, body) {
-  if (meResult(status) === 'out') return { signIn: true, who: '' };
-  const op = operatorFor(status === 200 ? body : null);
-  if (!op.signedIn) return { signIn: false, who: '' };
+  if (meResult(status) !== 'in') return { signIn: true, who: '', logOut: false };
+  const op = operatorFor(body);
+  if (!op.signedIn) return { signIn: false, who: '', logOut: false };
   const hasName = typeof body.name === 'string' && body.name.trim() !== '';
-  return { signIn: false, who: hasName ? firstName(body) : op.initial };
+  return { signIn: false, who: hasName ? firstName(body) : op.initial, logOut: true };
+}
+
+/**
+ * The landing header's Log out: POST /auth/logout (the server's Set-Cookie
+ * deletes vaani_session; the page cannot delete an httpOnly cookie), then a
+ * fresh GET /auth/me, so the header shows what the server now says rather
+ * than what we hope: Sign in, or still the name if the cookie survived.
+ * logoutFn / fetchMeFn are authApi's logout and fetchMe; tests pass fakes.
+ */
+export async function logOutFromLanding(logoutFn, fetchMeFn) {
+  await logoutFn();
+  const { status, body } = await fetchMeFn();
+  return landingAuthFor(status, body);
 }

@@ -41,3 +41,39 @@ def latin_words(text: str) -> list[str]:
     (docs/findings/guardrails/).
     """
     return _LATIN_WORD.findall(text)
+
+
+# One ASCII letter, for counting and removing them one by one.
+_LATIN_LETTER = re.compile(r"[A-Za-z]")
+
+
+def strip_latin(text: str) -> tuple[str, int]:
+    """`text` with every Latin letter removed, and how many were removed.
+
+    The forced-Hindi safety net (speaker.py): the Hindi voice reads Latin
+    letters with English spelling rules and becomes unintelligible, so in a
+    forced Hindi reply none may reach it. "WiFi का पासवर्ड" -> "का पासवर्ड", 4.
+    The words stay on screen; only the voice's copy loses them. Spaces left
+    doubled by a removed word are closed up.
+    """
+    stripped, removed = _LATIN_LETTER.subn("", text)
+    return (" ".join(stripped.split()), removed) if removed else (text, 0)
+
+
+def turn_language(
+    forced: str | None, picked: str | None, transcript: str
+) -> str | None:
+    """Which reply-language note this turn gets: "en", "hi", "hinglish" or None.
+
+    `forced` is the session's reply language ("en"/"hi", None for "any"): it
+    always wins. Otherwise `picked`, the language the ASR chose for this turn
+    (None when it was forced, which says nothing about what was spoken). A
+    picked "hi" turn with Latin words in it was mixed speech: Hinglish, and
+    the reply mixes the same way, still in Devanagari. None: no note, the
+    persona's own rule follows the message.
+    """
+    if forced is not None:
+        return forced
+    if picked == "hi" and _LATIN_WORD.search(transcript):
+        return "hinglish"
+    return picked

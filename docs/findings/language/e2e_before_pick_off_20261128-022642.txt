@@ -1,0 +1,64 @@
+measure_turn run at 2026-11-28 02:26:42
+commit 782f8ce + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Performance
+server: ws://127.0.0.1:8000/ws/session (BEFORE pick off; cuda/large-v3 float16; groq gpt-oss-20b; Performance plan, AC; fix/language-and-login)
+clip: speech_16k_mono.wav, 12 turns
+server: {'type': 'session.started', 'session_id': 'd85d64453aa941acbe311fde72a5cb4f', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. This test is working.'
+  last voice -> final 1658 ms, -> first text 2130 ms, -> first audio 2177 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. This test is working.'
+  last voice -> final 1701 ms, -> first text 2136 ms, -> first audio 2177 ms
+turn 3:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1695 ms, -> first text 1853 ms, -> first audio 1891 ms
+turn 4:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1540 ms, -> first text 1931 ms, -> first audio 1973 ms
+turn 5:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. This test is working.'
+  last voice -> final 1507 ms, -> first text 1792 ms, -> first audio 1837 ms
+turn 6:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1511 ms, -> first text 1996 ms, -> first audio 2039 ms
+turn 7:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1527 ms, -> first text 2012 ms, -> first audio 2054 ms
+turn 8:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1519 ms, -> first text 1990 ms, -> first audio 2031 ms
+turn 9:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1497 ms, -> first text 1764 ms, -> first audio 1807 ms
+turn 10:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1551 ms, -> first text 2018 ms, -> first audio 2062 ms
+turn 11:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1521 ms, -> first text 1996 ms, -> first audio 2038 ms
+turn 12:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'I hear you. The test is working.'
+  last voice -> final 1535 ms, -> first text 1723 ms, -> first audio 1772 ms
+
+over 12 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 1531  p95 1701 ms
+  -> first agent.text  p50 1993  p95 2136 ms
+  -> first audio frame p50 2034  p95 2177 ms
+per stage (client clock):
+  endpoint + ASR     p50  1531  p95  1701 ms
+  model first token  p50   451  p95   485 ms
+  first chunk + TTS  p50    43  p95    49 ms
+wrote measure_turn_20261128-022642.txt

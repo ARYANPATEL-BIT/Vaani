@@ -15,6 +15,15 @@ keeps running Python (ingesting frames) while the worker runs C++.
 A decode cannot be interrupted once CTranslate2 is inside it. faster-whisper
 yields one segment per 30 s window of audio, so the earliest we can stop is
 between segments; an utterance under 30 s is a single segment.
+
+Language pick (pick_language, fix/language-and-login): forced "hi" writes
+some English speech in Devanagari letters, and plain auto-detect writes some
+Hindi as Urdu, in Arabic script. So detect_language runs first and gives a
+probability per language; English is chosen only when its probability
+reaches english_min_prob, and the decode is then forced to the winner. The
+detection is one more pass of Whisper's encoder over the audio: about
+340 ms a turn for large-v3 on the GPU, about 6.8 s for small on the CPU,
+which is why it is off by default.
 """
 
 import asyncio
@@ -102,6 +111,7 @@ class WhisperRecognizer(Recognizer):
         # Shared by both engines, so they live in [asr], not [asr.whisper].
         self._language = cfg.language
         self._prompt = cfg.initial_prompt
+        self._pick = w.pick_language
         started = perf_counter()
         # num_workers lets CTranslate2 run that many decodes at once, one per
         # pool thread; with 1 they would queue inside the engine instead.
@@ -150,9 +160,12 @@ class WhisperRecognizer(Recognizer):
     def _decode(self, audio: np.ndarray, stop: threading.Event) -> Transcript | None:
         """Runs on a pool thread. Returns None if `stop` was set."""
         w = self._cfg
+        language = self._pick_language(audio) if self._pick else self._language
+        if stop.is_set():
+            return None  # cancelled during detection: skip the decode
         segments, info = self._model.transcribe(
             audio,
-            language=self._language,
+            language=language,
             task=TASK,
             initial_prompt=self._prompt,
             beam_size=w.beam_size,
@@ -168,7 +181,20 @@ class WhisperRecognizer(Recognizer):
             parts.append(segment.text.strip())
         if stop.is_set():
             return None
-        return Transcript(" ".join(p for p in parts if p), info.language)
+        text = " ".join(p for p in parts if p)
+        return Transcript(text, info.language, language if self._pick else None)
+
+    def _pick_language(self, audio: np.ndarray) -> str:
+        """English if Whisper is sure enough it is English, else [asr].language.
+
+        detect_language returns (best, its probability, every language's
+        probability). Only English's is read: Urdu is spoken Hindi in another
+        script, so "not English" always means our forced language.
+        vad_filter trims silence first, as the decode does.
+        """
+        _, _, probabilities = self._model.detect_language(audio, vad_filter=VAD_FILTER)
+        english = dict(probabilities).get("en", 0.0)
+        return "en" if english >= self._cfg.english_min_prob else self._language
 
     async def transcribe(self, pcm: bytes, cancel: asyncio.Event) -> Transcript | None:
         audio = pcm_to_float(pcm)

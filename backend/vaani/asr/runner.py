@@ -41,9 +41,10 @@ from vaani.telemetry import ASR_FAILED, ASR_FINAL, ASR_PARTIAL, ASR_START, Telem
 log = logging.getLogger("vaani.asr")
 
 SendJson = Callable[[dict], Awaitable[None]]
-# (turn_id, final text or None if transcription failed). Must return quickly:
-# the next transcription waits for it.
-OnFinal = Callable[[str, str | None], Awaitable[None]]
+# (turn_id, final text or None if transcription failed, the language the
+# recogniser picked: "en"/"hi", None when forced). Must return quickly: the
+# next transcription waits for it.
+OnFinal = Callable[[str, str | None, str | None], Awaitable[None]]
 
 
 @dataclass
@@ -243,7 +244,7 @@ class AsrRunner:
         )
         # Re-checked: the turn may have been abandoned during the send above.
         if not job.abandoned:
-            await self._on_final(job.turn_id, result.text)
+            await self._on_final(job.turn_id, result.text, result.picked)
 
     async def _fail(self, job: _Job, reason: str) -> None:
         """A partial failing is only logged; a final failing tells the browser."""
@@ -262,4 +263,4 @@ class AsrRunner:
                 error(ErrorCode.ASR_FAILED, f"transcription failed: {reason}")
             )
             if not job.abandoned:  # re-checked after the send, as in _emit
-                await self._on_final(job.turn_id, None)
+                await self._on_final(job.turn_id, None, None)

@@ -38,7 +38,7 @@ def new_runner(
     async def send(msg: dict) -> None:
         sent.append((perf_counter(), msg))
 
-    async def on_final(turn_id: str, text: str | None) -> None:
+    async def on_final(turn_id: str, text: str | None, picked: str | None) -> None:
         if finals is not None:
             finals.append((turn_id, text))
 

@@ -1,0 +1,54 @@
+groq stt script per language setting, 2026-11-27 15:52:58
+question: does leaving out the forced language keep English in Latin and Hindi in Devanagari?
+model whisper-large-v3, temperature 0.0, response_format verbose_json
+  (the server sends json; verbose_json only adds fields such as the detected language)
+prompt (both settings): 'mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena'
+(a) a_current: language 'hi' + prompt, exactly what vaani/asr/groq.py sends
+(b) b_autodetect: NO language field + the same prompt
+clips, each posted whole as one WAV (not cut by the endpointer):
+  english  backend/tests/fixtures/speech_16k_mono.wav (Windows SAPI voice, 5.5 s)
+  hindi    hindi_real_16k.wav (Aryan, pure Hindi, scratchpad, not committed; the 11-25 clip)
+  hinglish backend/tests/fixtures/hinglish_real_16k.wav (Aryan, whole 7.9 s file)
+  hinglish English words, from the 11-25 run d transcript (no ground truth):
+    ['a', 'and', 'bit', 'english', "let's", 'little', 'of', 'see', 'work']
+fresh HTTP connection per request; ms = the POST alone. 3 repeats, interleaved.
+
+rep clip      setting       ms    lang      words latin deva eng_in_latin  text
+1   english   a_current       326 Hindi        14    14    0 -             'Hello, this is a short test of voice activity detection for the Vani project.'
+1   english   b_autodetect    313 English      14    14    0 -             'hello, this is a short test of voice activity detection for the vani project'
+1   hindi     a_current       474 Hindi        13     0   13 -             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+1   hindi     b_autodetect    332 Urdu         13     0    0 -             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+1   hinglish  a_current       408 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+1   hinglish  b_autodetect    369 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+2   english   a_current       325 Hindi        14    14    0 -             'Hello, this is a short test of voice activity detection for the Vani project.'
+2   english   b_autodetect    551 English      14    14    0 -             'hello, this is a short test of voice activity detection for the vani project'
+2   hindi     a_current       434 Hindi        13     0   13 -             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+2   hindi     b_autodetect    393 Urdu         13     0    0 -             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+2   hinglish  a_current       415 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+2   hinglish  b_autodetect    396 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+3   english   a_current       328 Hindi        14    14    0 -             'Hello, this is a short test of voice activity detection for the Vani project.'
+3   english   b_autodetect    359 English      14    14    0 -             'hello, this is a short test of voice activity detection for the vani project'
+3   hindi     a_current       410 Hindi        13     0   13 -             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+3   hindi     b_autodetect    389 Urdu         13     0    0 -             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+3   hinglish  a_current       404 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+3   hinglish  b_autodetect    499 Hindi        19     9   10 9             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+
+observations
+- No errors, no 429, no key-like string in any output. The 3 repeats of every cell returned
+  the identical text (temperature 0): within a cell there is no variance on the same bytes.
+- (a) current, whole files: english all Latin (14/14 words, 3 of 3), hindi all Devanagari
+  (13/13, 3 of 3), hinglish 9 Latin + 10 Devanagari words with all 9 reference English words
+  in Latin (3 of 3). The Devanagari-English failure did NOT reproduce on the whole English file.
+- (b) no language field: english Latin, detected "English" (wording differs slightly from (a));
+  hindi detected "Urdu" and written in Urdu (Arabic) script, 0 Latin and 0 Devanagari words,
+  3 of 3; hinglish identical to (a), detected "Hindi". Auto-detect alone breaks pure Hindi.
+- With a forced language verbose_json reports that language ("Hindi"), so (a) shows no detection.
+- Where the live failure came from (fix/studio-verify 903a56e, setup B): every turn there was the
+  endpointer's cut of the same clip, 4680 to 4740 ms (249 to 252 frames, preroll included), not
+  the whole 5.5 s file. In order: 249 Latin, 252 Devanagari, 251 Devanagari (session 1);
+  249 Latin, 251 Devanagari, 249 Latin (session 2). All three 249-frame cuts came back Latin,
+  all three 251/252-frame cuts as Devanagari transliteration. So under language "hi" the
+  script flips on 40 to 60 ms of difference at the edges of the audio. A test of any fix needs
+  those endpointed cuts, not whole files.
+- Local faster-whisper (same "hi" + prompt) decodes with beam_size 5; Groq's request has no beam
+  option. Whether that is why local never flipped is a guess, not tested.

@@ -24,10 +24,14 @@ class Transcript:
 
     `text` may be empty: silence, or speech too unclear to decode.
     `language` is what the recogniser reports, or None if it does not say.
+    `picked` is "en" or "hi" when the recogniser CHOSE between the two for
+    this audio (pick_language on), and None when the language was simply
+    forced: a forced "hi" says nothing about what was actually spoken.
     """
 
     text: str
     language: str | None
+    picked: str | None = None
 
 
 class AsrError(Exception):

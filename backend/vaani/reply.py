@@ -34,20 +34,19 @@ provider, error, what was heard. The turn's database row is built from it.
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from contextlib import aclosing
 from datetime import datetime
-from time import perf_counter
 from zoneinfo import ZoneInfo
 
-from vaani.chunker import ClauseChunker
 from vaani.config import Settings
+from vaani.language import turn_language
 from vaani.persona import assemble, looks_like_injection
 from vaani.protocol import ErrorCode, TurnState, agent_done, agent_text, error
 from vaani.providers.base import LLMProvider, ProviderError
+from vaani.reply_stream import stream_reply
 from vaani.session import Session
 from vaani.speaker import Speaker
 from vaani.spend import SpendCapExceededError
-from vaani.telemetry import LLM_FIRST_TOKEN, LLM_REQUEST, Telemetry
+from vaani.telemetry import Telemetry
 from vaani.tts import Synthesizer, TtsError
 from vaani.turn_log import ReplyRecord
 
@@ -95,6 +94,7 @@ class Responder:
             None if session.reply_language == "any" else session.reply_language
         )
         self._history_turns = settings.llm.history_turns
+        self._notes = settings.reply_language  # per-turn notes, retry, fallback
         self._zone = ZoneInfo(settings.llm.timezone)  # for the clock line
         self._patterns = settings.guardrail.patterns
         self._session = session
@@ -116,8 +116,11 @@ class Responder:
         # The latest reply's record, for the turn's database row.
         self.record: ReplyRecord | None = None
 
-    def start(self, turn_id: str, transcript: str, ended_at: float) -> None:
-        """Begin replying in the background. Returns at once."""
+    def start(
+        self, turn_id: str, transcript: str, ended_at: float, picked: str | None = None
+    ) -> None:
+        """Begin replying in the background. Returns at once. `picked` is the
+        language the ASR chose for this turn ("en"/"hi"), None when forced."""
         self._cancel = asyncio.Event()
         self.turn_id, self.transcript, self.speaker = turn_id, transcript, None
         self.record = ReplyRecord(turn_id, transcript)
@@ -137,7 +140,7 @@ class Responder:
         # The record is passed in, like the token and the speaker, so a cut
         # reply still winding down can never write into the next one's.
         task = asyncio.create_task(
-            self._answer(self.record, self._cancel, ended_at, self.speaker)
+            self._answer(self.record, self._cancel, ended_at, self.speaker, picked)
         )
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
@@ -168,6 +171,7 @@ class Responder:
         cancel: asyncio.Event,
         ended_at: float,
         speaker: Speaker | None,  # None: [tts] disabled, the reply is text only
+        picked: str | None = None,  # the ASR's language for this turn, if it chose
     ) -> None:
         """Reply to one transcript. `ended_at` is the turn_ended perf_counter."""
         sid = self._session.session_id
@@ -182,63 +186,62 @@ class Responder:
             )
             return
 
-        # 2. Only now does the transcript meet the system prompt.
+        # 2. Only now does the transcript meet the system prompt. This turn's
+        # reply-language note: the forced language, or the one the ASR picked
+        # (language.turn_language); None adds no note.
+        language = turn_language(self._forced_voice, picked, transcript)
+        reminder = self._notes.reminders[language] if language else None
         # The clock is read here, once per reply: the date and time line is
         # as fresh as the turn it answers.
         now = datetime.now(self._zone)
-        messages = assemble(
-            self._system_prompt,
-            self._session.history,
-            transcript,
-            now,
-            self._reply_language,
-        )
 
-        # 3. Stream. aclosing: if we leave the loop early, the chain's stream
-        # (and its HTTP connection) is closed at once, not at garbage collection.
-        parts = record.parts  # every delta, kept on the record for the row
-        chunker = ClauseChunker(self._chunker_cfg)
-        requested_at = self._telemetry.record(LLM_REQUEST, turn_id).at
-        # Each delta until the first chunk is cut: (ms after turn_ended, text).
-        # Tells "waiting for tokens" from "waiting on synthesis" in debug logs.
-        arrivals: list[tuple[float, str]] = []
-        first_cut = False
+        # 3. Stream (reply_stream.py). A forced reply whose first chunk is in
+        # the other script was shown and said to nobody: it gets ONE retry
+        # with a sharper note, then the configured fallback line. Every
+        # retry is another paid request, counted by the chain's cap.
         try:
-            async with aclosing(self._chain.stream(messages, cancel)) as chunks:
-                async for chunk in chunks:
-                    if cancel.is_set():
-                        return
-                    if not parts:
-                        self._first_token(turn_id, requested_at, ended_at)
-                        record.provider, record.model = chunk.provider, chunk.model
-                    parts.append(chunk.text)
-                    if not first_cut:
-                        arrivals.append(
-                            ((perf_counter() - ended_at) * 1000, chunk.text)
-                        )
-                    await self._send(agent_text(turn_id, chunk.text))
-                    if speaker is not None:
-                        pieces = chunker.push(chunk.text)
-                        if pieces and not first_cut:
-                            first_cut = True
-                            self._log_first_cut(
-                                turn_id,
-                                ended_at,
-                                arrivals,
-                                pieces[0],
-                                chunker.first_rule,
-                            )
-                        # Synthesis runs inside this loop: while it does, the
-                        # next tokens wait unread in the HTTP stream. Nothing
-                        # is lost, and the speech is never waiting on text.
-                        for piece in pieces:
-                            await speaker.say(piece)
-            if speaker is not None and (last := chunker.flush()):
-                if not first_cut:  # the whole reply arrived without a cut
-                    self._log_first_cut(
-                        turn_id, ended_at, arrivals, last, chunker.first_rule
-                    )
-                await speaker.say(last)
+            for attempt in (1, 2):
+                note = (
+                    reminder if attempt == 1 else f"{reminder} {self._notes.retry_note}"
+                )
+                messages = assemble(
+                    self._system_prompt,
+                    self._session.history,
+                    transcript,
+                    now,
+                    self._reply_language,
+                    note,
+                )
+                record.parts.clear()  # a retry replaces the failed attempt
+                if await stream_reply(
+                    self._chain,
+                    messages,
+                    record,
+                    cancel,
+                    speaker,
+                    self._chunker_cfg,
+                    self._send,
+                    self._telemetry,
+                    ended_at,
+                    self._forced_voice,
+                ):
+                    break
+                log.warning(
+                    "session %s: turn %s attempt %d in the wrong script",
+                    sid,
+                    turn_id,
+                    attempt,
+                )
+            else:
+                # Both attempts failed the check, so this is a forced session
+                # with a speaker: say the fallback in the forced language.
+                assert self._forced_voice is not None and speaker is not None
+                fallback = self._notes.fallback[self._forced_voice]
+                record.parts.append(fallback)
+                if cancel.is_set():
+                    return
+                await self._send(agent_text(turn_id, fallback))
+                await speaker.say(fallback)
         except (ProviderError, SpendCapExceededError) as exc:
             if cancel.is_set():
                 return
@@ -262,7 +265,7 @@ class Responder:
 
         if cancel.is_set():
             return  # a cancelled stream ends quietly: no agent.done
-        if not parts:
+        if not record.parts:
             # The model said nothing at all (e.g. its output was filtered).
             # Silence is not an answer.
             log.warning("session %s: turn %s got an empty reply", sid, turn_id)
@@ -272,7 +275,7 @@ class Responder:
             return
 
         # 4. Complete.
-        reply = "".join(parts)
+        reply = "".join(record.parts)
         await self._send(agent_done(turn_id, reply))
         if speaker is not None and not cancel.is_set():
             await speaker.finish()  # audio.end, then wait until it has played
@@ -295,35 +298,3 @@ class Responder:
         await self._send(error(code, message))
         if not cancel.is_set():
             await self._move_to(TurnState.IDLE)
-
-    def _first_token(self, turn_id: str, requested_at: float, ended_at: float) -> None:
-        span = self._telemetry.record(LLM_FIRST_TOKEN, turn_id)
-        log.info(
-            "session %s: turn %s first token: %.0f ms after request, "
-            "turn_ended->first agent.text %.0f ms",
-            self._session.session_id,
-            turn_id,
-            (span.at - requested_at) * 1000,
-            (span.at - ended_at) * 1000,
-        )
-
-    def _log_first_cut(
-        self,
-        turn_id: str,
-        ended_at: float,
-        arrivals: list[tuple[float, str]],
-        chunk: str,
-        rule: str | None,
-    ) -> None:
-        # Debug: off in normal runs, switched on for latency tuning. %a
-        # escapes non-ASCII, so Devanagari never reaches the console raw.
-        log.debug(
-            "session %s: turn %s first chunk %a cut %.0f ms after turn_ended "
-            "by rule %r; deltas (ms, chars, text): %a",
-            self._session.session_id,
-            turn_id,
-            chunk,
-            (perf_counter() - ended_at) * 1000,
-            rule,
-            [(round(at), len(text), text) for at, text in arrivals],
-        )
