@@ -1,0 +1,28 @@
+measure_turn run at 2026-11-27 15:11:34
+commit df0c0b3 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Performance
+server: ws://127.0.0.1:8000/ws/session (A: cuda/large-v3/float16, studio GENERATING long.txt, Performance plan)
+clip: speech_16k_mono.wav, 3 turns
+server: {'type': 'session.started', 'session_id': '5ed437f3b9b64317886251db51697b3a', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! How can I assist you with your Vani project?'
+  last voice -> final 3933 ms, -> first text 4353 ms, -> first audio 4890 ms
+turn 2:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! How can I assist you with your Vani project?'
+  last voice -> final 3822 ms, -> first text 4224 ms, -> first audio 4663 ms
+turn 3:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hello! How can I help you with the Vani project?'
+  last voice -> final 3660 ms, -> first text 4035 ms, -> first audio 4508 ms
+
+over 3 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 3822  p95 3933 ms
+  -> first agent.text  p50 4224  p95 4353 ms
+  -> first audio frame p50 4663  p95 4890 ms
+per stage (client clock):
+  endpoint + ASR     p50  3822  p95  3933 ms
+  model first token  p50   402  p95   419 ms
+  first chunk + TTS  p50   473  p95   537 ms
+wrote measure_turn_20261127-151134.txt

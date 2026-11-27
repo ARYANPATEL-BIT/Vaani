@@ -98,3 +98,6 @@ request alone). So the committed model is `whisper-large-v3`.
 - Rate limits: 20 requests a minute, 2,000 a day (`config.toml` `[asr.groq]`, from Groq's
   docs, which call them Developer-plan limits). The real free-tier numbers need the key
   owner's console page. The turn log has no column for the ASR engine (schema unchanged).
+- Through the real runner, Groq's large-v3 wrote an English clip in Devanagari letters in 3
+  of 6 turns; local large-v3 wrote it in Latin in all 6 (`docs/findings/voice-studio/
+  e2e_20261127.txt`). Not investigated: probably the forced `language = "hi"`.

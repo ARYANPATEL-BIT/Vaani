@@ -105,8 +105,10 @@ conversation: the voice agent does not know the studio exists.
 
 ## 6. Known issues
 
-- Speed is unstable on this laptop (`notes_20261126.txt`); not re-measured on the Turbo plan.
+- Slow: about RTF 4 per sentence on the Performance plan too, with or without Whisper on
+  the GPU (`e2e_20261127.txt`); the 11-26 "fast state" never came back. Cause still unknown.
+- Beside the agent's Whisper large-v3 it fits (7.4 of 8.1 GB, no out-of-memory), but each
+  agent turn is about 1 s slower while it generates; with Groq ASR, no slowdown (same file).
 - Thresholds rest on one real person and synthetic "other" voices; two devices not measured.
-- No real out-of-memory seen: never run beside the agent's Whisper large-v3; fakes only.
-- Not run in a browser yet: the end-to-end check used HTTP and Windows TTS voices
-  (`e2e_20261126.txt`).
+- Not run in a browser yet: both end-to-end checks used HTTP and Windows SAPI voices, which
+  prove the flow, not cloning quality (`e2e_20261126.txt`, `e2e_20261127.txt`).

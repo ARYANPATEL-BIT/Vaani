@@ -1,0 +1,28 @@
+measure_turn run at 2026-11-27 15:19:03
+commit df0c0b3 + uncommitted changes, Windows-10-10.0.26300-SP0, Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+power scheme Performance
+server: ws://127.0.0.1:8000/ws/session (B: asr groq (no whisper on gpu), studio IDLE (model loaded), Performance plan)
+clip: speech_16k_mono.wav, 3 turns
+server: {'type': 'session.started', 'session_id': 'c4bca6cb15ad4261b259fe082f59b598', 'mode': 'vad', 'reply_language': 'any'}
+turn 1:
+  heard: 'Hello, this is a short test of voice activity detection for the Vani project.'
+  reply: 'Hi! How can I assist you with the Vani project?'
+  last voice -> final 1540 ms, -> first text 2193 ms, -> first audio 2545 ms
+turn 2:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो! दिवानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन में मैं कैसे मदद कर सकती हूँ?'
+  last voice -> final 1733 ms, -> first text 2354 ms, -> first audio 2694 ms
+turn 3:
+  heard: 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+  reply: 'हेलो! दिवानी प्रोजेक्ट के लिए एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन में मैं कैसे मदद कर सकती हूँ?'
+  last voice -> final 1470 ms, -> first text 1904 ms, -> first audio 2244 ms
+
+over 3 turns (client clock, from the speaker's last voiced frame):
+  -> transcript.final  p50 1540  p95 1733 ms
+  -> first agent.text  p50 2193  p95 2354 ms
+  -> first audio frame p50 2545  p95 2694 ms
+per stage (client clock):
+  endpoint + ASR     p50  1540  p95  1733 ms
+  model first token  p50   621  p95   653 ms
+  first chunk + TTS  p50   340  p95   352 ms
+wrote measure_turn_20261127-151903.txt
