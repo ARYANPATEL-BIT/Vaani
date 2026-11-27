@@ -60,6 +60,7 @@ def assemble(
     transcript: str,
     now: datetime,
     reply_language: str,  # "any", "en" or "hi": the session's, from session.start
+    reminder: str | None = None,  # this turn's [reply_language.reminders] note
 ) -> list[Message]:
     """The full request: persona system prompt, past exchanges, this turn.
 
@@ -70,6 +71,11 @@ def assemble(
     The clock line goes at the END of the system prompt, so the persona text
     before it is the same on every turn; only that line changes. A forced
     reply language's line comes after it, last of all, on its own line.
+
+    `reminder` (fix/language-and-login) goes after THIS turn's words only,
+    on its own paragraph: the last thing the model reads before it answers,
+    which a line at the end of the system prompt is not. History is built
+    from the raw transcripts, so old turns never carry a note.
     """
     system = f"{system_prompt}\n\n{clock_line(now)}"
     if reply_language in REPLY_LANGUAGE_LINES:  # "any" adds nothing
@@ -77,5 +83,8 @@ def assemble(
     return [
         Message(role="system", content=system),
         *history,
-        Message(role="user", content=transcript),
+        Message(
+            role="user",
+            content=f"{transcript}\n\n{reminder}" if reminder else transcript,
+        ),
     ]

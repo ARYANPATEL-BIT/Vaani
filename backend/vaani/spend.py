@@ -30,16 +30,18 @@ class RequestCap:
         self.limit = limit
         self.used = 0
 
-    def check_and_count(self) -> None:
-        """Count one request, or raise if the cap is already reached.
+    def check_and_count(self, n: int = 1) -> None:
+        """Count `n` requests, or raise if they would pass the cap.
 
         Check and increment happen with no `await` between them, so on our
         single event loop two concurrent calls cannot both squeeze under the
         cap. A request is counted when dispatched, whether or not it succeeds:
-        a failed call can still be billed.
+        a failed call can still be billed. `n` is 2 for Groq's language pick
+        (asr/groq.py), which sends two requests at once: both are counted,
+        or neither is sent.
         """
-        if self.used >= self.limit:
+        if self.used + n > self.limit:
             raise SpendCapExceededError(
                 f"request cap reached: {self.used}/{self.limit} this process"
             )
-        self.used += 1
+        self.used += n

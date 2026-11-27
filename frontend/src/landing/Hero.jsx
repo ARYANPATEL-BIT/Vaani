@@ -4,13 +4,14 @@
  * description, the Start talking pill, the live tape and the spec strip.
  */
 
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { APP_PATH, CLOCK, HERO, SPECS } from './landingContent.js';
 import { VaaniLogo } from '../components/brand/VaaniLogo.jsx';
 import { AUTH_CHECK_TIMEOUT_MS } from '../config.js';
-import { fetchMe } from '../api/authApi.js';
-import { landingAuthFor } from '../login/loginState.js';
+import { fetchMe, logout } from '../api/authApi.js';
+import { landingAuthFor, logOutFromLanding } from '../login/loginState.js';
+import HeaderAuth from './HeaderAuth.jsx';
 import useIstClock from './useIstClock.js';
 import LiveTape from './LiveTape.jsx';
 import Arrow from './Arrow.jsx';
@@ -28,8 +29,10 @@ export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
   const clock = useIstClock();
   // Starts as "nothing extra", so the header draws at once, exactly as it
   // did before sign-in existed. The landing page is public and never waits
-  // on the backend: /auth/me only ever ADDS a Sign in link or a name.
-  const [auth, setAuth] = useState({ signIn: false, who: '' });
+  // on the backend: /auth/me only ever ADDS a Sign in link, or a name and
+  // Log out.
+  const [auth, setAuth] = useState({ signIn: false, who: '', logOut: false });
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Two ways to stop the request, merged into one signal (as in
@@ -44,6 +47,15 @@ export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
     return () => leaving.abort();
   }, []);
 
+  // Log out, then back to the top of the landing page, showing whatever
+  // the server now says (logOutFromLanding). The sidebar's Logout
+  // (useSignOut) is separate and still goes to /login.
+  const onLogOut = useCallback(async () => {
+    setAuth(await logOutFromLanding(logout, fetchMe));
+    navigate('/', { replace: true });
+    window.scrollTo(0, 0);
+  }, [navigate]);
+
   return (
     <>
       <header className="lp-header lp-wrap">
@@ -55,12 +67,7 @@ export default function Hero({ reducedMotion, leadS, paused, onTogglePause }) {
             <span className="lp-dot lp-blink" aria-hidden="true" />
             {HERO.onAir} &middot; {CLOCK.label} {clock}
           </span>
-          {auth.who && (
-            <span className="lp-mono lp-onair">
-              <span className="lp-sr">{HERO.signedInAs} </span>{auth.who}
-            </span>
-          )}
-          {auth.signIn && <Link to="/login" className="lp-mono lp-outline-pill">{HERO.signIn}</Link>}
+          <HeaderAuth auth={auth} onLogOut={onLogOut} />
           <Link to={APP_PATH} className="lp-mono lp-outline-pill">{HERO.openApp}</Link>
         </div>
       </header>

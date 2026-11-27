@@ -19,7 +19,10 @@ from tests.test_turn_llm import ScriptedLLM, speak
 from tests.test_turn_log import connect, rows
 from tests.test_turn_tts import is_, make_client, until
 from tests.test_voice_route import ENGLISH_RATE, HINDI_RATE, spoken_rate
+from vaani.config import Settings
 from vaani.persona import REPLY_LANGUAGE_LINES
+
+NOTES = Settings(_env_file=None).reply_language
 
 
 def one_turn(starts: list[dict], chunks=("Theek hai.",)):
@@ -105,26 +108,25 @@ def test_any_adds_no_reply_language_line() -> None:
 # --- The voice ------------------------------------------------------------------
 
 
-def test_forced_hindi_says_a_reply_starting_ok_with_the_hindi_voice(caplog) -> None:
+def test_forced_hindi_never_says_a_reply_starting_ok(caplog) -> None:
     # Under "any" the first chunk "OK," would pick the English voice for the
-    # whole reply (test_voice_route.py). Forced Hindi keeps the Hindi voice.
-    with caplog.at_level(logging.WARNING, logger="vaani.speaker"):
+    # whole reply (test_voice_route.py). Forced Hindi (fix/language-and-login):
+    # that first chunk fails the check, the retry (scripted the same) fails
+    # too, and the Hindi fallback line is said instead, by the Hindi voice.
+    with caplog.at_level(logging.WARNING, logger="vaani.reply"):
         _, _, voices, msgs = one_turn(
             [{"reply_language": "hi"}], chunks=("OK, ", "ठीक है।")
         )
-    assert voices["hi"].texts == ["OK,", "ठीक है।"]
+    assert voices["hi"].texts == [NOTES.fallback["hi"]]
     assert voices["en"].texts == []
     assert spoken_rate(msgs) == HINDI_RATE
     assert "forced hi reply began in en script" in caplog.text
-    assert "script drift" not in caplog.text  # the second chunk IS Hindi
 
 
-def test_forced_english_says_a_devanagari_reply_with_the_english_voice(
-    caplog,
-) -> None:
-    with caplog.at_level(logging.WARNING, logger="vaani.speaker"):
+def test_forced_english_never_says_a_devanagari_reply(caplog) -> None:
+    with caplog.at_level(logging.WARNING, logger="vaani.reply"):
         _, _, voices, msgs = one_turn([{"reply_language": "en"}], chunks=("ठीक है।",))
-    assert voices["en"].texts == ["ठीक है।"]
+    assert voices["en"].texts == [NOTES.fallback["en"]]
     assert voices["hi"].texts == []
     assert spoken_rate(msgs) == ENGLISH_RATE
     assert "forced en reply began in hi script" in caplog.text
@@ -137,14 +139,16 @@ def test_a_forced_reply_in_its_own_script_logs_nothing(caplog) -> None:
     assert "forced" not in caplog.text
 
 
-def test_the_row_keeps_the_first_chunks_script_not_the_forced_voice(
+def test_the_row_keeps_the_script_of_the_first_chunk_said(
     tmp_path, monkeypatch
 ) -> None:
-    # schema.sql: reply_script is the SCRIPT of the reply's first chunk.
+    # schema.sql: reply_script is the SCRIPT of the reply's first spoken
+    # chunk. In a forced session that is now always the forced script: the
+    # "OK, " reply is never said, the Hindi fallback is.
     # test_turn_log.py's helpers drive the scripted VAD, so install it here.
     monkeypatch.setattr(turns_mod, "VadStream", CountingVad)
     with connect(tmp_path, reply_language="hi", chunks=("OK, ", "ठीक है।")) as ws:
         say(ws)
         until(ws, is_("idle"))
     [turn] = rows(tmp_path, "turns")
-    assert turn["reply_script"] == "en"
+    assert turn["reply_script"] == "hi"

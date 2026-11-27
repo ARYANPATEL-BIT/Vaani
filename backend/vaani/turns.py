@@ -389,9 +389,12 @@ class TurnPipeline:
 
     # --- Reply lifecycle ---------------------------------------------------
 
-    async def _on_final(self, turn_id: str, text: str | None) -> None:
+    async def _on_final(
+        self, turn_id: str, text: str | None, picked: str | None = None
+    ) -> None:
         """AsrRunner's hand-over. `text` is None if transcription failed (the
-        runner already sent ASR_FAILED). Must return quickly."""
+        runner already sent ASR_FAILED); `picked` is the language the
+        recogniser chose ("en"/"hi"), None when forced. Must return quickly."""
         if self._responder is None:
             return  # no model: the turn already went idle
         self._awaiting_final.discard(turn_id)
@@ -412,14 +415,17 @@ class TurnPipeline:
             if self._answer_carried and not self._awaiting_final:
                 await self._reply(current)
             return
-        await self._reply(turn_id, text)
+        await self._reply(turn_id, text, picked)
 
-    async def _reply(self, turn_id: str, text: str | None = None) -> None:
-        """Answer `text`, after any carried words. The state is `thinking`."""
+    async def _reply(
+        self, turn_id: str, text: str | None = None, picked: str | None = None
+    ) -> None:
+        """Answer `text`, after any carried words. The state is `thinking`.
+        Carried words answered alone have no picked language (None)."""
         assert self._responder is not None  # thinking needs one
         text = join_speech(self._carried, text)
         self._carried, self._answer_carried = "", False
         if not text:  # failed, or nothing to answer
             await self._machine.move_to(TurnState.IDLE)
             return
-        self._responder.start(turn_id, text, self._ended_at)
+        self._responder.start(turn_id, text, self._ended_at, picked)

@@ -28,7 +28,8 @@ provider listed there needs its key in the environment or backend/.env
                  Without it the question goes alone, with no system prompt.
 --reply-language  with --persona: any (default), en or hi, as session.start's
                  reply_language (protocol v0.10): en / hi end the system
-                 prompt with the server's reply-language line.
+                 prompt with the server's reply-language line, and add the
+                 server's [reply_language.reminders] note after the question.
 --save           append "question<TAB>reply" to FILE as UTF-8, one line per run.
 
 After the answer, a "script:" line counts the reply's characters IN CODE:
@@ -143,8 +144,12 @@ async def ask(
     messages = [Message("user", question)]
     if persona is not None:
         clock = datetime.now(ZoneInfo(settings.llm.timezone))  # as reply.py
+        # A forced language also gets the server's per-turn note after the
+        # question (reply.py, fix/language-and-login); "any" gets none, as a
+        # server turn whose ASR did not pick a language.
+        note = settings.reply_language.reminders.get(session_language)
         messages = assemble(
-            settings.personas[persona], [], question, clock, session_language
+            settings.personas[persona], [], question, clock, session_language, note
         )
     cap = RequestCap(settings.llm.max_requests_per_process)
     clients = {}

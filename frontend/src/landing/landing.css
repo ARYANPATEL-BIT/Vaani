@@ -118,6 +118,8 @@
   min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--lp-ink);
   display: inline-flex; align-items: center; font-size: 11px; white-space: nowrap;
 }
+/* The same pill as a <button> (Log out): drop the browser's button look. */
+.lp .lp-button-pill { background: transparent; color: var(--lp-ink); cursor: pointer; }
 
 /* Paper grain: fixed over everything, never catches the pointer. */
 .lp .lp-grain {

@@ -39,6 +39,16 @@ Latin words inside a Hindi reply (feat/guardrails): the prompt asks for
 every word in Devanagari, but a model still writes "WiFi" now and then. Each
 such chunk is logged with its Latin words, before synthesis. It is a count,
 not a fix: the words are still said, and still misread.
+
+The forced-language guard (fix/language-and-login): in a session that forces
+a language, `say` is the one place text reaches a voice, so the guarantee
+lives here. A chunk in the other script is not spoken at all, and in a
+forced Hindi reply every Latin letter is removed from the voice's copy of
+the chunk (language.strip_latin), so the Hindi voice never gets one. The
+screen still shows the chunk as written. Each strip is logged with the
+number of letters removed, never the text. This is the safety net: the
+per-turn note asks the model to write English words in Devanagari, and a
+wrong-script FIRST chunk is caught earlier, in reply.py, and retried.
 """
 
 import asyncio
@@ -48,7 +58,7 @@ from contextlib import suppress
 from time import perf_counter
 from typing import NamedTuple
 
-from vaani.language import latin_words, reply_language
+from vaani.language import latin_words, reply_language, strip_latin
 from vaani.protocol import TurnState, audio_end, audio_start
 from vaani.telemetry import TTS_FIRST_AUDIO, TTS_START, Telemetry
 from vaani.tts import Synthesizer
@@ -121,7 +131,13 @@ class Speaker:
             return  # do not start a synthesis nobody will hear
         if self._synth is None:
             self._lock_voice(text)
-        elif (language := reply_language(text)) != self.language:
+        if self._forced_voice is not None:
+            voice_text = self._guard(text)
+            if not voice_text:
+                return  # nothing the forced voice may say
+            await self._synthesize_and_send(text, voice_text)
+            return
+        if (language := reply_language(text)) != self.language:
             # The model switched script mid-reply. The locked voice says it
             # anyway (and partly misreads it): see the module docstring.
             log.warning(
@@ -144,9 +160,45 @@ class Speaker:
                     len(words),
                     " ".join(words),  # ASCII only: latin_words finds A-Z, a-z
                 )
-        assert self._synth is not None  # locked just above, on the first chunk
+        await self._synthesize_and_send(text, text)
+
+    def _guard(self, text: str) -> str:
+        """Forced language only: the text the forced voice may be given.
+
+        "" for a chunk in the other script (skipped, logged). In a forced
+        Hindi reply, the chunk with its Latin letters removed.
+        """
+        if reply_language(text) != self.language:
+            log.warning(
+                "session %s: turn %s %s chunk not spoken in a forced %s reply "
+                "(%d chars)",
+                self._telemetry.session_id,
+                self._turn_id,
+                reply_language(text),
+                self.language,
+                len(text),
+            )
+            return ""
+        if self.language != "hi":
+            return text
+        voice_text, removed = strip_latin(text)
+        if removed:
+            # A count only, never the text: this line is how often the
+            # safety net fired, and Devanagari must not reach the console.
+            log.warning(
+                "session %s: turn %s stripped %d Latin letter(s) from a hi chunk",
+                self._telemetry.session_id,
+                self._turn_id,
+                removed,
+            )
+        return voice_text
+
+    async def _synthesize_and_send(self, text: str, voice_text: str) -> None:
+        """Synthesise `voice_text` and send its frames; `text` (the chunk as
+        written, shown on screen) is what `spoken` keeps for a barge-in."""
+        assert self._synth is not None  # locked in say, on the first chunk
         began = perf_counter()
-        pcm = await self._synth.synthesize(text, self._cancel)
+        pcm = await self._synth.synthesize(voice_text, self._cancel)
         if not self._started:
             # Debug: when the first chunk's synthesis ran, on the same
             # turn_ended clock as reply.py's first-cut line.

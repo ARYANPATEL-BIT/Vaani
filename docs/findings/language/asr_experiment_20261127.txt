@@ -1,0 +1,261 @@
+ASR language experiment, 2026-11-27 (branch fix/language-and-login, no code changed)
+
+Question: does the forced [asr] language = "hi" garble English speech, and
+which ASR setting lets the reply follow the language spoken?
+
+Conditions
+  Windows power plan: Silent (64a64f24-...), on AC power (BatteryStatus 2), 80%.
+  Groq: whisper-large-v3, temperature 0, response_format verbose_json,
+        >= 3.2 s between POSTs; ms = the POST only (fresh connection each).
+  Local GPU: faster-whisper 1.2.1, large-v3 / cuda / float16, beam 5,
+        vad_filter on; the backend on :8000 was stopped first (VRAM 1241 MiB
+        in use before the run); nvidia-smi not polled during the run.
+  Local CPU: small / cpu / int8, beam 5, cpu_threads 0, run while a Groq run
+        was also going, so its ms are an upper bound.
+  initial_prompt (all but d): the committed romanized Hinglish prompt.
+  Timings on the Silent plan are slower than on a performance plan; compare
+  settings within one table, not across machines or plans.
+
+Clips
+  english  = backend/tests/fixtures/speech_16k_mono.wav (SAPI voice, English)
+  hindi    = the pure Hindi clip from the earlier spike (Aryan, 7.97 s; not in git)
+  hinglish = backend/tests/fixtures/hinglish_real_16k.wav (Aryan, Hinglish)
+  Each clip: whole file x3, plus 3 endpointed cuts (0/7/13 ms of leading
+  silence through the real VadStream + Endpointer), so 6 runs per setting.
+
+Settings
+  a_forced_hi   language="hi"   (today's config)
+  b_auto        language=None   (auto-detect)
+  c_detect_pick local only: detect_language, then transcribe forced to en or hi
+  d_auto_mix    Groq only: auto-detect with a Devanagari+Latin prompt
+
+Summary (script of the transcript, out of 6 runs per clip)
+                          english          hindi             hinglish
+  groq a_forced_hi        Latin 4, Deva 2  Deva 6            mixed 6
+  groq b_auto             Latin 6          Arabic(ur) 6      mixed 3, Arabic(ur) 3
+  groq d_auto_mix         Latin 6          Arabic(ur) 6      Deva 3, ur+Latin 3
+  groq pick (offline:     Latin 6          Deva 6            mixed 6       -> 18/18
+    b if b detected English, else a)
+  gpu  a_forced_hi        Latin 6          Deva 6            mixed 3, Deva-only 3
+  gpu  b_auto             Latin 6          Arabic 3, Deva 3  mixed 3, romanized 3
+  gpu  c_detect_pick      Latin 6          Deva 6            mixed 3, Deva 2, romanized 1
+  gpu  c with p_en>=0.5   Latin 6          Deva 6            mixed 3, Deva 3 -> 18/18
+       (offline: p_en was 1.00 on every English run, <= 0.25 on every other)
+  cpu  all settings       identical text: English Latin 6; Hindi and Hinglish
+                          come back romanized (small cannot write Devanagari here)
+
+  The Devanagari English (groq a, cuts +7/+13 ms):
+    "hello, this is a short test ..." -> a Devanagari transliteration
+    (see the rows below). The same failure is in the live turn log: 3 of 4
+    English utterances in the 11:03 session (transcripts_20261127.txt).
+
+Latency (ms, per call, Silent plan)
+  groq   a 322-724   b 371-705   (pick = two calls: parallel ~ max of the two,
+                                  sequential +420-705 on non-English turns)
+  gpu    a english 1956-2374, hindi 5335-6710, hinglish 4485-5585
+         b english 2079-2466, hindi 4193-7021, hinglish 2192-5760
+         c english 2089-2583, hindi 6077-7239, hinglish 2230-6018
+         detect_language alone: 314-373 ms (the extra encoder pass)
+  cpu    a ~7.7-10.0 s, b ~14.3-16.7 s, c ~14.4-16.7 s (detect alone 6.6-6.9 s)
+
+Raw rows follow, one file per engine, exactly as the script wrote them.
+
+=================== groq_results ===================
+engine=groq groq_model=whisper-large-v3 local=large-v3/cuda/float16 beam=5 forced_language='hi'
+initial_prompt='mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena'
+clip english: tests/fixtures/speech_16k_mono.wav
+clip hindi: C:/Users/ARYANP~1/AppData/Local/Temp/claude/ee722bdbfffaf41a/391a9ea1-cd94-4f9b-a5af-1a935a3c2e83/scratchpad/hindi_real_16k.wav
+clip hinglish: tests/fixtures/hinglish_real_16k.wav
+
+rep  clip      audio              setting         ms  lang                              words latin deva arab script->voice  text
+rep1 english   whole              a_forced_hi      521  Hindi                                14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep1 english   whole              b_auto           371  English                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep2 english   whole              a_forced_hi      412  Hindi                                14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep2 english   whole              b_auto           397  English                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep3 english   whole              a_forced_hi      322  Hindi                                14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep3 english   whole              b_auto           450  English                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+cut  english   cut+0ms/249f       a_forced_hi      327  Hindi                                14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+0ms/249f       b_auto           410  English                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+cut  english   cut+7ms/252f       a_forced_hi      519  Hindi                                12     0   12    0 hi             'हेलो इस एस ए शॉर्ट टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+cut  english   cut+7ms/252f       b_auto           410  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+13ms/252f      a_forced_hi      489  Hindi                                12     0   12    0 hi             'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+cut  english   cut+13ms/252f      b_auto           479  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+rep1 hindi     whole              a_forced_hi      481  Hindi                                13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep1 hindi     whole              b_auto           448  Urdu                                 13     0    0   13 en             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep2 hindi     whole              a_forced_hi      620  Hindi                                13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep2 hindi     whole              b_auto           457  Urdu                                 13     0    0   13 en             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep3 hindi     whole              a_forced_hi      724  Hindi                                13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep3 hindi     whole              b_auto           705  Urdu                                 13     0    0   13 en             'مجھے کل سبا دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+cut  hindi     cut+0ms/244f       a_forced_hi      519  Hindi                                13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+0ms/244f       b_auto           479  Urdu                                 13     0    0   13 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+cut  hindi     cut+7ms/245f       a_forced_hi      622  Hindi                                13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरप्या मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+7ms/245f       b_auto           548  Urdu                                 13     0    0   13 en             'مجھے کل صبح دلی جانا ہے, کربیا میرے لئے ٹکٹ بک کر دیجئے'
+cut  hindi     cut+13ms/245f      a_forced_hi      528  Hindi                                13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+13ms/245f      b_auto           420  Urdu                                 13     0    0   13 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep1 hinglish  whole              a_forced_hi      452  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep1 hinglish  whole              b_auto           434  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep2 hinglish  whole              a_forced_hi      525  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep2 hinglish  whole              b_auto           491  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep3 hinglish  whole              a_forced_hi      432  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep3 hinglish  whole              b_auto           507  Hindi                                19     9   10    0 hi             "इसमें तो English and a little bit of English पुम है, let's see ये चीज़ वर करेगी कि नहीं"
+cut  hinglish  cut+0ms/243f       a_forced_hi      333  Hindi                                12     7    5    0 hi             'इसमें तो English है and a little bit of English भूम है'
+cut  hinglish  cut+0ms/243f       b_auto           414  Urdu                                  9     0    0    9 en             'اس میں تو انگلیش ہے اور انگلیش بوم ہے'
+cut  hinglish  cut+7ms/244f       a_forced_hi      535  Hindi                                11     7    4    0 hi             'इसमें तो English and a little bit of English पूम है'
+cut  hinglish  cut+7ms/244f       b_auto           378  Urdu                                  9     0    0    9 en             'اس میں تو انگلیش ہے اور انگلیش بوم ہے'
+cut  hinglish  cut+13ms/244f      a_forced_hi      341  Hindi                                11     7    4    0 hi             'इसमें तो English and a little bit of English पूम है'
+cut  hinglish  cut+13ms/244f      b_auto           475  Urdu                                  9     0    0    9 en             'اس میں تو انگلیش ہے اور انگلیش بوم ہے'
+
+=================== groq_mixprompt ===================
+engine=groq groq_model=whisper-large-v3 local=large-v3/cuda/float16 beam=5 forced_language='hi'
+initial_prompt='mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena'
+d_auto_mixprompt prompt='मुझे कल सुबह एक meeting है, तो please मुझे 8 बजे remind कर देना' (d only)
+clip english: tests/fixtures/speech_16k_mono.wav
+clip hindi: C:/Users/ARYANP~1/AppData/Local/Temp/claude/ee722bdbfffaf41a/391a9ea1-cd94-4f9b-a5af-1a935a3c2e83/scratchpad/hindi_real_16k.wav
+clip hinglish: tests/fixtures/hinglish_real_16k.wav
+
+rep  clip      audio              setting         ms  lang                              words latin deva arab script->voice  text
+rep1 english   whole              d_auto_mixprompt    494  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep2 english   whole              d_auto_mixprompt    412  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep3 english   whole              d_auto_mixprompt    474  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+0ms/249f       d_auto_mixprompt    517  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+7ms/252f       d_auto_mixprompt    429  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+13ms/252f      d_auto_mixprompt    483  English                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep1 hindi     whole              d_auto_mixprompt    377  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ticket book کر دیجئے'
+rep2 hindi     whole              d_auto_mixprompt    411  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ticket book کر دیجئے'
+rep3 hindi     whole              d_auto_mixprompt    543  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ticket book کر دیجئے'
+cut  hindi     cut+0ms/244f       d_auto_mixprompt    416  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ticket book کر دیجئے'
+cut  hindi     cut+7ms/245f       d_auto_mixprompt    453  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کربیا میرے لئے ticket book کر دیجئے'
+cut  hindi     cut+13ms/245f      d_auto_mixprompt    597  Urdu                                 13     2    0   11 en             'مجھے کل صبح ڈلی جانا ہے, کرپیا میرے لئے ticket book کر دیجئے'
+rep1 hinglish  whole              d_auto_mixprompt    644  Hindi                                22     1   21    0 hi             'इसमें तो English और एक बार अगर आप इंग्लिश पुम हैं, तो आप देख सकते हैं यह चीज़ वर करेगी कि नहीं'
+rep2 hinglish  whole              d_auto_mixprompt    602  Hindi                                22     1   21    0 hi             'इसमें तो English और एक बार अगर आप इंग्लिश पुम हैं, तो आप देख सकते हैं यह चीज़ वर करेगी कि नहीं'
+rep3 hinglish  whole              d_auto_mixprompt    498  Hindi                                22     1   21    0 hi             'इसमें तो English और एक बार अगर आप इंग्लिश पुम हैं, तो आप देख सकते हैं यह चीज़ वर करेगी कि नहीं'
+cut  hinglish  cut+0ms/243f       d_auto_mixprompt    450  Urdu                                 12     8    0    4 en             'اس میں تو English and a little bit of English book میں'
+cut  hinglish  cut+7ms/244f       d_auto_mixprompt    330  Urdu                                 12     8    0    4 en             'اس میں تو English and a little bit of English book میں'
+cut  hinglish  cut+13ms/244f      d_auto_mixprompt    340  Urdu                                 12     8    0    4 en             'اس میں تو English and a little bit of English book میں'
+
+=================== local_gpu_largev3 ===================
+engine=local groq_model=whisper-large-v3 local=large-v3/cuda/float16 beam=5 forced_language='hi'
+initial_prompt='mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena'
+d_auto_mixprompt prompt='मुझे कल सुबह एक meeting है, तो please मुझे 8 बजे remind कर देना' (d only)
+clip english: tests/fixtures/speech_16k_mono.wav
+clip hindi: C:/Users/ARYANP~1/AppData/Local/Temp/claude/ee722bdbfffaf41a/391a9ea1-cd94-4f9b-a5af-1a935a3c2e83/scratchpad/hindi_real_16k.wav
+clip hinglish: tests/fixtures/hinglish_real_16k.wav
+
+rep  clip      audio              setting         ms  lang                              words latin deva arab script->voice  text
+rep1 english   whole              a_forced_hi     2374  hi                                   14    14    0    0 en             'hello this is a short test of voice activity detection for the vani project'
+rep1 english   whole              b_auto          2079  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep1 english   whole              c_detect_pick   2583  en (en 1.00 / hi+ur 0.00) detect=337ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep2 english   whole              a_forced_hi     2179  hi                                   14    14    0    0 en             'hello this is a short test of voice activity detection for the vani project'
+rep2 english   whole              b_auto          2466  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep2 english   whole              c_detect_pick   2549  en (en 1.00 / hi+ur 0.00) detect=327ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep3 english   whole              a_forced_hi     1956  hi                                   14    14    0    0 en             'hello this is a short test of voice activity detection for the vani project'
+rep3 english   whole              b_auto          2304  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+rep3 english   whole              c_detect_pick   2275  en (en 1.00 / hi+ur 0.00) detect=343ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+cut  english   cut+0ms/249f       a_forced_hi     1962  hi                                   14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+0ms/249f       b_auto          2310  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+cut  english   cut+0ms/249f       c_detect_pick   2301  en (en 1.00 / hi+ur 0.00) detect=324ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the vani project'
+cut  english   cut+7ms/252f       a_forced_hi     2051  hi                                   14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+7ms/252f       b_auto          2271  en:1.00                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+7ms/252f       c_detect_pick   2560  en (en 1.00 / hi+ur 0.00) detect=350ms    14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+13ms/252f      a_forced_hi     2185  hi                                   14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+13ms/252f      b_auto          2345  en:1.00                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+13ms/252f      c_detect_pick   2089  en (en 1.00 / hi+ur 0.00) detect=319ms    14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project'
+rep1 hindi     whole              a_forced_hi     5909  hi                                   13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep1 hindi     whole              b_auto          4728  ur:0.54                              13     0    0   13 en             'مجھے کل صبح دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep1 hindi     whole              c_detect_pick   6579  hi (en 0.01 / hi+ur 0.97) detect=345ms    13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep2 hindi     whole              a_forced_hi     5942  hi                                   13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep2 hindi     whole              b_auto          4391  ur:0.54                              13     0    0   13 en             'مجھے کل صبح دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep2 hindi     whole              c_detect_pick   6701  hi (en 0.01 / hi+ur 0.97) detect=378ms    13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep3 hindi     whole              a_forced_hi     6365  hi                                   13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep3 hindi     whole              b_auto          4193  ur:0.54                              13     0    0   13 en             'مجھے کل صبح دلی جانا ہے, کرپیا میرے لئے ٹکٹ بک کر دیجئے'
+rep3 hindi     whole              c_detect_pick   6879  hi (en 0.01 / hi+ur 0.97) detect=359ms    13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+0ms/244f       a_forced_hi     5335  hi                                   13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+0ms/244f       b_auto          5760  hi:0.54                              13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+0ms/244f       c_detect_pick   6801  hi (en 0.01 / hi+ur 0.98) detect=336ms    13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+7ms/245f       a_forced_hi     6710  hi                                   13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरप्या मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+7ms/245f       b_auto          6202  hi:0.57                              13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरप्या मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+7ms/245f       c_detect_pick   6077  hi (en 0.01 / hi+ur 0.98) detect=330ms    13     0   13    0 hi             'मुझे कल सुबह दिल्ली जाना है, किरप्या मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+13ms/245f      a_forced_hi     6264  hi                                   13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+13ms/245f      b_auto          7021  hi:0.50                              13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+cut  hindi     cut+13ms/245f      c_detect_pick   7239  hi (en 0.01 / hi+ur 0.98) detect=314ms    13     0   13    0 hi             'मुझे कल सुबा दिल्ली जाना है, किरपया मेरे लिए टिकेट बुक कर दीजिये'
+rep1 hinglish  whole              a_forced_hi     4777  hi                                   19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep1 hinglish  whole              b_auto          5054  hi:0.41                              19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep1 hinglish  whole              c_detect_pick   5448  hi (en 0.13 / hi+ur 0.60) detect=373ms    19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep2 hinglish  whole              a_forced_hi     5481  hi                                   19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep2 hinglish  whole              b_auto          5606  hi:0.41                              19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep2 hinglish  whole              c_detect_pick   5678  hi (en 0.13 / hi+ur 0.60) detect=369ms    19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep3 hinglish  whole              a_forced_hi     5362  hi                                   19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep3 hinglish  whole              b_auto          5760  hi:0.41                              19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+rep3 hinglish  whole              c_detect_pick   5044  hi (en 0.13 / hi+ur 0.60) detect=370ms    19     9   10    0 hi             "इसमें तो English and a little bit of English पूम है, let's see ये चीज़ वर करेगी कि नहीं"
+cut  hinglish  cut+0ms/243f       a_forced_hi     5585  hi                                    8     0    8    0 hi             'इसमें तो इंग्लिश है और एंग्लिश बुम है'
+cut  hinglish  cut+0ms/243f       b_auto          2427  la:0.34                              12    12    0    0 en             'isme toh english hai and a little bit of english book mai'
+cut  hinglish  cut+0ms/243f       c_detect_pick   6018  hi (en 0.23 / hi+ur 0.26) detect=317ms     8     0    8    0 hi             'इसमें तो इंग्लिश है और एंग्लिश बुम है'
+cut  hinglish  cut+7ms/244f       a_forced_hi     4485  hi                                    8     0    8    0 hi             'इसमें तो इंग्लिश है और इंग्लिश बुम है'
+cut  hinglish  cut+7ms/244f       b_auto          2349  la:0.27                              12    12    0    0 en             'isme toh english hai and a little bit of english book mai'
+cut  hinglish  cut+7ms/244f       c_detect_pick   5041  hi (en 0.25 / hi+ur 0.32) detect=342ms     8     0    8    0 hi             'इसमें तो इंग्लिश है और इंग्लिश बुम है'
+cut  hinglish  cut+13ms/244f      a_forced_hi     5040  hi                                    9     0    9    0 hi             'कि इसमें तो इंग्लिश एंड एंड इंग्लिश पुम है'
+cut  hinglish  cut+13ms/244f      b_auto          2192  la:0.40                              10    10    0    0 en             'isme toh English and a little bit of English boomei'
+cut  hinglish  cut+13ms/244f      c_detect_pick   2230  en (en 0.22 / hi+ur 0.22) detect=348ms     9     9    0    0 en             'isme toh english and a little bit of english'
+
+=================== local_small_cpu ===================
+engine=local groq_model=whisper-large-v3 local=small/cpu/int8 beam=5 forced_language='hi'
+initial_prompt='mujhe kal subah ek meeting hai, toh please mujhe 8 baje remind kar dena'
+clip english: tests/fixtures/speech_16k_mono.wav
+clip hindi: C:/Users/ARYANP~1/AppData/Local/Temp/claude/ee722bdbfffaf41a/391a9ea1-cd94-4f9b-a5af-1a935a3c2e83/scratchpad/hindi_real_16k.wav
+clip hinglish: tests/fixtures/hinglish_real_16k.wav
+
+rep  clip      audio              setting         ms  lang                              words latin deva arab script->voice  text
+rep1 english   whole              a_forced_hi     7928  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep1 english   whole              b_auto         14735  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep1 english   whole              c_detect_pick  14719  en (en 1.00 / hi+ur 0.00) detect=6904ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep2 english   whole              a_forced_hi     7659  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep2 english   whole              b_auto         14547  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep2 english   whole              c_detect_pick  14557  en (en 1.00 / hi+ur 0.00) detect=6827ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep3 english   whole              a_forced_hi     7815  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep3 english   whole              b_auto         14484  en:1.00                              14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+rep3 english   whole              c_detect_pick  14586  en (en 1.00 / hi+ur 0.00) detect=6776ms    14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+0ms/249f       a_forced_hi     7883  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+0ms/249f       b_auto         14555  en:1.00                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+0ms/249f       c_detect_pick  14582  en (en 1.00 / hi+ur 0.00) detect=6721ms    14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+7ms/252f       a_forced_hi     7926  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+7ms/252f       b_auto         14482  en:1.00                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vaani project.'
+cut  english   cut+7ms/252f       c_detect_pick  14550  en (en 1.00 / hi+ur 0.00) detect=6797ms    14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vaani project.'
+cut  english   cut+13ms/252f      a_forced_hi     7836  hi                                   14    14    0    0 en             'hello, this is a short test of voice activity detection for the Vani project'
+cut  english   cut+13ms/252f      b_auto         14349  en:1.00                              14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+cut  english   cut+13ms/252f      c_detect_pick  14448  en (en 1.00 / hi+ur 0.00) detect=6679ms    14    14    0    0 en             'Hello, this is a short test of voice activity detection for the Vani project.'
+rep1 hindi     whole              a_forced_hi     8169  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep1 hindi     whole              b_auto         14940  hi:0.88                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep1 hindi     whole              c_detect_pick  14955  hi (en 0.00 / hi+ur 0.99) detect=6758ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep2 hindi     whole              a_forced_hi     8237  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep2 hindi     whole              b_auto         14703  hi:0.88                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep2 hindi     whole              c_detect_pick  14959  hi (en 0.00 / hi+ur 0.99) detect=6740ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep3 hindi     whole              a_forced_hi     8254  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep3 hindi     whole              b_auto         14925  hi:0.88                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+rep3 hindi     whole              c_detect_pick  15097  hi (en 0.00 / hi+ur 0.99) detect=6848ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere ticket book hai tiji ye'
+cut  hindi     cut+0ms/244f       a_forced_hi     8206  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir peha mere liye ticket book katee jiye'
+cut  hindi     cut+0ms/244f       b_auto         15008  hi:0.83                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir peha mere liye ticket book katee jiye'
+cut  hindi     cut+0ms/244f       c_detect_pick  14897  hi (en 0.00 / hi+ur 0.98) detect=6779ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir peha mere liye ticket book katee jiye'
+cut  hindi     cut+7ms/245f       a_forced_hi     8246  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book katee jiye'
+cut  hindi     cut+7ms/245f       b_auto         15055  hi:0.88                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book katee jiye'
+cut  hindi     cut+7ms/245f       c_detect_pick  15040  hi (en 0.00 / hi+ur 0.99) detect=6713ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book katee jiye'
+cut  hindi     cut+13ms/245f      a_forced_hi     8166  hi                                   14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book kar dijiye'
+cut  hindi     cut+13ms/245f      b_auto         14751  hi:0.82                              14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book kar dijiye'
+cut  hindi     cut+13ms/245f      c_detect_pick  14943  hi (en 0.00 / hi+ur 0.99) detect=6696ms    14    14    0    0 en             'mujhe kal subah dilli jaana hai, kir pya mere liya ticket book kar dijiye'
+rep1 hinglish  whole              a_forced_hi     8260  hi                                   19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep1 hinglish  whole              b_auto         14943  hi:0.73                              19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep1 hinglish  whole              c_detect_pick  15147  hi (en 0.08 / hi+ur 0.77) detect=6805ms    19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep2 hinglish  whole              a_forced_hi     8418  hi                                   19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep2 hinglish  whole              b_auto         15108  hi:0.73                              19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep2 hinglish  whole              c_detect_pick  15020  hi (en 0.08 / hi+ur 0.77) detect=6740ms    19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep3 hinglish  whole              a_forced_hi     8427  hi                                   19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep3 hinglish  whole              b_auto         14972  hi:0.73                              19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+rep3 hinglish  whole              c_detect_pick  15179  hi (en 0.08 / hi+ur 0.77) detect=6747ms    19    19    0    0 en             "iss me toh English and a little bit of English book mein let's see jeez wo karegi ki nahi"
+cut  hinglish  cut+0ms/243f       a_forced_hi     7742  hi                                    5     0    5    0 hi             '। । । । ।'
+cut  hinglish  cut+0ms/243f       b_auto         14333  hi:0.26                               5     0    5    0 hi             '। । । । ।'
+cut  hinglish  cut+0ms/243f       c_detect_pick  14574  hi (en 0.17 / hi+ur 0.28) detect=6767ms     5     0    5    0 hi             '। । । । ।'
+cut  hinglish  cut+7ms/244f       a_forced_hi     7782  hi                                    7     7    0    0 en             'isme toh english and aljutigo.english boob main'
+cut  hinglish  cut+7ms/244f       b_auto         14425  hi:0.30                               7     7    0    0 en             'isme toh english and aljutigo.english boob main'
+cut  hinglish  cut+7ms/244f       c_detect_pick  14722  hi (en 0.22 / hi+ur 0.32) detect=6796ms     7     7    0    0 en             'isme toh english and aljutigo.english boob main'
+cut  hinglish  cut+13ms/244f      a_forced_hi    10020  hi                                   12     0   12    0 hi             'इस में तो हिंट्रीश या और जुटिगो तो तो हिंट्रीश पुब में'
+cut  hinglish  cut+13ms/244f      b_auto         16690  hi:0.32                              12     0   12    0 hi             'इस में तो हिंट्रीश या और जुटिगो तो तो हिंट्रीश पुब में'
+cut  hinglish  cut+13ms/244f      c_detect_pick  16656  hi (en 0.16 / hi+ur 0.33) detect=6646ms    12     0   12    0 hi             'इस में तो हिंट्रीश या और जुटिगो तो तो हिंट्रीश पुब में'

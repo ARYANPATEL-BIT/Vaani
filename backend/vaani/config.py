@@ -134,6 +134,13 @@ class WhisperSettings(BaseModel):
     beam_size: int
     # Temperatures tried in turn when a decode looks bad. [0.0] = one decode.
     temperature: list[float]
+    # Choose en or hi per turn instead of always forcing [asr].language: a
+    # language-detection pass first (one more encoder pass), then a decode
+    # forced to the language it picked.
+    pick_language: bool
+    # In that pick, English wins only when its detected probability is at
+    # least this; otherwise the turn is decoded as [asr].language.
+    english_min_prob: float
 
     @model_validator(mode="before")
     @classmethod
@@ -174,6 +181,10 @@ class GroqAsrSettings(BaseModel):
     # Per-process cap on transcription requests, checked before each one is
     # sent. Separate from [llm].max_requests_per_process.
     max_requests_per_process: int
+    # Choose en or hi per turn: two requests at once, one auto-detected and
+    # one forced to [asr].language; the auto one is kept only if Groq says
+    # it heard English. Both count against the cap.
+    pick_language: bool
 
 
 class AsrSettings(BaseModel):
@@ -191,8 +202,9 @@ class AsrSettings(BaseModel):
     # Re-decode the growing utterance this often while the user speaks, to
     # produce transcript.partial. 0 = partials off.
     partial_interval_ms: int
-    # Forced language code, for both engines. Never auto-detect (see
-    # docs/spikes/asr-hinglish.md).
+    # Forced language code, for both engines. Never auto-detect alone (see
+    # docs/spikes/asr-hinglish.md); each engine's pick_language may choose
+    # English over it per turn.
     language: str
     # Example text in the style we want back (romanized Hinglish), for both
     # engines: faster-whisper's initial_prompt, Groq's prompt.
@@ -292,6 +304,22 @@ class GroqSettings(BaseModel):
     # because non-reasoning models reject these fields.
     reasoning_effort: str | None = None
     include_reasoning: bool | None = None
+
+
+class ReplyLanguageSettings(BaseModel):
+    """Per-turn reply-language text, under [reply_language] in config.toml.
+
+    persona.assemble adds `reminders[<language>]` after the current user
+    message; reply.py adds `retry_note` to it when a forced reply began in
+    the wrong script, and says `fallback[<language>]` if the retry did too.
+    """
+
+    # "en", "hi", "hinglish" -> the note after the user's message.
+    reminders: dict[str, str]
+    # Appended to the reminder on the one retry.
+    retry_note: str
+    # "en", "hi" -> the line said when the retry is in the wrong script too.
+    fallback: dict[str, str]
 
 
 class LLMSettings(BaseModel):
@@ -440,6 +468,7 @@ class Settings(BaseSettings):
     tts: TtsSettings
     chunker: ChunkerSettings
     guardrail: GuardrailSettings
+    reply_language: ReplyLanguageSettings
     db: DbSettings = DbSettings()
     auth: AuthSettings = AuthSettings()
     # Persona key -> system prompt. session.start's "persona" must be a key.

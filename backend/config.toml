@@ -157,8 +157,12 @@ partial_interval_ms = 0
 # new ones). Env overrides: VAANI_ASR__LANGUAGE, VAANI_ASR__INITIAL_PROMPT.
 #
 # Forced to Hindi. Auto-detection flips between hi, ur and la for the same
-# speaker, and "en" TRANSLATES Hindi into English instead of transcribing it.
-# Forcing "hi" still transcribes clean English correctly on large-v3.
+# speaker (Groq and large-v3 write pure Hindi as Urdu, in Arabic script), and
+# "en" TRANSLATES Hindi into English instead of transcribing it. But forced
+# "hi" also writes some ENGLISH speech in Devanagari letters ("हेलो इस एस ए
+# शॉर्ट टेस्ट", 2 of 6 English cuts on Groq), so each engine's pick_language
+# can choose English over it per turn (fix/language-and-login,
+# docs/findings/language/asr_experiment_20261127.txt).
 language = "hi"
 
 # Text "before" the audio, in the style we want back. A romanized Hinglish
@@ -190,6 +194,17 @@ beam_size = 5
 # A wrong transcript is recoverable; a 62 s stall loses the turn.
 temperature = [0.0]
 
+# Choose English or [asr].language per turn: detect_language first, then a
+# decode forced to the winner. English wins only when its probability is at
+# least english_min_prob: it was 1.00 on every English clip and at most 0.25
+# on every Hindi or Hinglish one, so 0.5 sits far from both. Off here: on
+# cpu/small the extra pass costs about 6.8 s and changes no transcript
+# (small writes Hindi in Latin letters anyway). ON for large-v3 on a GPU,
+# where it costs about 340 ms a turn:
+#   VAANI_ASR__WHISPER__PICK_LANGUAGE=true
+pick_language = false
+english_min_prob = 0.5
+
 [asr.groq]
 # Groq's hosted Whisper (vaani/asr/groq.py), used only with engine = "groq".
 # Each turn's 16 kHz mono audio is sent as one WAV to POST {base_url}/audio/
@@ -217,6 +232,15 @@ temperature = 0.0
 # a day, 7,200 audio seconds an hour, 28,800 a day. With the 10 s minimum,
 # that is at most 2,880 turns a day.
 max_requests_per_process = 200
+
+# Choose English or [asr].language per turn: TWO requests sent at once, one
+# auto-detected, one forced to [asr].language. The auto one is kept only if
+# Groq says it heard English; otherwise the forced one (auto writes pure Hindi
+# as Urdu, in Arabic script). 18 of 18 clips came out in the right script,
+# against 16 of 18 forced (docs/findings/language/). The turn waits for the
+# slower of the two, and every turn now costs TWO requests: against the cap
+# above, Groq's 20 a minute (10 turns) and the 10 s billing minimum.
+pick_language = true
 
 [llm]
 # Language model providers, first choice first. If one is rate-limited, times
@@ -492,6 +516,38 @@ patterns = [
     'इग्नोर',
 ]
 
+[reply_language]
+# Per-turn reply-language notes (fix/language-and-login). persona.assemble
+# puts one after the CURRENT user message only; history keeps the words as
+# spoken. Which note: a forced session's language (session.start
+# reply_language "en"/"hi"); else, when the ASR picked the language
+# (pick_language), "en", "hi", or "hinglish" for a hi turn with Latin words
+# in it. With neither, no note: the persona's own rule follows the message.
+# A note after the message is needed on top of the system prompt's "Reply
+# language" line: with only that line, a forced English session answered 8 of
+# 9 Hindi messages in Hindi (docs/findings/language/
+# reply_language_probes_20261127.txt).
+#
+# The hi and hinglish notes ask for English words IN DEVANAGARI: the Hindi
+# voice cannot read Latin letters. In a forced Hindi session speaker.py strips
+# any that still reach it and logs how many; that strip is the safety net,
+# this note is the fix.
+#
+# Added to the note on the ONE retry, when a forced reply's first chunk came
+# back in the other script (reply.py). The retry is another LLM request.
+retry_note = "Follow this note exactly: a reply in any other script cannot be spoken."
+
+[reply_language.reminders]
+en = "(Reply language for this message: English, in Latin script, even if the message is in Hindi or asks for another language.)"
+hi = "(Reply language for this message: Hindi, entirely in Devanagari script, even if the message is in English or asks for another language. Write every English word, name, brand, abbreviation and formula in Devanagari too, like \"वाईफ़ाई\", \"मीटिंग\", \"लीटकोड\", \"ओ एन\"; never Latin letters and never code: this reply is spoken aloud.)"
+hinglish = "(Reply language for this message: Hinglish, the same Hindi-English mix the user spoke, written entirely in Devanagari script: every English word, name, brand, abbreviation and formula in Devanagari too, like \"वाईफ़ाई\", \"मीटिंग\", \"लीटकोड\", \"ओ एन\"; never Latin letters and never code: this reply is spoken aloud.)"
+
+# Said, and shown, when the retry is in the wrong script too. Gender-neutral:
+# the tutor's voice is male, the other two female.
+[reply_language.fallback]
+en = "Sorry, I couldn't answer that just now. Please ask again."
+hi = "माफ़ कीजिए, इसका जवाब अभी नहीं मिल सका। कृपया फिर से पूछिए।"
+
 [personas]
 # One system prompt per persona key. session.start's "persona" field must be
 # one of these keys, or the session is refused. Kept short on purpose: the
@@ -555,7 +611,9 @@ patterns = [
 # question you need" half of its last rule.
 default = """You are a friendly voice assistant. Reply in the user's \
 language. If a "Reply language" line ends this prompt, it overrides every \
-language rule here: reply in that language and script. An English message \
+language rule here: reply in that language and script. \
+So does a "(Reply language for this message" note after the \
+message, even if the user asks for another language. An English message \
 always gets an English reply in Latin script, \
 even when you decline or give your role. A Hindi or Hinglish message, even in \
 Latin letters like "kal meeting hai", gets a Hindi reply entirely in \
@@ -577,7 +635,9 @@ emoji."""
 
 tutor = """You are a patient tutor. Reply in the user's language. If a \
 "Reply language" line ends this prompt, it overrides every language rule \
-here: reply in that language and script. An English message always gets \
+here: reply in that language and script. \
+So does a "(Reply language for this message" note after the \
+message, even if the user asks for another language. An English message always gets \
 an English reply in Latin script, even when you \
 decline or give your role. A Hindi or Hinglish message, even in Latin letters \
 like "kal meeting hai", gets a Hindi reply entirely in Devanagari: English \
@@ -599,7 +659,9 @@ markdown or emoji."""
 
 support = """You are a customer support agent. Reply in the user's \
 language. If a "Reply language" line ends this prompt, it overrides every \
-language rule here: reply in that language and script. An English message \
+language rule here: reply in that language and script. \
+So does a "(Reply language for this message" note after the \
+message, even if the user asks for another language. An English message \
 always gets an English reply in Latin script, \
 even when you decline or give your role. A Hindi or Hinglish message, even in \
 Latin letters like "kal meeting hai", gets a Hindi reply entirely in \

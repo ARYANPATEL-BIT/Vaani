@@ -1,0 +1,105 @@
+Last 8 sessions with turns, from the turn log (backend/data/vaani.db, opened read-only), 2026-11-27.
+Pulled for fix/language-and-login item 1: compare "heard (ASR)" with what you actually said.
+
+What the turn log does NOT record (so it cannot be read back here):
+  - which ASR engine ran. Your backend/.env sets faster-whisper large-v3 / cuda / float16 and no
+    VAANI_ASR__ENGINE, so the 11:00-11:05 UTC sessions were local GPU Whisper unless you overrode
+    it in the shell. The 09:49 and 09:50 sessions are the fix/studio-verify loopback runs of the
+    SAPI English fixture (speech_16k_mono.wav), Groq (docs/findings/groq-stt/english_script_20261127.txt).
+  - the session's reply_language (Auto / EN / hi). The sessions table has no column for it.
+  - the language the recogniser reported. Both engines force "hi", so it would always say "hi".
+user_script / reply_script: vaani/language.py's rule, 'hi' = contains Devanagari, 'en' = none.
+LLM for every replied turn: groq openai/gpt-oss-20b.
+
+Reading of the evidence (mine, marked "guess" where I cannot know what was said):
+  * 09:49 turns 2-3, 09:50 turn 2: the SAME English audio came back as Devanagari transliteration
+    ("hello is es es es test voice activity detection for divani project", written in Devanagari),
+    so the model treated it as Hindi and replied in Hindi. Under forced "hi" the script flips.
+  * 11:03 session, turn 1 (guess: "teach me how to do three sum in LeetCode ... in code"):
+    English speech written in Devanagari, and words lost in the process ("LeetCode" -> "lead ko").
+    The reply is Hindi because the transcript looks Hindi.
+  * 11:03 turn 2 (guess: "let's talk in English, yaar"), turn 4 (guess: "in English, written"):
+    English again written in Devanagari. Only turn 3 ("teach me each step in about 500 words")
+    came back in Latin letters. So 3 of the 4 English utterances in that session were transliterated.
+  * 11:01:44 turn 4 and 11:02:46 turn 1: Whisper repetition loops ("ki English mein baat karun" x4,
+    "lute" x12, asr 8353 ms). A different failure (hallucination on noise/pauses), noted, not in scope.
+
+== session c4bca6cb15ad4261b259fe082f59b598  started 2026-11-27 09:49:03.615 UTC  ended 2026-11-27 09:49:45.805  persona=default mode=vad
+  turn 1  outcome=replied user_script=en reply_script=en provider=groq error=None asr_ms=542 end_to_first_audio_ms=2251
+    heard (ASR): 'Hello, this is a short test of voice activity detection for the Vani project.'
+    reply      : 'Hi! How can I assist you with the Vani project?'
+  turn 2  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=728 end_to_first_audio_ms=2351
+    heard (ASR): 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+    reply      : 'हेलो! दिवानी प्रोजेक्ट के लिए वॉइस एक्टिविटी डिटेक्शन में मैं कैसे मदद कर सकती हूँ?'
+  turn 3  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=458 end_to_first_audio_ms=1940
+    heard (ASR): 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+    reply      : 'हेलो! दिवानी प्रोजेक्ट के लिए एसएसएस टेस्ट वॉइस एक्टिविटी डिटेक्शन में मैं कैसे मदद कर सकती हूँ?'
+
+== session daed9dabecf74eeea93cb5ae566d2e02  started 2026-11-27 09:50:08.215 UTC  ended 2026-11-27 09:50:45.925  persona=default mode=vad
+  turn 1  outcome=replied user_script=en reply_script=en provider=groq error=None asr_ms=337 end_to_first_audio_ms=2060
+    heard (ASR): 'Hello, this is a short test of voice activity detection for the Vani project.'
+    reply      : "Hi! I'm your assistant. Let me know how I can help with the Vani project."
+  turn 2  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=515 end_to_first_audio_ms=1953
+    heard (ASR): 'हेलो इस एस एस एस टेस्ट वॉइस एक्टिविटी डिटेक्शन फॉर दिवानी प्रॉजेक्ट'
+    reply      : 'हेलो! मैं आपकी सहायता के लिए यहाँ हूँ। आप कैसे मदद चाहते हैं?'
+  turn 3  outcome=replied user_script=en reply_script=en provider=groq error=None asr_ms=311 end_to_first_audio_ms=1971
+    heard (ASR): 'Hello, this is a short test of voice activity detection for the Vani project.'
+    reply      : "Hello! I'm ready to help with your Vani project. Let me know what you need."
+
+== session 270fbeabdb04448e8bb04ac57cbe906b  started 2026-11-27 11:00:56.628 UTC  ended 2026-11-27 11:01:09.325  persona=tutor mode=ptt
+  turn 1  outcome=closed user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+
+== session 1b9d984c017b430b86420d7ff556dd14  started 2026-11-27 11:01:11.431 UTC  ended 2026-11-27 11:01:22.362  persona=tutor mode=ptt
+  turn 1  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=1245 end_to_first_audio_ms=3630
+    heard (ASR): 'कर दो'
+    reply      : 'कृपया बताइए कि आप किस विषय या कार्य पर मदद चाहते हैं।'
+
+== session df5b02b88eb5454c99895b10c4c3f9dc  started 2026-11-27 11:01:38.072 UTC  ended 2026-11-27 11:01:42.396  persona=default mode=vad
+  turn 1  outcome=closed user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+
+== session 815fa89357364a208449c2f2c3205191  started 2026-11-27 11:01:44.183 UTC  ended 2026-11-27 11:02:11.105  persona=default mode=vad
+  turn 1  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=1120 end_to_first_audio_ms=3196
+    heard (ASR): 'हेलो'
+    reply      : 'नमस्ते, आप कैसे हैं?'
+  turn 2  outcome=cut user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+  turn 3  outcome=cut user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+  turn 4  outcome=cut user_script=hi reply_script=en provider=groq error=None asr_ms=2585 end_to_first_audio_ms=-
+    heard (ASR): 'कि इंग्लिश में बात करूं कि इंग्लिश में बात करूं कि इंग्लिश में बात करूं कि इंग्लिश में बात करूं कि English में बात करो English में बात कर भूतिनी की'
+    reply      : 'Sure, I'
+  turn 5  outcome=closed user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+
+== session cc476055c9ae4df48facd13258e888ca  started 2026-11-27 11:02:46.849 UTC  ended 2026-11-27 11:03:43.714  persona=default mode=ptt
+  turn 1  outcome=replied user_script=hi reply_script=hi provider=groq error=None asr_ms=8353 end_to_first_audio_ms=10240
+    heard (ASR): 'लुटे लुटे लुटे लुटे लुटे लुटे लुटे लुटे लुटे लुटे लुटे लुटे'
+    reply      : 'सुनकर खुशी हुई कि आप उत्साहित हैं। क्या मैं आपकी किसी और तरह से सहायता कर सकती हूँ?'
+  turn 2  outcome=replied user_script=en reply_script=en provider=groq error=None asr_ms=1273 end_to_first_audio_ms=2210
+    heard (ASR): 'toh i just thank you'
+    reply      : "You're welcome!"
+  turn 3  outcome=empty user_script=None reply_script=None provider=None error=None asr_ms=- end_to_first_audio_ms=-
+    heard (ASR): None
+    reply      : None
+
+== session fa38fbab3bf344a09c67b50a80c87225  started 2026-11-27 11:03:47.157 UTC  ended 2026-11-27 11:05:36.031  persona=tutor mode=ptt
+  turn 1  outcome=cut user_script=hi reply_script=hi provider=groq error=None asr_ms=5322 end_to_first_audio_ms=7123
+    heard (ASR): 'टीज में हाउ टू डू थ्री सम इन लीड को डीएसेज इन कोर्ट'
+    reply      : 'इस विषय में एक बार में एक ही कदम समझें। पहला, लीड को डीएसेज में बदलने के लिए आपको लीड को सही तापमान और समय पर रखना होगा। क्या आपने लीड को पहले से तैयार किया है?'
+  turn 2  outcome=replied user_script=hi reply_script=en provider=groq error=None asr_ms=3378 end_to_first_audio_ms=4386
+    heard (ASR): 'कि लेट्स टॉक इन इंग्लिश झाल'
+    reply      : "Sure, let's discuss how to do a triple sum in a lead to Daseg in court. First, we need to set up the problem: identify the three sums you want to combine. Then, write each sum separately with its variables. After that, add the three sums together, simplifying any like terms. Let me know if you need help with a specific example."
+  turn 3  outcome=cut user_script=en reply_script=hi provider=groq error=None asr_ms=1397 end_to_first_audio_ms=2766
+    heard (ASR): 'teach me each step in about 500 words'
+    reply      : 'पहला कदम: समस्या को परिभाषित करें। किसी भी लीड‑टू‑डेसिग (lead-to-deseg) केस में तीन अलग‑अलग योग (sum) होने चाहिए जिन्हें आप संयोजित करना चाहते हैं। उदाहरण'
+  turn 4  outcome=closed user_script=hi reply_script=en provider=groq error=None asr_ms=2568 end_to_first_audio_ms=3652
+    heard (ASR): 'इन इंग्लिश ब्रिटन'
+    reply      : 'First, identify the three separate sums you need to add together. For example, if you have\u202fΣ₁\u202f=\u202f∑\u202faᵢ,\u202fΣ₂\u202f=\u202f∑\u202fbᵢ, and\u202fΣ₃\u202f=\u202f∑\u202fcᵢ, write each one out explicitly so you can see the terms. Second, combine them term‑by‑term: the total sum\u202fΣ\u202f=\u202fΣ₁\u202f+\u202fΣ₂\u202f+\u202fΣ₃\u202f=\u202f∑\u202f(aᵢ\u202f+\u202fbᵢ\u202f+\u202fcᵢ). This step often requires aligning indices so each\u202fi\u202fcorresponds across the sums. Third, simplify the resulting expression, grouping like terms if possible and applying any algebraic identities (e.g., distributive law) to reduce the sum to a single, compact form.'
+

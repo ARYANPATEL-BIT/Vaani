@@ -32,10 +32,15 @@ PCM = b"\x01\x00\x02\x00" * 8000  # 1 s of 16 kHz 16-bit audio
 BACKEND = Path(__file__).resolve().parent.parent
 
 
-def groq_cfg(**update):
+def groq_cfg(pick: bool = False, **update):
     # _env_file=None: a developer's backend/.env must not change these tests.
+    # pick_language off unless asked: these tests are about ONE request; the
+    # two-request pick is tested in test_asr_language_pick.py.
     base = Settings(_env_file=None).asr
-    return base.model_copy(update={"enabled": True, "engine": "groq", **update})
+    groq = base.groq.model_copy(update={"pick_language": pick})
+    return base.model_copy(
+        update={"enabled": True, "engine": "groq", "groq": groq, **update}
+    )
 
 
 def make(handler, cap: RequestCap | None = None, **cfg) -> GroqRecognizer:
@@ -245,7 +250,7 @@ def test_a_groq_failure_reaches_the_browser_as_asr_failed() -> None:
     async def send(msg: dict) -> None:
         sent.append(msg)
 
-    async def on_final(turn_id: str, text: str | None) -> None:
+    async def on_final(turn_id: str, text: str | None, picked: str | None) -> None:
         finals.append((turn_id, text))
 
     async def scenario() -> None:
